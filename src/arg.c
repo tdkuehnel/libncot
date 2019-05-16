@@ -14,7 +14,7 @@ const char *argp_program_bug_address = PACKAGE_BUGREPORT;
 
 /* Program documentation. */
 static char doc[] =
-  "nct -- Network of Circle of Trust Client";
+  "ncot -- Network of Circle of Trust Client";
 
 /* A description of the arguments we accept. */
 static char args_doc[] = "[OPTION...]";
@@ -38,7 +38,7 @@ parse_opt (int key, char *arg, struct argp_state *state)
 {
   /* Get the input argument from argp_parse, which we
      know is a pointer to our arguments structure. */
-  nctarguments *arguments = state->input;
+  ncotarguments *arguments = state->input;
   
   switch (key)
     {
@@ -84,15 +84,15 @@ parse_opt (int key, char *arg, struct argp_state *state)
 /* Our argp parser. */
 static struct argp argp = { options, parse_opt, args_doc, doc };
 
-void nct_arg_parse(nctarguments *arguments, int argc, char **argv) {
+void ncot_arg_parse(ncotarguments *arguments, int argc, char **argv) {
 
   /* fill in default values */
-  /* FIXME: take nct.conf path from configure values */
-  arguments->config_file = "/etc/nctd.conf";
-  arguments->log_level = NCT_LOG_LEVEL_DEFAULT;
-  arguments->pidfile_name = "nctd.pid";
+  /* FIXME: take ncot.conf path from configure values */
+  arguments->config_file = "/etc/ncotd.conf";
+  arguments->log_level = NCOT_LOG_LEVEL_DEFAULT;
+  arguments->pidfile_name = "ncotd.pid";
 
-  NCT_DEBUG ("OUTPUT_FILE = %s\n"
+  NCOT_DEBUG ("OUTPUT_FILE = %s\n"
 		"VERBOSE = %s\nSILENT = %s\nLOG_LEVEL = %d\n\n",
 		arguments->config_file,
 		arguments->verbose ? "yes" : "no",
@@ -102,7 +102,7 @@ void nct_arg_parse(nctarguments *arguments, int argc, char **argv) {
   /* FIXME: argp_parse drops out if help/usage is displayed or wrong params provided. Need proper program cleanup. */
   argp_parse (&argp, argc, argv, 0, 0, arguments);
 
-  NCT_DEBUG ("OUTPUT_FILE = %s\n"
+  NCOT_DEBUG ("OUTPUT_FILE = %s\n"
 		"VERBOSE = %s\nSILENT = %s\nLOG_LEVEL = %d\n\n",
 		arguments->config_file,
 		arguments->verbose ? "yes" : "no",

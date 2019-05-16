@@ -1,8 +1,8 @@
-#ifndef _NCT_ARG_
-#define _NCT_ARG_
+#ifndef _NCOT_ARG_
+#define _NCOT_ARG_
 
 /* from main config or command line arguments. */
-typedef struct nctarguments
+typedef struct ncotarguments
 {
   char *args[2];                /* arg1 & arg2 */
   int silent, verbose;
@@ -10,8 +10,8 @@ typedef struct nctarguments
   char *pidfile_name;
   int log_level;
   int daemonize;
-} nctarguments;
+} ncotarguments;
 
-void nct_arg_parse(nctarguments *arguments, int argc, char **argv);
+void ncot_arg_parse(ncotarguments *arguments, int argc, char **argv);
 
 #endif

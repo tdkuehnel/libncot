@@ -3,6 +3,8 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <fcntl.h>
+#include <stdio.h>
 
 /*#include "../src/config.h"
 #include "../src/helper.h"
@@ -21,22 +23,34 @@ void teardown()
 
 START_TEST (test_ncot)
 {
-  int i;
+  int i, fd, pid;
   struct stat pidfilestat;
+  char pidbuf[7] = {0};
   /* Remove stale pid files from failed tests */
   /*system("unlink ncotd1.pid");*/
+
+  printf("test_ncot PID is %ld\n", (long) getpid());
 
   i = system("../src/ncotd -d --pidfile=ncotd1.pid");
   ck_assert(i == 0);
   sleep(1);
   i = stat(PIDFILE_NAME_1, &pidfilestat);
   ck_assert(i == 0);
+
+  fd = open(PIDFILE_NAME_1, O_RDONLY);
+  ck_assert(fd > 0);
+
+  read(fd, &pidbuf, 6);
+  pid = strtol((const char*)&pidbuf, NULL, 10);
+
+  close(fd);
+    
   i = system("cat ncotd1.pid | xargs kill");
-  ck_assert(i == 0);
+  /*  ck_assert(i == 0);
   sleep(1);
   i = stat(PIDFILE_NAME_1, &pidfilestat);
   ck_assert(i == 0);
-  
+  */
 
 }
 END_TEST
@@ -66,6 +80,7 @@ int main(void)
   
   s = helper_suite();
   sr = srunner_create(s);
+  srunner_set_fork_status (sr, CK_FORK);
   
   srunner_run_all(sr, CK_NORMAL);
   number_failed = srunner_ntests_failed(sr);

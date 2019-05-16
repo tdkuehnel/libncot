@@ -1,23 +1,23 @@
 #include "context.h"
 
-nctcontext *nct_context_new() {
-  nctcontext *context;
-  context = calloc(1, sizeof(nctcontext));
+ncotcontext *ncot_context_new() {
+  ncotcontext *context;
+  context = calloc(1, sizeof(ncotcontext));
   return context;
 }
 
-void nct_context_init(nctcontext *context) {
+void ncot_context_init(ncotcontext *context) {
   if (context) {
-    /*    context->config = nct_config_new(); */
-    context->arguments = calloc(1, sizeof(nctarguments));    
+    /*    context->config = ncot_config_new(); */
+    context->arguments = calloc(1, sizeof(ncotarguments));    
     context->globalnodelist = NULL;
   } else {
-    NCT_LOG_WARNING("Invalid context passed to nct_context_init\n");
+    NCOT_LOG_WARNING("Invalid context passed to ncot_context_init\n");
   }
 }
 
-void nct_context_free(nctcontext **pcontext) {
-  nctcontext *context;
+void ncot_context_free(ncotcontext **pcontext) {
+  ncotcontext *context;
   if (pcontext) {
     context = *pcontext;
     if (context) {
@@ -27,8 +27,8 @@ void nct_context_free(nctcontext **pcontext) {
       free(context);
       *pcontext = NULL;
     } else
-      NCT_LOG_ERROR("Invalid context\n");
+      NCOT_LOG_ERROR("Invalid context\n");
   } else 
-    NCT_LOG_ERROR("Invalid argument (*context)\n");
+    NCOT_LOG_ERROR("Invalid argument (*context)\n");
 }
 

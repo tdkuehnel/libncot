@@ -1,9 +1,9 @@
-#ifndef NCT_CONTEXT_H
-#define NCT_CONTEXT_H
+#ifndef NCOT_CONTEXT_H
+#define NCOT_CONTEXT_H
 
 #include <stdio.h>
 
-struct nctcontext;
+struct ncotcontext;
 
 /*#include "helper.h"
 #include "command.h"
@@ -15,19 +15,19 @@ struct nctcontext;
 #include "log.h"
 #include "arg.h"
 
-typedef struct nctcontext {
+typedef struct ncotcontext {
 
-  /* nctconfig *config; */
-  nctarguments *arguments;
+  /* ncotconfig *config; */
+  ncotarguments *arguments;
 
   /* global main stuff */ 
 
-  struct nctnode *globalnodelist;
+  struct ncotnode *globalnodelist;
 
-} nctcontext;
+} ncotcontext;
 
-nctcontext *nct_context_new();
-void nct_context_init(nctcontext *context);
-void nct_context_free(nctcontext **context);
+ncotcontext *ncot_context_new();
+void ncot_context_init(ncotcontext *context);
+void ncot_context_free(ncotcontext **context);
 
 #endif

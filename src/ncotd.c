@@ -45,6 +45,7 @@ void setup_listen_socket()
 int daemonize()
 {
   int i, fd, pid;
+  pid_t sid;
   struct stat pidfilestat;
   char pidbuf[7] = {0};
   
@@ -82,7 +83,14 @@ int daemonize()
     NCOT_LOG_INFO("parent exiting, pid of child: %d\n", i);
     ncot_context_free(&context);
     ncot_done();
-    exit(EXIT_SUCCESS);
+    _exit(EXIT_SUCCESS);
+  }
+  sid = setsid();
+  if (sid < 0) {
+    NCOT_LOG_INFO("unable for child to setsid, exiting %d\n");
+    ncot_context_free(&context);
+    ncot_done();
+    exit(EXIT_FAILURE);
   }
   i = fork();
   if (i < 0) {
@@ -103,7 +111,8 @@ int daemonize()
     ncot_done();
     exit(EXIT_SUCCESS);
   }
-  NCOT_LOG_INFO("child daemonized\n");
+  ncot_log_set_logfile();
+  NCOT_LOG_INFO("%s child daemonized\n", PACKAGE_STRING);
   
 }
 
@@ -131,6 +140,9 @@ void ncot_client_init(int argc, char **argv) {
   ncot_init();
   NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client");
   if (context->arguments->daemonize) daemonize();    
+  if (context->arguments->daemonize) NCOT_LOG_INFO("%s Looks like we are running as a deamon, good.\n", PACKAGE_STRING);
+
+  NCOT_LOG_INFO("%s our PID is %ld\n", PACKAGE_STRING, (long) getpid());
 
   node = ncot_node_new();
   if (node) {
@@ -198,11 +210,11 @@ int main(int argc, char **argv)
   NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%d signals handled\n", count);
   kill(gpid, SIGTERM);
 
-  NCOT_LOG(NCOT_LOG_LEVEL_INFO, "done\n");
-
   ncot_node_free(&node);
 
   ncot_context_free(&context);
+
+  NCOT_LOG(NCOT_LOG_LEVEL_INFO, "done\n");
   ncot_done();
 
   return 0;

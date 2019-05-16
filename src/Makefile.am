@@ -8,7 +8,7 @@ libncot_la_LIBADD = @UUID_LIBS@ @GNUTLS_LIBS@
 
 bin_PROGRAMS = ncot ncotd
 ncot_SOURCES = ncotclient.c
-ncot_LDADD = libnct.la @GNUTLS_LIBS@
+ncot_LDADD = libncot.la @GNUTLS_LIBS@
 
 ncotd_SOURCES = ncotd.c
 ncotd_LDADD = libncot.la @GNUTLS_LIBS@

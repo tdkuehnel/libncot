@@ -49,3 +49,5 @@ src/tcpclient
 
 tests/*log
 tests/*trs
+ncotd.pid
+tests/ncotd1.pid

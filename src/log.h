@@ -27,6 +27,7 @@ typedef void (*ncot_log_pointer)(int, const char *, ...);
 extern ncot_log_pointer log_ptr;
 
 void ncot_log_init(int level);
+void ncot_log_set_logfile();
 void ncot_log_done();
 
 /* Our different log functions */
