@@ -28,6 +28,8 @@ START_TEST (test_ncot)
   char pidbuf[7] = {0};
   /* Remove stale pid files from failed tests */
   /*system("unlink ncotd1.pid");*/
+  i = stat(PIDFILE_NAME_1, &pidfilestat);
+  if (i == 0) unlink(PIDFILE_NAME_1);
 
   printf("test_ncot PID is %ld\n", (long) getpid());
 
@@ -46,11 +48,12 @@ START_TEST (test_ncot)
   close(fd);
     
   i = system("cat ncotd1.pid | xargs kill");
-  /*  ck_assert(i == 0);
-  sleep(1);
-  i = stat(PIDFILE_NAME_1, &pidfilestat);
   ck_assert(i == 0);
-  */
+
+  sleep(1);
+
+  i = stat(PIDFILE_NAME_1, &pidfilestat);
+  ck_assert(i != 0);
 
 }
 END_TEST

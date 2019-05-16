@@ -212,6 +212,11 @@ int main(int argc, char **argv)
 
   ncot_node_free(&node);
 
+  if (context->arguments->daemonize) {
+    struct stat pidfilestat;
+    if (stat(context->arguments->pidfile_name, &pidfilestat) == 0) unlink(context->arguments->pidfile_name);      
+  }
+
   ncot_context_free(&context);
 
   NCOT_LOG(NCOT_LOG_LEVEL_INFO, "done\n");
