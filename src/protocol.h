@@ -21,6 +21,8 @@ struct ncotcontrolpacket {
    makes any sense.
 */
 
+
+/* The most important early product on the way to developing a good product is an imperfect version*/
 int ncot_control_packet_validate(struct ncotcontrolpacket *packet);
 
 #endif
