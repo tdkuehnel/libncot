@@ -1,1 +1,14 @@
-Write tests that check the implementation of asynchronous operation for a listening socket and several connected sockets.
+Write tests that check the implementation of asynchronous operation for a listening socket and several connected sockets. <- out of date
+
+Write tests to fire up two daemons, let each create a node and let those nodes connect with a pre shared secret over a secure tcp connection.
+
+Beforehand write a test for the not implemeted control connection protocol and its behaviour. This is needed to control the daemons at all.
+This involves to test the command line ncot client which establishes such a connection.
+
+Or we could write a testsuite where we call the libncot routines by hand, mimicking a client and two daemons and do the connections by hand.
+
+Maybe first work on proper libncot function names to get a clean interface. schema is:
+
+ncot_<library_part>_function_name where library_part is something like circle, node, controlpacket, request and such.
+
+Get this stuff running !!
