@@ -41,11 +41,18 @@ void ncot_connection_close(struct ncot_connection *connection)
     NCOT_LOG_ERROR("Invalid argument (*connection)\n"); 
 }
 
-void ncot_connection_free(struct ncot_connection *connection)
+void ncot_connection_free(struct ncot_connection **pconnection)
 {
-  if (connection)
+  struct ncot_connection *connection;
+  if (pconnection)
     {
-      free(connection);
+      connection = *pconnection;
+      if (connection)
+	{
+	  free(connection);
+	  *pconnection = NULL;
+	} else
+	NCOT_LOG_ERROR("Invalid ncot_connection\n");	
     } else 
     NCOT_LOG_ERROR("Invalid argument (*connection)\n");
 }

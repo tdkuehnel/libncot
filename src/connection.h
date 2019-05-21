@@ -90,6 +90,7 @@ struct ncot_connection {
 };
 
 struct ncot_connection *ncot_connection_new();
-void ncot_connection_free(struct ncot_connection *connection);
+void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
+void ncot_connection_free(struct ncot_connection **connection);
 
 #endif
