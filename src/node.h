@@ -1,6 +1,9 @@
 #ifndef NCOT_NODE
 #define NCOT_NODE
 
+#include <uuid.h>
+#include "connection.h"
+
 /* A node is a possible participant in a circle of other nodes. Every
    node has three possible encrypted connections, two connections for
    each direction of the ring it possibly participates in, and one for
@@ -107,5 +110,14 @@
    place where any interconnection communication between rings
    occurs.
 */
+
+struct ncot_node {
+  struct ncot_connection *connections;
+  uuid_t *uuid;
+};
+
+struct ncot_node *ncot_node_new();
+void ncot_node_free(struct ncot_node **pnode);
+void ncot_node_init(struct ncot_node *node);
 
 #endif

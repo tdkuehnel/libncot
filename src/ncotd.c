@@ -11,7 +11,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include <ncot.h>
+#include "ncot.h"
+#include "node.h"
 
 #include "utlist.h"
 
@@ -22,7 +23,7 @@
 #include "log.h"
 
 ncotcontext *context; 
-ncot_node_t *node;
+struct ncot_node *node;
 
 int count = 0;
 int last_signum = 0;

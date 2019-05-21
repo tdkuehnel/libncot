@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libncot.la
-libncot_la_SOURCES = ncot.c ncot.h debug.h log.c log.h utlist.h context.c context.h arg.c arg.h
+libncot_la_SOURCES = ncot.c ncot.h debug.h log.c log.h utlist.h context.c context.h arg.c arg.h connection.h connection.c node.h node.c
 
 include_HEADERS = ncot.h
 
