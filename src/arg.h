@@ -2,16 +2,18 @@
 #define _NCOT_ARG_
 
 /* from main config or command line arguments. */
-typedef struct ncotarguments
+struct ncot_arguments
 {
-  char *args[2];                /* arg1 & arg2 */
-  int silent, verbose;
-  char *config_file;
-  char *pidfile_name;
-  int log_level;
-  int daemonize;
-} ncotarguments;
+	char *args[2];                /* arg1 & arg2 */
+	int silent, verbose;
+	char *config_file;
+	char *pidfile_name;
+	char *port;
+	char *address_ip4;
+	int log_level;
+	int daemonize;
+};
 
-void ncot_arg_parse(ncotarguments *arguments, int argc, char **argv);
+void ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv);
 
 #endif

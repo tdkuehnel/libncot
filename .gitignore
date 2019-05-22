@@ -51,3 +51,5 @@ tests/*log
 tests/*trs
 ncotd.pid
 tests/ncotd1.pid
+tests/check_node
+tests/check_connection

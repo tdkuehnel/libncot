@@ -3,31 +3,33 @@
 
 #include <stdio.h>
 
-struct ncotcontext;
+struct ncot_context;
 
 /*#include "helper.h"
-#include "command.h"
-#include "process.h"
-#include "pipe.h"
-#include "config.h"
+  #include "command.h"
+  #include "process.h"
+  #include "pipe.h"
+  #include "config.h"
 */
 
 #include "log.h"
 #include "arg.h"
+#include "connection.h"
 
-typedef struct ncotcontext {
+struct ncot_context {
 
-  /* ncotconfig *config; */
-  ncotarguments *arguments;
+	/* ncotconfig *config; */
+	struct ncot_arguments *arguments;
 
-  /* global main stuff */ 
+	/* global main stuff */
+	struct ncot_node *globalnodelist;
 
-  struct ncotnode *globalnodelist;
+	/* our dedicated control connection for the daemon, if any */
+	struct ncot_connection *controlconnection;
+};
 
-} ncotcontext;
-
-ncotcontext *ncot_context_new();
-void ncot_context_init(ncotcontext *context);
-void ncot_context_free(ncotcontext **context);
+struct ncot_context *ncot_context_new();
+void ncot_context_init(struct ncot_context *context);
+void ncot_context_free(struct ncot_context **context);
 
 #endif

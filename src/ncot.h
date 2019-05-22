@@ -8,9 +8,16 @@
 #include <netinet/in.h>
 #include <gnutls/gnutls.h>
 
+#include "context.h"
+
 typedef struct ncot_identity_t {
   uuid_t *uuid;
 } ncot_identity_t;
+
+void
+ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds);
+void
+ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds);
 
 ncot_identity_t *ncot_identity_new();
 void ncot_identity_free(ncot_identity_t **pidentity);

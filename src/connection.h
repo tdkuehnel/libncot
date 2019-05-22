@@ -30,7 +30,7 @@
    such keys which then need to be communicated out of band. This
    should be a chosable user option too, as it can provide definitely
    secure tokens compared to a self choosen password.
-   
+
    We start with the more secure PSK DHE_PSK
 
    Since there is no real destinction between a client and a server in
@@ -45,52 +45,64 @@
 /* Maximum pending listen queue length */
 
 #define LISTEN_BACKLOG 12
+#define NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH 1024
 
 /* This is for quick distinction between the three possible connection
    types */
 
 enum ncot_connection_type {
-  /* control connection used for a deamon */
-  NCOT_CONN_CONTROL, 
-  /* connection is to a neighbour node in a ring, either direction */
-  NCOT_CONN_NODE, 
-  /* connection is the dangling one to listen on for new node
-     requests */
-  NCOT_CONN_LISTEN,
-  /* connection is used to initiate a communication to another node */
-  NCOT_CONN_INITIATE
+	/* control connection used for a deamon */
+	NCOT_CONN_CONTROL,
+	/* connection is to a neighbour node in a ring, either direction */
+	NCOT_CONN_NODE,
+	/* connection is the dangling one to listen on for new node
+	   requests */
+	NCOT_CONN_INCOMING,
+	/* connection is used to initiate a communication to another node */
+	NCOT_CONN_INITIATE
 };
 
 /* We will see if we need this at all. Is for quick determination whats
    up with the conn */
 
 enum ncot_connection_status {
-  NCOT_CONN_CONNECTED,
-  NCOT_CONN_CLOSED,
-  NCOT_CONN_INIT
+	NCOT_CONN_AVAILABLE,
+	NCOT_CONN_CONNECTED,
+	NCOT_CONN_LISTEN,
+	NCOT_CONN_BOUND,
+	NCOT_CONN_INIT
 };
-  
+
 /* The conn struct itself. Content taken from one of the examples of
    the GnuTLS package. */
 
 struct ncot_connection;
 
 struct ncot_connection {
-  struct ncot_connection *prev;
-  struct ncot_connection *next;
-  int fd;
-  struct sockaddr_in sa_serv;
-  struct sockaddr_in sa_cli;
-  socklen_t client_len;
-  char topbuf[512];
-  gnutls_session_t session;
-  gnutls_anon_server_credentials_t anoncred;  
-  enum ncot_connection_type type;
-  enum ncot_connection_status status;
+	struct ncot_connection *prev;
+	struct ncot_connection *next;
+	int sd;
+	struct sockaddr_in sa_server;
+	struct sockaddr_in sa_client;
+	struct sockaddr client;
+	socklen_t client_len;
+	char topbuf[512];
+	char buffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
+	gnutls_session_t session;
+	gnutls_anon_server_credentials_t servercred;
+	gnutls_anon_client_credentials_t clientcred;
+	enum ncot_connection_type type;
+	enum ncot_connection_status status;
+	int optval;
 };
 
 struct ncot_connection *ncot_connection_new();
 void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
+int ncot_connection_listen(struct ncot_connection *connection, int port);
+int ncot_connection_connect(struct ncot_connection *connection, const char *port, const char *address);
+int ncot_connection_accept(struct ncot_connection *connection);
+int ncot_connection_read_data(struct ncot_connection *connection);
+int ncot_connection_write_data(struct ncot_connection *connection);
 void ncot_connection_free(struct ncot_connection **connection);
 
 #endif
