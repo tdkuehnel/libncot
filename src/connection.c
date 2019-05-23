@@ -1,6 +1,8 @@
 #include "autoconfig.h"
 #include <unistd.h>
 #include <string.h>
+#include <sys/types.h>
+#include <sys/socket.h>
 #include "log.h"
 #include "connection.h"
 
@@ -47,6 +49,9 @@ ncot_connection_accept(struct ncot_connection *connection)
 int
 ncot_connection_read_data(struct ncot_connection *connection)
 {
+	int r;
+	r = recv(connection->sd, &connection->buffer, NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH, MSG_DONTWAIT);
+	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n");
 }
 
 int

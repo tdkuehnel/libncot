@@ -36,8 +36,6 @@ void teardown()
 
 #define TEST_CONNECTION_SIMPLE_CLIENT_PORT  24003
 #define TEST_CONNECTION_SIMPLE_SERVER_PORT  "24003"
-#define TESTPORT_GOOD  "24002"
-#define TESTPORT_BAD  "24001"
 #define TESTADDRESS_STRING "127.0.0.1"
 
 START_TEST (test_connection_simple)
@@ -74,6 +72,8 @@ START_TEST (test_connection_simple)
 }
 END_TEST
 
+#define TESTPORT_GOOD  "24002"
+#define TESTPORT_BAD  "24001"
 START_TEST (test_connection_daemon)
 {
 	struct ncot_connection *conn1;
