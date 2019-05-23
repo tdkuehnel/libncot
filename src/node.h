@@ -36,7 +36,7 @@
    new ring of trust is vital - should it fail, the whole ring may be
    compromised in the future and thus the nodes failing in beeing
    trustworthy may get excluded when all the remaining nodes decide to
-   form a new ring, this time with trusted, secured connections.  
+   form a new ring, this time with trusted, secured connections.
 
    So for now we have two nodes, lets say they have managed it to
    establish a secure connection by sharing their secret in a
@@ -98,7 +98,7 @@
    participated in an established secured ring of trust, we can share
    secrets with every other participating node. Those secrets can be
    used to reestablish secure connections and form rings instantly after
-   power failure or data transmission failure of any kind. 
+   power failure or data transmission failure of any kind.
 
    Excluding a node which can no longer be trusted is as simple as
    revoking trust in the secrets shared with such a node - a node can
@@ -111,9 +111,11 @@
    occurs.
 */
 
+struct ncot_node;
 struct ncot_node {
-  struct ncot_connection *connections;
-  uuid_t *uuid;
+	struct ncot_connection *connections;
+	uuid_t *uuid;
+	struct ncot_node *next;
 };
 
 struct ncot_node *ncot_node_new();

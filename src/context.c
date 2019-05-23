@@ -1,5 +1,6 @@
 #include "context.h"
 #include "utlist.h"
+#include "node.h"
 
 struct ncot_context*
 ncot_context_new() {
@@ -36,6 +37,28 @@ ncot_context_free(struct ncot_context **pcontext) {
 			NCOT_LOG_ERROR("Invalid context\n");
 	} else
 		NCOT_LOG_ERROR("Invalid argument (*context)\n");
+}
+
+/* We need a way somehow to find out where a connection belongs to
+ * when there is i/o action necessary. */
+struct ncot_node
+*ncot_context_get_node_by_connection(struct ncot_context *context, struct ncot_connection *connection)
+{
+	struct ncot_node *node;
+	struct ncot_connection *nodeconnection;
+	node = context->globalnodelist;
+	while (node) {
+		nodeconnection = node->connections;
+		while (nodeconnection) {
+			if (connection == nodeconnection)
+				return node;
+			nodeconnection = nodeconnection->next;
+		}
+		node = node->next;
+	}
+	/* Should return NULL at end of list when nothing is
+	 * found. Should be covered by a test. */
+	return node;
 }
 
 /* Enqueuing a connection into a context connections list means

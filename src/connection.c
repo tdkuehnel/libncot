@@ -86,10 +86,8 @@ ncot_connection_listen(struct ncot_context *context, struct ncot_connection *con
 			connection->sa_server.sin_family = AF_INET;
 			connection->sa_server.sin_addr.s_addr = INADDR_ANY;
 			connection->sa_server.sin_port = htons(port); /* Server Port number */
-			setsockopt(connection->sd, SOL_SOCKET, SO_REUSEADDR, (void *) &connection->optval,
-				sizeof(int));
-			err =
-				bind(connection->sd, (struct sockaddr *) &connection->sa_server, sizeof(connection->sa_server));
+			setsockopt(connection->sd, SOL_SOCKET, SO_REUSEADDR, (void *) &connection->optval, sizeof(int));
+			err = bind(connection->sd, (struct sockaddr *) &connection->sa_server, sizeof(connection->sa_server));
 			SOCKET_ERR(err, "ncot_connection_listen: bind()");
 			connection->status = NCOT_CONN_BOUND;
 		}

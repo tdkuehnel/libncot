@@ -45,28 +45,33 @@
 /* We try to stick to the linux kernel coding style */
 
 /* Maximum pending listen queue length */
-
 #define LISTEN_BACKLOG 12
+
+/* Default buffsize of the connection buffer for read/write data */
 #define NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH 1024
 
 /* This is for quick distinction between the three possible connection
    types */
-
 enum ncot_connection_type {
+
 	/* control connection used for a deamon */
 	NCOT_CONN_CONTROL,
-	/* connection is to a neighbour node in a ring, either direction */
+
+	/* connection is to a neighbour node in a ring, either
+	 * direction */
 	NCOT_CONN_NODE,
+
 	/* connection is the dangling one to listen on for new node
-	   requests */
+	 * requests */
 	NCOT_CONN_INCOMING,
-	/* connection is used to initiate a communication to another node */
+
+	/* connection is used to initiate a communication to another
+	 * node */
 	NCOT_CONN_INITIATE
 };
 
 /* We will see if we need this at all. Is for quick determination whats
    up with the conn */
-
 enum ncot_connection_status {
 	NCOT_CONN_AVAILABLE,
 	NCOT_CONN_CONNECTED,
@@ -77,9 +82,7 @@ enum ncot_connection_status {
 
 /* The conn struct itself. Content taken from one of the examples of
    the GnuTLS package. */
-
 struct ncot_connection;
-
 struct ncot_connection {
 	struct ncot_connection *prev;
 	struct ncot_connection *next;
