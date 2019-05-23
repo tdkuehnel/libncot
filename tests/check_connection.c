@@ -68,7 +68,7 @@ START_TEST (test_connection_daemon)
 	int ret;
 	int i;
 
-	i = system("../src/ncotd -d --pidfile=ncotd1.pid");
+	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_connection_daemon.log");
 
 	ck_assert(i == 0);
 
