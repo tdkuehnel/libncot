@@ -50,16 +50,21 @@ ncot_connection_accept(struct ncot_context *context, struct ncot_connection *con
 }
 
 int
-ncot_connection_read_data(struct ncot_connection *connection)
+ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection)
 {
 	int r;
 	r = recv(connection->sd, &connection->buffer, NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH, MSG_DONTWAIT);
-	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n");
+	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n", r);
+	return r;
 }
 
 int
-ncot_connection_write_data(struct ncot_connection *connection)
+ncot_connection_write_data(struct ncot_context *context, struct ncot_connection *connection)
 {
+	/* We need to check how much data there still is to write,
+	 * write some amount and then check if we are done with
+	 * writing to take the connection out of the writing list */
+	return 0;
 }
 
 int

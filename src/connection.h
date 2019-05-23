@@ -103,8 +103,8 @@ void ncot_connection_init(struct ncot_connection *connection, enum ncot_connecti
 int ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port);
 int ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address);
 int ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection);
-int ncot_connection_read_data(struct ncot_connection *connection);
-int ncot_connection_write_data(struct ncot_connection *connection);
+int ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection);
+int ncot_connection_write_data(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_connection_free(struct ncot_connection **connection);
 
 #endif

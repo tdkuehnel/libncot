@@ -16,6 +16,45 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 {
 	/* Check if something is really happening */
 	if (r > 0) {
+		/* Doing it with the contexts lists. */
+		struct ncot_connection *connection;
+		/* First the connected ones */
+		connection = context->connections_connected;
+		while (connection) {
+			if (FD_ISSET(connection->sd, rfds)) {
+				ncot_connection_read_data(context, connection);
+				NCOT_LOG_INFO("ncot_process_fd: connected connection is ready in rfds\n");
+			}
+			connection = connection->next;
+		}
+		/* Then the listening ones */
+		connection = context->connections_listen;
+		while (connection) {
+			if (FD_ISSET(connection->sd, rfds)) {
+				ncot_connection_accept(context, connection);
+				NCOT_LOG_INFO("ncot_process_fd: listening connection is ready in rfds\n");
+			}
+			connection = connection->next;
+		}
+		/* last the writing ones */
+		connection = context->connections_writing;
+		while (connection) {
+			if (FD_ISSET(connection->sd, wfds)) {
+				NCOT_LOG_INFO("ncot_process_fd: writing connection is ready in wfds\n");
+				ncot_connection_write_data(context, connection);
+			}
+			connection = connection->next;
+		}
+	} else {
+		NCOT_LOG_WARNING("ncot_process_fd: no ready fd indicated\n");
+	}
+}
+
+void
+ncot_process_fd_alt(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
+{
+	/* Check if something is really happening */
+	if (r > 0) {
 		/* Before we have our lists for pending and closed
 		 * connections, we do it by hand */
 		if (context->controlconnection->status == NCOT_CONN_LISTEN) {
@@ -27,11 +66,11 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 		if (context->controlconnection->status == NCOT_CONN_CONNECTED) {
 			if (FD_ISSET(context->controlconnection->sd, rfds)) {
 				/* assuming not 0 means fd is in set */
-				ncot_connection_read_data(context->controlconnection);
+				ncot_connection_read_data(context, context->controlconnection);
 			}
 			if (FD_ISSET(context->controlconnection->sd, wfds)) {
 				/* assuming not 0 means fd is in set */
-				ncot_connection_write_data(context->controlconnection);
+				ncot_connection_write_data(context, context->controlconnection);
 			}
 		}
 		if (FD_ISSET(context->controlconnection->sd, rfds)) {
