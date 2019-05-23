@@ -69,6 +69,7 @@ START_TEST (test_connection_daemon)
 	int i;
 
 	i = system("../src/ncotd -d --pidfile=ncotd1.pid");
+
 	ck_assert(i == 0);
 
 	sleep(1);
@@ -77,13 +78,12 @@ START_TEST (test_connection_daemon)
 	conn2 = ncot_connection_new();
 	ncot_connection_init(conn2, NCOT_CONN_CONTROL);
 
-	ret = ncot_connection_connect(conn2, TESTPORT_BAD, TESTADDRESS_STRING);
-	ck_assert_int_eq(ret, 1);
-
+/*	ret = ncot_connection_connect(conn2, TESTPORT_BAD, TESTADDRESS_STRING);
+ 	ck_assert_int_eq(ret, 1);
+*/
 	ret = ncot_connection_connect(conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
 
-	ncot_connection_free(&conn1);
 	ncot_connection_free(&conn2);
 
 	ck_assert(conn1 == NULL);

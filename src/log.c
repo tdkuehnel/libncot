@@ -18,50 +18,53 @@ ncot_log_pointer log_ptr = NULL;
 const char* logfilename = {"ncot.log"};
 
 void ncot_log_printf( int level, const char *fmt, ... ) {
-  NCOT_DEBUG("called log with level: %d, current log_level: %d\n", level, ncot_log_level);
-  if ( level <= ncot_log_level ) {
-    va_list vl;
-    va_start(vl, fmt);
-    vprintf(fmt, vl);
-    va_end(vl);
-  }
+	NCOT_DEBUG("called log with level: %d, current log_level: %d\n", level, ncot_log_level);
+	if ( level <= ncot_log_level ) {
+		va_list vl;
+		va_start(vl, fmt);
+		vprintf(fmt, vl);
+		va_end(vl);
+	}
 }
 
 void ncot_log_logfile( int level, const char *fmt, ... ) {
-  int fd, i;
-  struct stat logfilestat;
-  if ( level <= ncot_log_level ) {
-    va_list vl;
-    i = stat(logfilename, &logfilestat);
-    if (i == 0) {
-      fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );
-    } else {
-      fd = creat(logfilename, S_IRWXU);
-    }
-    if (fd > 0) {
-      va_start(vl, fmt);
-      vdprintf(fd, fmt, vl);
-      va_end(vl);
-      close(fd);
-    }
-  }
+	int fd, i;
+	struct stat logfilestat;
+	if ( level <= ncot_log_level ) {
+		va_list vl;
+		i = stat(logfilename, &logfilestat);
+		if (i == 0) {
+			fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );
+		} else {
+			fd = creat(logfilename, S_IRWXU);
+		}
+		if (fd > 0) {
+			va_start(vl, fmt);
+			vdprintf(fd, fmt, vl);
+			va_end(vl);
+			close(fd);
+		}
+	}
 }
 
-void ncot_log_set_logfile() {
-  int i;
-  struct stat logfilestat;
-  i = stat(logfilename, &logfilestat);
-  if (i == 0) {
-    unlink(logfilename);
-  }
-  log_ptr = &ncot_log_logfile;
+void ncot_log_set_logfile(const char *filename) {
+	int i;
+	struct stat logfilestat;
+	/* TODO: need check if filename is a valid filename, alternatively
+	 * we could check in arguments parsing */
+	i = stat(filename, &logfilestat);
+	if (i == 0) {
+		unlink(filename);
+	}
+	logfilename = filename;
+	log_ptr = &ncot_log_logfile;
 }
 
 void ncot_log_init(int level) {
-  log_ptr = &ncot_log_printf;
-  ncot_log_level = level * 8;
-  
-  NCOT_DEBUG("set log level to: %d\n", ncot_log_level);
+	log_ptr = &ncot_log_printf;
+	ncot_log_level = level * 8;
+
+	NCOT_DEBUG("set log level to: %d\n", ncot_log_level);
 }
 
 void ncot_log_done() {

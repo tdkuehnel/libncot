@@ -29,6 +29,7 @@ static struct argp_option options[] = {
 	{"address",     'a', "ADDRESS", 0,            "Address to listen on for control connection" },
 	{"port",        'c', "PORT",    0,            "Port to listen on for control connection" },
 	{"configfile",  'f', "FILE",    0,            "Use configfile instead of ..." },
+	{"logfile",     'g', "FILE",    0,            "Use logfile FILE instead of default ncot.log" },
 	{"pidfile",     'p', "PIDFILE", 0,            "Pidfilename to use for this instance" },
 	{"loglevel",    'l', "LEVEL",   0,            "Set log level (0 .. 8), default 1" },
 	{ 0 }
@@ -55,6 +56,9 @@ parse_opt (int key, char *arg, struct argp_state *state)
 		break;
 	case 'd':
 		arguments->daemonize = 1;
+		break;
+	case 'g':
+		arguments->logfile_name = arg;
 		break;
 	case 'v':
 		arguments->verbose = 1;
@@ -99,6 +103,7 @@ void ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	arguments->config_file = "/etc/ncotd.conf";
 	arguments->log_level = NCOT_LOG_LEVEL_DEFAULT;
 	arguments->pidfile_name = "ncotd.pid";
+	arguments->logfile_name = "ncot.log";
 	arguments->address_ip4 = "127.0.0.1";
 	arguments->port = "24002";
 

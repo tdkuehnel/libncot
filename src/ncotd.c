@@ -112,7 +112,7 @@ int daemonize()
 		ncot_done();
 		exit(EXIT_SUCCESS);
 	}
-	ncot_log_set_logfile();
+	ncot_log_set_logfile(context->arguments->logfile_name);
 	NCOT_LOG_INFO("%s child daemonized\n", PACKAGE_STRING);
 
 }
@@ -186,7 +186,8 @@ main(int argc, char **argv)
 	/* initialize main loop */
 	NCOT_LOG( NCOT_LOG_LEVEL_INFO, "entering main loop, CTRL-C to bail out\n");
 
-	while(1) {
+	int loop_counter = 0;
+	do {
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
 
@@ -224,7 +225,8 @@ main(int argc, char **argv)
 			break;
 		}
 		/*sleep(1);*/
-	}
+		loop_counter++;
+	} while (loop_counter < 12);
 
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%d signals handled\n", count);
 	kill(gpid, SIGTERM);

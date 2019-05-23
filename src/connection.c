@@ -22,8 +22,8 @@ ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_ty
 	}
 }
 
-#define SOCKET_ERR(err) if(err==-1) {NCOT_LOG_ERROR(strerror(err));return(1);}
-#define SOCKET_NERR(err) if(err==-1) {NCOT_LOG_ERROR(strerror(err));return(-1);}
+#define SOCKET_ERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, err, strerror(err));return(1);}
+#define SOCKET_NERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, err, strerror(err));return(-1);}
 
 int
 ncot_connection_accept(struct ncot_connection *connection)
@@ -32,9 +32,9 @@ ncot_connection_accept(struct ncot_connection *connection)
 		int nsd;
 		int err;
 		nsd = accept(connection->sd, &connection->client, &connection->client_len);
-		SOCKET_NERR(nsd);
+		SOCKET_NERR(nsd, "ncot_connection_accept: accept()");
 		err = close(connection->sd);
-		SOCKET_NERR(err);
+		SOCKET_NERR(err, "ncot_connection_accept: close(connection->sd)");
 		connection->sd = nsd;
 		connection->status = NCOT_CONN_CONNECTED;
 		NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
@@ -68,7 +68,7 @@ ncot_connection_listen(struct ncot_connection *connection, int port)
 		if (connection->status == NCOT_CONN_INIT)
 		{
 			connection->sd = socket(AF_INET, SOCK_STREAM, 0);
-			SOCKET_ERR(connection->sd);
+			SOCKET_ERR(connection->sd, "ncot_connection_listen: socket()");
 			memset(&connection->sa_server, '\0', sizeof(connection->sa_server));
 			connection->sa_server.sin_family = AF_INET;
 			connection->sa_server.sin_addr.s_addr = INADDR_ANY;
@@ -77,7 +77,7 @@ ncot_connection_listen(struct ncot_connection *connection, int port)
 				sizeof(int));
 			err =
 				bind(connection->sd, (struct sockaddr *) &connection->sa_server, sizeof(connection->sa_server));
-			SOCKET_ERR(err);
+			SOCKET_ERR(err, "ncot_connection_listen: bind()");
 			connection->status = NCOT_CONN_BOUND;
 		}
 
@@ -106,17 +106,17 @@ ncot_connection_connect(struct ncot_connection *connection, const char *port, co
 		}
 		if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
 			connection->sd = socket(AF_INET, SOCK_STREAM, 0);
-			SOCKET_ERR(connection->sd);
+			SOCKET_ERR(connection->sd, "ncot_connection_connect: socket()");
 			memset(&connection->sa_client, '\0', sizeof(connection->sa_client));
 			connection->sa_client.sin_family = AF_INET;
 			connection->sa_client.sin_port = htons(atoi(port));
 			inet_pton(AF_INET, address, &connection->sa_client.sin_addr);
 
-			NCOT_LOG_ERROR("connectiong ...\n");
+			NCOT_LOG_ERROR("connecting ...\n");
 			err = connect(connection->sd, (struct sockaddr *) &connection->sa_client, sizeof(connection->sa_client));
 			NCOT_LOG_INFO("connect returned %i\n", err);
 
-			SOCKET_ERR(err);
+			SOCKET_ERR(err, "ncot_connection_connect: connect()");
 			connection->status = NCOT_CONN_CONNECTED;
 			NCOT_LOG_INFO("connection connected\n");
 			gnutls_anon_allocate_client_credentials(&connection->clientcred);

@@ -8,6 +8,7 @@ struct ncot_arguments
 	int silent, verbose;
 	char *config_file;
 	char *pidfile_name;
+	char *logfile_name;
 	char *port;
 	char *address_ip4;
 	int log_level;
