@@ -191,8 +191,6 @@ main(int argc, char **argv)
 		FD_ZERO(&rfds);
 		FD_ZERO(&wfds);
 
-		NCOT_DEBUG("\n");
-
 		/* need to get highest FD number to pass to pselect next */
 		highestfd = get_highest_fd(context);
 		/* we need to fill our fdsets with the sd of our connections */
@@ -201,7 +199,7 @@ main(int argc, char **argv)
 		r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 
 		if (r > 0) {
-			NCOT_DEBUG("input/ouput ready\n");
+			NCOT_LOG( NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
 			ncot_process_fd(context, r, &rfds, &wfds);
 		} else {
 			switch (errno) {
@@ -226,7 +224,9 @@ main(int argc, char **argv)
 		}
 		/*sleep(1);*/
 		loop_counter++;
-	} while (loop_counter < 12);
+		/* Before we have a clean running loop we keep this
+		 * restriction to simplify testing */
+	} while (loop_counter < 128);
 
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%d signals handled\n", count);
 	kill(gpid, SIGTERM);

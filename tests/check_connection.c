@@ -24,14 +24,18 @@ void setup()
 void teardown()
 {
 	struct stat pidfilestat;
-	if (stat("ncotd1.pid", &pidfilestat) == 0) {
-		system("cat ncotd1.pid | xargs kill");
-		printf("executing kill by pid\n");
-	}
 	printf("teardown\n");
+	if (stat("ncotd1.pid", &pidfilestat) == 0) {
+		printf("executing kill by pid\n");
+		system("cat ncotd1.pid | xargs kill");
+	}
 }
 
-#define TESTPORT_CLIENT  24002
+/* Every test gets its own set of port numbers to avoid side
+ * effects */
+
+#define TEST_CONNECTION_SIMPLE_CLIENT_PORT  24003
+#define TEST_CONNECTION_SIMPLE_SERVER_PORT  "24003"
 #define TESTPORT_GOOD  "24002"
 #define TESTPORT_BAD  "24001"
 #define TESTADDRESS_STRING "127.0.0.1"
@@ -52,13 +56,13 @@ START_TEST (test_connection_simple)
 
 	ncot_connection_init(conn1, NCOT_CONN_CONTROL);
 
-	ret = ncot_connection_listen(conn1, TESTPORT_CLIENT);
+	ret = ncot_connection_listen(conn1, TEST_CONNECTION_SIMPLE_CLIENT_PORT);
 	ck_assert_int_eq(ret, 0);
 
 	conn2 = ncot_connection_new();
 	ncot_connection_init(conn2, NCOT_CONN_CONTROL);
 
-	ret = ncot_connection_connect(conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
+	ret = ncot_connection_connect(conn2, TEST_CONNECTION_SIMPLE_SERVER_PORT, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
 
 	ncot_connection_free(&conn1);
@@ -105,6 +109,10 @@ START_TEST (test_connection_daemon)
 /*	ncot_context_free(&context);*/
 	ncot_done();
 
+	/* We need to sleep here for a while to see in the log files
+	 * weather the pselect loops run away, until we find a way to
+	 * check against that with a ck_assert statement */
+	sleep(1);
 	i = system("cat ncotd1.pid | xargs kill");
 	ck_assert(i == 0);
 }
