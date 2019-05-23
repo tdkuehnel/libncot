@@ -55,6 +55,8 @@ struct ncot_context *ncot_context_new();
 void ncot_context_init(struct ncot_context *context);
 void ncot_context_free(struct ncot_context **context);
 
+int ncot_context_get_highest_fd(struct ncot_context *context);
+
 void ncot_context_enqueue_connection_connected(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_context_enqueue_connection_listen(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_context_enqueue_connection_closed(struct ncot_context *context, struct ncot_connection *connection);

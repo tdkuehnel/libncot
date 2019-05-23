@@ -154,6 +154,33 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 	}
 }
 
+int
+ncot_context_get_highest_fd(struct ncot_context *context)
+{
+	int maxfd = 0;
+	struct ncot_connection *connection;
+
+	/* First the connected ones */
+	connection = context->connections_connected;
+	while (connection) {
+		if (connection->sd > maxfd) maxfd = connection->sd;
+		connection = connection->next;
+	}
+
+	connection = context->connections_listen;
+	while (connection) {
+		if (connection->sd > maxfd) maxfd = connection->sd;
+		connection = connection->next;
+	}
+
+	if (context->controlconnection->status == NCOT_CONN_LISTEN ||
+		context->controlconnection->status == NCOT_CONN_CONNECTED) {
+		if (context->controlconnection->sd > maxfd)
+			maxfd = context->controlconnection->sd;
+	}
+	return maxfd;
+}
+
 void
 ncot_connection_close(struct ncot_connection *connection)
 {

@@ -93,12 +93,12 @@ ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 		context->controlconnection->status == NCOT_CONN_CONNECTED) {
 		FD_SET(context->controlconnection->sd, rfds);
 		/* As we have nothing to write yet, don't put the sd
-		in the wfds set, or our pselect loop will run
-		away. Better only include a connections sd in the wfds
-		set when we want to actually sent data, so that our
-		loop iterates when there is "some place in the
-		bandwidth of the outgoing connection" where we can
-		actually put some data to send in.*/
+		   in the wfds set, or our pselect loop will run
+		   away. Better only include a connections sd in the
+		   wfds set when we want to actually sent data, so
+		   that our loop iterates when there is "some place in
+		   the bandwidth of the outgoing connection" where we
+		   can actually put some data to send in.*/
 		/*sent FD_SET(context->controlconnection->sd,wfds); */
 	}
 }

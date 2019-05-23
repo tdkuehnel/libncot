@@ -160,20 +160,6 @@ void ncot_client_init(int argc, char **argv) {
 }
 
 int
-get_highest_fd(struct ncot_context *context)
-{
-	int maxfd = 0;
-	if (context->controlconnection->status == NCOT_CONN_LISTEN ||
-		context->controlconnection->status == NCOT_CONN_CONNECTED) {
-		if (context->controlconnection->sd > maxfd)
-			maxfd = context->controlconnection->sd;
-	}
-	/* Here we need to check the remaining available connections
-	 * when they are implemented */
-	return maxfd;
-}
-
-int
 main(int argc, char **argv)
 {
 	int r, highestfd;
@@ -181,10 +167,11 @@ main(int argc, char **argv)
 	sigset_t sigmask;
 
 	ncot_client_init(argc, argv);
-	ncot_connection_listen(context, context->controlconnection, atoi(context->arguments->port));
+	ncot_connection_listen(context, context->controlconnection,
+			atoi(context->arguments->port));
 
 	/* initialize main loop */
-	NCOT_LOG( NCOT_LOG_LEVEL_INFO, "entering main loop, CTRL-C to bail out\n");
+	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "entering main loop, CTRL-C to bail out\n");
 
 	int loop_counter = 0;
 	do {
@@ -192,7 +179,7 @@ main(int argc, char **argv)
 		FD_ZERO(&wfds);
 
 		/* need to get highest FD number to pass to pselect next */
-		highestfd = get_highest_fd(context);
+		highestfd = ncot_context_get_highest_fd(context);
 		/* we need to fill our fdsets with the sd of our connections */
 		ncot_set_fds(context, &rfds, &wfds);
 
