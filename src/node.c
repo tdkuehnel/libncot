@@ -1,14 +1,16 @@
 #include "node.h"
 #include "log.h"
 
-struct ncot_node *ncot_node_new()
+struct ncot_node*
+ncot_node_new()
 {
 	struct ncot_node *node;
 	node = calloc(1, sizeof(struct ncot_node));
 	return node;
 }
 
-void ncot_node_init(struct ncot_node *node) {
+void
+ncot_node_init(struct ncot_node *node) {
 	if (node) {
 		uuid_create(&node->uuid);
 		uuid_make(node->uuid, UUID_MAKE_V1);
@@ -17,7 +19,16 @@ void ncot_node_init(struct ncot_node *node) {
 	}
 }
 
-void ncot_node_free(struct ncot_node **pnode) {
+void
+ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *connection)
+{
+	/* We have the connection accepted and in the connected
+	 * state. Lets authenticate the peer. */
+	return;
+}
+
+void
+ncot_node_free(struct ncot_node **pnode) {
 	struct ncot_node *node;
 	if (pnode) {
 		node = *pnode;

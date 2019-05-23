@@ -14,6 +14,8 @@ typedef struct ncot_identity_t {
   uuid_t *uuid;
 } ncot_identity_t;
 
+int
+ncot_control_connection_authenticate(struct ncot_connection *connection);
 void
 ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds);
 void

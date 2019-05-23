@@ -120,6 +120,7 @@ struct ncot_node {
 
 struct ncot_node *ncot_node_new();
 void ncot_node_free(struct ncot_node **pnode);
+void ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *connection);
 void ncot_node_init(struct ncot_node *node);
 
 #endif

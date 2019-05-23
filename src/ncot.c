@@ -8,45 +8,67 @@
 #include "log.h"
 #include "ncot.h"
 #include "context.h"
+#include "node.h"
+
+int
+ncot_control_connection_authenticate(struct ncot_connection *connection)
+{
+}
 
 /* Our main pselect loop has encountered some ready sds. Lets see how
  * we can handle that */
 void
 ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 {
-	/* Check if something is really happening */
-	if (r > 0) {
-		/* Doing it with the contexts lists. */
-		struct ncot_connection *connection;
-		/* First the connected ones */
-		connection = context->connections_connected;
-		while (connection) {
-			if (FD_ISSET(connection->sd, rfds)) {
-				ncot_connection_read_data(context, connection);
-				NCOT_LOG_INFO("ncot_process_fd: connected connection is ready in rfds\n");
-			}
-			connection = connection->next;
-		}
-		/* Then the listening ones */
-		connection = context->connections_listen;
-		while (connection) {
-			if (FD_ISSET(connection->sd, rfds)) {
-				ncot_connection_accept(context, connection);
-				NCOT_LOG_INFO("ncot_process_fd: listening connection is ready in rfds\n");
-			}
-			connection = connection->next;
-		}
-		/* last the writing ones */
-		connection = context->connections_writing;
-		while (connection) {
-			if (FD_ISSET(connection->sd, wfds)) {
-				NCOT_LOG_INFO("ncot_process_fd: writing connection is ready in wfds\n");
-				ncot_connection_write_data(context, connection);
-			}
-			connection = connection->next;
-		}
-	} else {
+ 	/* Check if something is really happening */
+	if (r <= 0) {
 		NCOT_LOG_WARNING("ncot_process_fd: no ready fd indicated\n");
+		return;
+	}
+	/* Doing it with the contexts lists. */
+	struct ncot_connection *connection;
+	struct ncot_node *node;
+	int ret;
+	/* First the connected ones */
+	connection = context->connections_connected;
+	while (connection) {
+		if (FD_ISSET(connection->sd, rfds)) {
+			ncot_connection_read_data(context, connection);
+			NCOT_LOG_INFO("ncot_process_fd: connected connection is ready in rfds\n");
+		}
+		connection = connection->next;
+	}
+	/* Then the listening ones */
+	connection = context->connections_listen;
+	while (connection) {
+		if (FD_ISSET(connection->sd, rfds)) {
+			ret = ncot_connection_accept(context, connection);
+			if (ret != 0) {
+				NCOT_LOG_ERROR("ncot_process_fd: listen connection cannot accept\n");
+				connection = connection->next;
+				continue;
+			}
+			NCOT_LOG_INFO("ncot_process_fd: listening connection is ready in rfds\n");
+			node = ncot_context_get_node_by_connection(context, connection);
+			if (node) {
+				ncot_node_authenticate_peer(node, connection);
+			} else {
+				if (context->controlconnection == connection)
+					ncot_context_controlconnection_authenticate(context, connection);
+				else
+					NCOT_LOG_WARNING("ncot_process_fd: node and/or connection list inconsitency\n");
+			}
+		}
+		connection = connection->next;
+	}
+	/* last the writing ones */
+	connection = context->connections_writing;
+	while (connection) {
+		if (FD_ISSET(connection->sd, wfds)) {
+			NCOT_LOG_INFO("ncot_process_fd: writing connection is ready in wfds\n");
+			ncot_connection_write_data(context, connection);
+		}
+		connection = connection->next;
 	}
 }
 

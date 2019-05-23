@@ -8,4 +8,6 @@
 #define SOCKET_ERR(err, s)  if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(1);}
 #define SOCKET_NERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(-1);}
 
+#define SOCKET_ERR_BREAK(err, s)  if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));break;}
+
 #endif

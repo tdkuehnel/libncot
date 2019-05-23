@@ -55,6 +55,7 @@ struct ncot_context *ncot_context_new();
 void ncot_context_init(struct ncot_context *context);
 void ncot_context_free(struct ncot_context **context);
 
+void ncot_context_controlconnection_authenticate(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_context_get_highest_fd(struct ncot_context *context);
 struct ncot_node *ncot_context_get_node_by_connection(struct ncot_context *context, struct ncot_connection *connection);
 

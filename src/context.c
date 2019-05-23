@@ -39,6 +39,11 @@ ncot_context_free(struct ncot_context **pcontext) {
 		NCOT_LOG_ERROR("Invalid argument (*context)\n");
 }
 
+void
+ncot_context_controlconnection_authenticate(struct ncot_context *context, struct ncot_connection *connection)
+{
+}
+
 /* We need a way somehow to find out where a connection belongs to
  * when there is i/o action necessary. */
 struct ncot_node

@@ -1,10 +1,13 @@
 #include "autoconfig.h"
+
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
 #include <sys/socket.h>
+
 #include "log.h"
 #include "connection.h"
+#include "error.h"
 
 struct ncot_connection*
 ncot_connection_new()
@@ -24,9 +27,6 @@ ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_ty
 	}
 }
 
-#define SOCKET_ERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(1);}
-#define SOCKET_NERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(-1);}
-
 int
 ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
 {
@@ -41,8 +41,8 @@ ncot_connection_accept(struct ncot_context *context, struct ncot_connection *con
 		connection->status = NCOT_CONN_CONNECTED;
 		ncot_context_dequeue_connection_listen(context, connection);
 		ncot_context_enqueue_connection_connected(context, connection);
-
 		NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
+		return 0;
 	} else {
 		NCOT_LOG_ERROR("ncot_connection_accept: connection not in status listen\n");
 		return -1;
