@@ -22,6 +22,14 @@ cleanly. There is a deamon program ncotd included which uses the
 library functions. It is at the moment only used to test all the
 GnuTLS connection related things against.
 
+As this library is aimed to work at least under Linux, Macos and
+Windows, contributions in porting in this early state to any of those
+are welcome ! MXE is the cross development platform of choice for the
+windows port, or mingw.
+
+Any help in how this can be turned useful into soemthing that can run
+as an app or something similar is also very welcome.
+
 As soon as the connection related stuff works roughly, we can connect
 together in our first ring of trust ! Sending packets around with chat
 messages for example should not be that difficult as a first usable
