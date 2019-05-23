@@ -82,7 +82,13 @@ void ncot_identity_free(ncot_identity_t **pidentity) {
 void ncot_init()
 {
 	ncot_log_init(NCOT_LOG_LEVEL_WARNING);
-	NCOT_LOG_INFO("%s\n", PACKAGE_STRING);
+	/* During tests we like to log to different files which is set
+	 * up later by ncot_log_set_logfile. This startup message
+	 * pollutes the main test log file. Alternatively we could
+	 * find a way to provide distinctive instance information to
+	 * show up to make the message useful.*/
+
+	/*NCOT_LOG_INFO("%s\n", PACKAGE_STRING);*/
 	gnutls_global_init();
 
 }

@@ -13,6 +13,7 @@
 #include "../src/connection.h"
 #include "../src/log.h"
 #include "../src/ncot.h"
+#include "../src/context.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 
@@ -22,6 +23,12 @@ void setup()
 
 void teardown()
 {
+	struct stat pidfilestat;
+	if (stat("ncotd1.pid", &pidfilestat) == 0) {
+		system("cat ncotd1.pid | xargs kill");
+		printf("executing kill by pid\n");
+	}
+	printf("teardown\n");
 }
 
 #define TESTPORT_CLIENT  24002
@@ -36,6 +43,8 @@ START_TEST (test_connection_simple)
 	int ret;
 
 	ncot_init();
+	ncot_log_set_logfile("test_connection_simple.log");
+
 	conn1 = NULL;
 
 	conn1 = ncot_connection_new();
@@ -65,22 +74,27 @@ START_TEST (test_connection_daemon)
 {
 	struct ncot_connection *conn1;
 	struct ncot_connection *conn2;
+	struct ncot_context *context;
+
 	int ret;
 	int i;
 
-	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_connection_daemon.log");
+	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_connection_daemon-ncotd1.log");
 
 	ck_assert(i == 0);
 
 	sleep(1);
 	ncot_init();
+	ncot_log_set_logfile("test_connection_daemon.log");
+/*	context = ncot_context_new(); */
 
 	conn2 = ncot_connection_new();
 	ncot_connection_init(conn2, NCOT_CONN_CONTROL);
 
-/*	ret = ncot_connection_connect(conn2, TESTPORT_BAD, TESTADDRESS_STRING);
+	/* Try to connect to an unreachable port */
+	ret = ncot_connection_connect(conn2, TESTPORT_BAD, TESTADDRESS_STRING);
  	ck_assert_int_eq(ret, 1);
-*/
+
 	ret = ncot_connection_connect(conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
 
@@ -88,6 +102,7 @@ START_TEST (test_connection_daemon)
 
 	ck_assert(conn1 == NULL);
 
+/*	ncot_context_free(&context);*/
 	ncot_done();
 
 	i = system("cat ncotd1.pid | xargs kill");
@@ -105,7 +120,7 @@ Suite * helper_suite(void)
 
 	/* Core test case */
 	tc_core = tcase_create("Core");
-	tcase_add_checked_fixture(tc_core, setup, teardown);
+	tcase_add_unchecked_fixture(tc_core, setup, teardown);
 
 	tcase_add_test(tc_core, test_connection_simple);
 	tcase_add_test(tc_core, test_connection_daemon);

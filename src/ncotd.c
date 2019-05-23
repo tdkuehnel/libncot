@@ -112,7 +112,6 @@ int daemonize()
 		ncot_done();
 		exit(EXIT_SUCCESS);
 	}
-	ncot_log_set_logfile(context->arguments->logfile_name);
 	NCOT_LOG_INFO("%s child daemonized\n", PACKAGE_STRING);
 
 }
@@ -139,6 +138,7 @@ void ncot_client_init(int argc, char **argv) {
 
 	ncot_arg_parse(context->arguments, argc, argv);
 	ncot_init();
+	ncot_log_set_logfile(context->arguments->logfile_name);
 	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client");
 	if (context->arguments->daemonize) daemonize();
 	if (context->arguments->daemonize) NCOT_LOG_INFO("%s Looks like we are running as a deamon, good.\n", PACKAGE_STRING);
@@ -231,7 +231,7 @@ main(int argc, char **argv)
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%d signals handled\n", count);
 	kill(gpid, SIGTERM);
 
-	ncot_node_free(&node);
+	/*ncot_node_free(&node);*/
 
 	if (context->arguments->daemonize) {
 		struct stat pidfilestat;

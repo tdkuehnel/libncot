@@ -22,8 +22,8 @@ ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_ty
 	}
 }
 
-#define SOCKET_ERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, err, strerror(err));return(1);}
-#define SOCKET_NERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, err, strerror(err));return(-1);}
+#define SOCKET_ERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(1);}
+#define SOCKET_NERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(-1);}
 
 int
 ncot_connection_accept(struct ncot_connection *connection)
@@ -114,9 +114,9 @@ ncot_connection_connect(struct ncot_connection *connection, const char *port, co
 
 			NCOT_LOG_ERROR("connecting ...\n");
 			err = connect(connection->sd, (struct sockaddr *) &connection->sa_client, sizeof(connection->sa_client));
+			SOCKET_ERR(err, "ncot_connection_connect: connect()");
 			NCOT_LOG_INFO("connect returned %i\n", err);
 
-			SOCKET_ERR(err, "ncot_connection_connect: connect()");
 			connection->status = NCOT_CONN_CONNECTED;
 			NCOT_LOG_INFO("connection connected\n");
 			gnutls_anon_allocate_client_credentials(&connection->clientcred);
