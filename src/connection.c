@@ -28,7 +28,7 @@ ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_ty
 #define SOCKET_NERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(-1);}
 
 int
-ncot_connection_accept(struct ncot_connection *connection)
+ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
 {
 	if (connection->status == NCOT_CONN_LISTEN) {
 		int nsd;
@@ -39,6 +39,9 @@ ncot_connection_accept(struct ncot_connection *connection)
 		SOCKET_NERR(err, "ncot_connection_accept: close(connection->sd)");
 		connection->sd = nsd;
 		connection->status = NCOT_CONN_CONNECTED;
+		ncot_context_dequeue_connection_listen(context, connection);
+		ncot_context_enqueue_connection_connected(context, connection);
+
 		NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
 	} else {
 		NCOT_LOG_ERROR("ncot_connection_accept: connection not in status listen\n");
@@ -60,7 +63,7 @@ ncot_connection_write_data(struct ncot_connection *connection)
 }
 
 int
-ncot_connection_listen(struct ncot_connection *connection, int port)
+ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port)
 {
 	int err;
 	if (connection)
@@ -94,6 +97,7 @@ ncot_connection_listen(struct ncot_connection *connection, int port)
 		}
 		else {
 			connection->status = NCOT_CONN_LISTEN;
+			ncot_context_enqueue_connection_listen(context, connection);
 			NCOT_LOG_INFO("connection now listening on port %i\n", port);
 			return 0;
 		}
@@ -101,7 +105,7 @@ ncot_connection_listen(struct ncot_connection *connection, int port)
 }
 
 int
-ncot_connection_connect(struct ncot_connection *connection, const char *port, const char *address)
+ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
 {
 	int err;
 	if (connection) {
@@ -121,9 +125,10 @@ ncot_connection_connect(struct ncot_connection *connection, const char *port, co
 			err = connect(connection->sd, (struct sockaddr *) &connection->sa_client, sizeof(connection->sa_client));
 			SOCKET_ERR(err, "ncot_connection_connect: connect()");
 			NCOT_LOG_INFO("connect returned %i\n", err);
-
 			connection->status = NCOT_CONN_CONNECTED;
+			ncot_context_enqueue_connection_connected(context, connection);
 			NCOT_LOG_INFO("connection connected\n");
+
 			gnutls_anon_allocate_client_credentials(&connection->clientcred);
 			gnutls_init(&connection->session, GNUTLS_CLIENT);
 			/* As we use only that parts of GnuTLS which are not polluted by

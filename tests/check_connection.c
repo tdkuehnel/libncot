@@ -42,9 +42,12 @@ START_TEST (test_connection_simple)
 {
 	struct ncot_connection *conn1;
 	struct ncot_connection *conn2;
+	struct ncot_context *context;
 	int ret;
 
 	ncot_init();
+	context = ncot_context_new();
+
 	ncot_log_set_logfile("test_connection_simple.log");
 
 	conn1 = NULL;
@@ -54,13 +57,13 @@ START_TEST (test_connection_simple)
 
 	ncot_connection_init(conn1, NCOT_CONN_CONTROL);
 
-	ret = ncot_connection_listen(conn1, TEST_CONNECTION_SIMPLE_CLIENT_PORT);
+	ret = ncot_connection_listen(context, conn1, TEST_CONNECTION_SIMPLE_CLIENT_PORT);
 	ck_assert_int_eq(ret, 0);
 
 	conn2 = ncot_connection_new();
 	ncot_connection_init(conn2, NCOT_CONN_CONTROL);
 
-	ret = ncot_connection_connect(conn2, TEST_CONNECTION_SIMPLE_SERVER_PORT, TESTADDRESS_STRING);
+	ret = ncot_connection_connect(context, conn2, TEST_CONNECTION_SIMPLE_SERVER_PORT, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
 
 	ncot_connection_free(&conn1);
@@ -68,6 +71,7 @@ START_TEST (test_connection_simple)
 
 	ck_assert(conn1 == NULL);
 
+	ncot_context_free(&context);
 	ncot_done();
 }
 END_TEST
@@ -90,23 +94,23 @@ START_TEST (test_connection_daemon)
 	sleep(1);
 	ncot_init();
 	ncot_log_set_logfile("test_connection_daemon.log");
-/*	context = ncot_context_new(); */
+	context = ncot_context_new();
 
 	conn2 = ncot_connection_new();
 	ncot_connection_init(conn2, NCOT_CONN_CONTROL);
 
 	/* Try to connect to an unreachable port */
-	ret = ncot_connection_connect(conn2, TESTPORT_BAD, TESTADDRESS_STRING);
+	ret = ncot_connection_connect(context, conn2, TESTPORT_BAD, TESTADDRESS_STRING);
  	ck_assert_int_eq(ret, 1);
 
-	ret = ncot_connection_connect(conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
+	ret = ncot_connection_connect(context, conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
 
 	ncot_connection_free(&conn2);
 
 	ck_assert(conn1 == NULL);
 
-/*	ncot_context_free(&context);*/
+	ncot_context_free(&context);
 	ncot_done();
 
 	/* We need to sleep here for a while to see in the log files

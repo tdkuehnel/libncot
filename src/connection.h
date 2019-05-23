@@ -5,6 +5,8 @@
 #include <netinet/in.h>
 #include <gnutls/gnutls.h>
 
+#include "context.h"
+
 /* A connection is a securely encrypted TCP connection. As the whole
    thing is to provide a working proof of concept, we need encrypted
    connections right from the beginning. There were thoughts of
@@ -98,9 +100,9 @@ struct ncot_connection {
 
 struct ncot_connection *ncot_connection_new();
 void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
-int ncot_connection_listen(struct ncot_connection *connection, int port);
-int ncot_connection_connect(struct ncot_connection *connection, const char *port, const char *address);
-int ncot_connection_accept(struct ncot_connection *connection);
+int ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port);
+int ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address);
+int ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_read_data(struct ncot_connection *connection);
 int ncot_connection_write_data(struct ncot_connection *connection);
 void ncot_connection_free(struct ncot_connection **connection);

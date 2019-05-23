@@ -181,7 +181,7 @@ main(int argc, char **argv)
 	sigset_t sigmask;
 
 	ncot_client_init(argc, argv);
-	ncot_connection_listen(context->controlconnection, atoi(context->arguments->port));
+	ncot_connection_listen(context, context->controlconnection, atoi(context->arguments->port));
 
 	/* initialize main loop */
 	NCOT_LOG( NCOT_LOG_LEVEL_INFO, "entering main loop, CTRL-C to bail out\n");

@@ -1,4 +1,5 @@
 #include "context.h"
+#include "utlist.h"
 
 struct ncot_context*
 ncot_context_new() {
@@ -7,7 +8,8 @@ ncot_context_new() {
 	return context;
 }
 
-void ncot_context_init(struct ncot_context *context) {
+void
+ncot_context_init(struct ncot_context *context) {
 	if (context) {
 		/*    context->config = ncot_config_new(); */
 		context->arguments = calloc(1, sizeof(struct ncot_arguments));
@@ -19,7 +21,8 @@ void ncot_context_init(struct ncot_context *context) {
 	}
 }
 
-void ncot_context_free(struct ncot_context **pcontext) {
+void
+ncot_context_free(struct ncot_context **pcontext) {
 	struct ncot_context *context;
 	if (pcontext) {
 		context = *pcontext;
@@ -33,5 +36,56 @@ void ncot_context_free(struct ncot_context **pcontext) {
 			NCOT_LOG_ERROR("Invalid context\n");
 	} else
 		NCOT_LOG_ERROR("Invalid argument (*context)\n");
+}
+
+/* Enqueuing a connection into a context connections list means
+ * enqueueing it, and remove it from all other lists where it makes no
+ * sense. - We forget that. We only enqueue for now. */
+void
+ncot_context_enqueue_connection_connected(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_APPEND(context->connections_connected, connection);
+}
+
+void
+ncot_context_enqueue_connection_listen(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_APPEND(context->connections_listen, connection);
+}
+
+void
+ncot_context_enqueue_connection_closed(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_APPEND(context->connections_closed, connection);
+}
+
+void
+ncot_context_enqueue_connection_writing(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_APPEND(context->connections_writing, connection);
+}
+
+void
+ncot_context_dequeue_connection_connected(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_DELETE(context->connections_connected, connection);
+}
+
+void
+ncot_context_dequeue_connection_listen(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_DELETE(context->connections_listen, connection);
+}
+
+void
+ncot_context_dequeue_connection_closed(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_DELETE(context->connections_closed, connection);
+}
+
+void
+ncot_context_dequeue_connection_writing(struct ncot_context *context, struct ncot_connection *connection)
+{
+	LL_DELETE(context->connections_writing, connection);
 }
 

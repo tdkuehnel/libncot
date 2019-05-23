@@ -21,7 +21,7 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 		if (context->controlconnection->status == NCOT_CONN_LISTEN) {
 			if (FD_ISSET(context->controlconnection->sd, rfds)) {
 				NCOT_LOG_INFO("ncot_process_fd: controlconnection is ready in rfds\n");
-				ncot_connection_accept(context->controlconnection);
+				ncot_connection_accept(context, context->controlconnection);
 			}
 		}
 		if (context->controlconnection->status == NCOT_CONN_CONNECTED) {
