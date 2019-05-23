@@ -1,0 +1,35 @@
+Ok, here is my contributing file.
+
+As the whole ncot, or Network of Circle of Trust thing is in the pre
+usable state, it is important to get feedback and other thoughts about
+the idea in general.
+
+The main idea behind all this may come more clear when you read the
+comments in the source files in the src folder, especially in
+src/node.h.
+
+There is no more other infrastructure available at this time, like a
+website, forum or a mailing list. Please feel free to help in this
+area of the project.
+
+I think its time to throw all my open-office draw documents about the
+idea into the docs folder to help to get some visual grasp of the idea
+and what makes the difference in how the Internet is used with
+CA-certificates or through a TOR-tunnel or even by a network of trust.
+
+The library should compile under Linux and the tests should run
+cleanly. There is a deamon program ncotd included which uses the
+library functions. It is at the moment only used to test all the
+GnuTLS connection related things against.
+
+As soon as the connection related stuff works roughly, we can connect
+together in our first ring of trust ! Sending packets around with chat
+messages for example should not be that difficult as a first usable
+thing to implement.
+
+Just read the code and the comments, its not that much at this time,
+and see how you get the idea behind all this. If its interesting to
+you, just contact the author at net_seeker at web.de or through any
+other available channel.
+
+Thank you for your feedback, pull requests or comments !!
