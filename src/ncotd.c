@@ -179,9 +179,9 @@ main(int argc, char **argv)
 		FD_ZERO(&wfds);
 
 		/* need to get highest FD number to pass to pselect next */
-		highestfd = ncot_context_get_highest_fd(context);
+		/*highestfd = ncot_context_get_highest_fd(context);*/
 		/* we need to fill our fdsets with the sd of our connections */
-		ncot_set_fds(context, &rfds, &wfds);
+		highestfd = ncot_set_fds(context, &rfds, &wfds);
 
 		r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 

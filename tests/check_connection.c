@@ -84,6 +84,8 @@ START_TEST (test_connection_daemon)
 	struct ncot_connection *conn2;
 	struct ncot_context *context;
 
+	const char *message = "NCOT message";
+
 	int ret;
 	int i;
 
@@ -105,6 +107,9 @@ START_TEST (test_connection_daemon)
 */
 	ret = ncot_connection_connect(context, conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
+
+	ret = ncot_connection_send(context, conn2, message);
+	ck_assert_int_eq(ret, strlen(message));
 
 	ncot_connection_free(&conn2);
 
@@ -134,7 +139,9 @@ Suite * helper_suite(void)
 	tc_core = tcase_create("Core");
 	tcase_add_unchecked_fixture(tc_core, setup, teardown);
 	tcase_set_timeout(tc_core, 12);
-/*	tcase_add_test(tc_core, test_connection_simple);*/
+	/* The simple test is disabled because ncot_connection_connect
+	 * now blocks because of the GnuTLS handshake. */
+	/*tcase_add_test(tc_core, test_connection_simple);*/
 	tcase_add_test(tc_core, test_connection_daemon);
 	suite_add_tcase(s, tc_core);
 	return s;

@@ -18,7 +18,7 @@ typedef struct ncot_identity_t {
 
 int
 ncot_control_connection_authenticate(struct ncot_connection *connection);
-void
+int
 ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds);
 void
 ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds);

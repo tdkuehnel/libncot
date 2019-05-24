@@ -6,6 +6,7 @@
 #include <gnutls/gnutls.h>
 
 #include "context.h"
+#include "packet.h"
 
 /* A connection is a securely encrypted TCP connection. As the whole
    thing is to provide a working proof of concept, we need encrypted
@@ -97,6 +98,8 @@ struct ncot_connection {
 	socklen_t client_len;
 	char topbuf[512];
 	char buffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
+	/* Simple packet queue as utlist */
+	struct ncot_packet *packetlist;
 	gnutls_session_t session;
 	gnutls_anon_server_credentials_t servercred;
 	gnutls_anon_client_credentials_t clientcred;
@@ -117,6 +120,7 @@ int ncot_connection_connect(struct ncot_context *context, struct ncot_connection
 int ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_write_data(struct ncot_context *context, struct ncot_connection *connection);
+int ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length);
 void ncot_connection_free(struct ncot_connection **connection);
 
 #endif

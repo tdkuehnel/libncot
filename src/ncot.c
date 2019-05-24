@@ -62,7 +62,7 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 				if (context->controlconnection == connection)
 					ncot_context_controlconnection_authenticate(context, connection);
 				else
-					NCOT_LOG_WARNING("ncot_process_fd: node and/or connection list inconsitency\n");
+					NCOT_LOG_WARNING("ncot_process_fd: node and/or connection list inconsistency\n");
 			}
 		}
 		connection = connection->next;
@@ -78,57 +78,42 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	}
 }
 
-void
-ncot_process_fd_alt(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
-{
-	/* Check if something is really happening */
-	if (r > 0) {
-		/* Before we have our lists for pending and closed
-		 * connections, we do it by hand */
-		if (context->controlconnection->status == NCOT_CONN_LISTEN) {
-			if (FD_ISSET(context->controlconnection->sd, rfds)) {
-				NCOT_LOG_INFO("ncot_process_fd: controlconnection is ready in rfds\n");
-				ncot_connection_accept(context, context->controlconnection);
-			}
-		}
-		if (context->controlconnection->status == NCOT_CONN_CONNECTED) {
-			if (FD_ISSET(context->controlconnection->sd, rfds)) {
-				/* assuming not 0 means fd is in set */
-				ncot_connection_read_data(context, context->controlconnection);
-			}
-			if (FD_ISSET(context->controlconnection->sd, wfds)) {
-				/* assuming not 0 means fd is in set */
-				ncot_connection_write_data(context, context->controlconnection);
-			}
-		}
-		if (FD_ISSET(context->controlconnection->sd, rfds)) {
-			NCOT_LOG_INFO("ncot_process_fd: controlconnection->sd in rfds\n");
-		}
-		if (FD_ISSET(context->controlconnection->sd, wfds)) {
-			NCOT_LOG_INFO("ncot_process_fd: controlconnection->sd in wfds\n");
-		}
-
-
-	} else {
-		NCOT_LOG_WARNING("ncot_process_fd: no ready fd indicated\n");
-	}
-}
-
-void
+int
 ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 {
-	if (context->controlconnection->status == NCOT_CONN_LISTEN ||
-		context->controlconnection->status == NCOT_CONN_CONNECTED) {
-		FD_SET(context->controlconnection->sd, rfds);
-		/* As we have nothing to write yet, don't put the sd
-		   in the wfds set, or our pselect loop will run
-		   away. Better only include a connections sd in the
-		   wfds set when we want to actually sent data, so
-		   that our loop iterates when there is "some place in
-		   the bandwidth of the outgoing connection" where we
-		   can actually put some data to send in.*/
-		/*sent FD_SET(context->controlconnection->sd,wfds); */
+	int maxfd = 0;
+	struct ncot_connection *connection;
+	/* First the connected ones.
+	 *
+	 * A connected connection is generally interested in incoming
+	 * traffic. */
+	connection = context->connections_connected;
+	while (connection) {
+		FD_SET(connection->sd, rfds);
+		if (connection->sd > maxfd) maxfd = connection->sd;
+		connection = connection->next;
 	}
+	/* Then the listening ones.
+	 *
+	 * Listening connections are only interested in incoming
+	 * traffic.*/
+	connection = context->connections_listen;
+	while (connection) {
+		FD_SET(connection->sd, rfds);
+		if (connection->sd > maxfd) maxfd = connection->sd;
+		connection = connection->next;
+	}
+	/* last the writing ones
+	*
+	* Writing connections are interested when there is some room
+	* in the outgoing bandwidth */
+	connection = context->connections_writing;
+	while (connection) {
+		FD_SET(connection->sd, wfds);
+		if (connection->sd > maxfd) maxfd = connection->sd;
+		connection = connection->next;
+	}
+	return maxfd;
 }
 
 ncot_identity_t *ncot_identity_new()

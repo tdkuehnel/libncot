@@ -7,7 +7,22 @@
 
 #include "log.h"
 #include "connection.h"
+#include "packet.h"
 #include "error.h"
+#include "utlist.h"
+
+/* This is a function that, yes, copies a message, queues it and takes
+ * the necessary steps to send it to the peer */
+int
+ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length)
+{
+	struct ncot_packet *packet;
+	packet = ncot_packet_new_with_data(message, length);
+	RETURN_FAIL_IF_NULL(packet, "ncot_connection_send: Out of memory");
+	LL_APPEND(connection->packetlist, packet);
+	ncot_context_enqueue_connection_writing(context, connection);
+	return 0;
+}
 
 struct ncot_connection*
 ncot_connection_new()
