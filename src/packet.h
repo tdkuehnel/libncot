@@ -7,6 +7,7 @@ struct ncot_packet;
 struct ncot_packet {
 	char *data;
 	int length;
+	int index;
 	struct ncot_packet *next;
 };
 

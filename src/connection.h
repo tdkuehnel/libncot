@@ -85,6 +85,9 @@ enum ncot_connection_status {
 	NCOT_CONN_INIT
 };
 
+/* The default chunksize we start of transmitting with */
+#define NCOT_DEFAULT_CHUNKSIZE 2048
+
 /* The conn struct itself. Content taken from one of the examples of
    the GnuTLS package. */
 struct ncot_connection;
@@ -100,13 +103,13 @@ struct ncot_connection {
 	char buffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
 	/* Simple packet queue as utlist */
 	struct ncot_packet *packetlist;
+	int chunksize;
 	gnutls_session_t session;
 	gnutls_anon_server_credentials_t servercred;
 	gnutls_anon_client_credentials_t clientcred;
 	gnutls_psk_client_credentials_t pskclientcredentials;
 	gnutls_psk_server_credentials_t pskservercredentials;
 	gnutls_datum_t key;
-	int *connfdPtr;
 	enum ncot_connection_type type;
 	enum ncot_connection_status status;
 	int optval;

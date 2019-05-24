@@ -30,7 +30,7 @@ ncot_connection_new()
 	struct ncot_connection *connection;
 	connection = calloc(1, sizeof(struct ncot_connection));
 	if (connection) {
-		connection->connfdPtr = malloc(sizeof(int));
+		connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
 	}
 	return connection;
 }
@@ -85,11 +85,6 @@ ncot_connection_authenticate_client(struct ncot_connection *connection)
 	res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
 	GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
 
-	*connection->connfdPtr = connection->sd;
-/*		gnutls_transport_set_ptr(connection->session, connection->connfdPtr);
-		gnutls_transport_set_push_function(connection->session, data_push);
-		gnutls_transport_set_pull_function(connection->session, data_pull); */
-
 	gnutls_transport_set_int(connection->session, connection->sd);
 
 	NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
@@ -130,7 +125,10 @@ ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *
 {
 	int r;
 	r = recv(connection->sd, &connection->buffer, NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH, MSG_DONTWAIT);
+	SOCKET_NERR(r, "ncot_connection_read_data: error recv:");
+	connection->buffer[r] = 0;
 	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n", r);
+	NCOT_LOG_INFO("ncot_connection_read_data: data read is: %s\n", connection->buffer);
 	return r;
 }
 
@@ -140,7 +138,54 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	/* We need to check how much data there still is to write,
 	 * write some amount and then check if we are done with
 	 * writing to take the connection out of the writing list */
-	return 0;
+	ssize_t amount;
+	struct ncot_packet *packet;
+	char *pointer;
+	if (!connection->packetlist) {
+		ncot_context_dequeue_connection_writing(context, connection);
+		NCOT_LOG_INFO("ncot_connection_write_data: No more packets in queue\n");
+		return 0;
+	}
+	packet = connection->packetlist;
+	NCOT_LOG_INFO("ncot_connection_write_data: packet->length is %i bytes\n", packet->length);
+	amount = packet->length - packet->index;
+	NCOT_LOG_INFO("ncot_connection_write_data: amount is %i bytes\n", amount);
+	if (amount == 0) {
+		LL_DELETE(connection->packetlist, packet);
+		/* We deliberately return here, as the pselect loop
+		 * sends us straight back so that with no more packet
+		 * to send at all we got removed from the writing
+		 * list */
+		/* We need somehow reuse our packets or all this
+		 * allocating/deallocating of memory may led to
+		 * problems ? */
+		NCOT_LOG_INFO("ncot_connection_write_data: taking empty packet out of packetlist and freeing packet\n");
+		ncot_packet_free(&packet);
+		return 0;
+	}
+	if (amount > connection->chunksize) amount = connection->chunksize;
+	NCOT_LOG_INFO("ncot_connection_write_data: connection->chunksize is %i bytes\n", connection->chunksize);
+	pointer = packet->data + packet->index;
+	NCOT_LOG_INFO("ncot_connection_write_data: going to send %i bytes\n", amount);
+	amount = send(connection->sd, pointer, amount, MSG_DONTWAIT);
+	NCOT_LOG_INFO("ncot_connection_write_data: %i bytes send by call\n", amount);
+	if (amount == -1) {
+		/* We need to check for the reason why this may
+		fail. If it would block, we need somehow take our
+		connection out of the writing list for some time. Here
+		comes the timeout value from the pselect call in
+		handy. We could enable timed out pselect only when we
+		have blocking writing i/o and a context->waiting list
+		where we got back in from with our blocking connection
+		when some amount of time has passed. For now we ignore
+		errors at all ! FIXME */
+		return 0;
+	}
+	/* We have sent some data.*/
+	packet->index += amount;
+	NCOT_LOG_INFO("ncot_connection_write_data: %i bytes send.\n", amount);
+	return amount;
+	/* TODO: We need to check for EMSGSIZE and split the chunksize accordingly. */
 }
 
 int
@@ -226,11 +271,6 @@ ncot_connection_authenticate_server(struct ncot_connection *connection)
 	res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
 	GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
 
-	*connection->connfdPtr = connection->sd;
-/*		gnutls_transport_set_ptr(connection->session, connection->connfdPtr);
-		gnutls_transport_set_push_function(connection->session, data_push);
-		gnutls_transport_set_pull_function(connection->session, data_pull);*/
-
 	gnutls_transport_set_int(connection->session, connection->sd);
 
 	NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
@@ -299,7 +339,6 @@ ncot_connection_free(struct ncot_connection **pconnection)
 		connection = *pconnection;
 		if (connection)
 		{
-			free(connection->connfdPtr);
 			free(connection);
 			*pconnection = NULL;
 		} else

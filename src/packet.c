@@ -19,6 +19,7 @@ ncot_packet_new_with_data(const char *message, int length)
 	RETURN_NULL_IF_NULL(packet->data, "ncot_packet_new_with_data: out of mem");
 	memcpy(packet->data, message, length);
 	packet->length = length;
+	return packet;
 }
 
 void
