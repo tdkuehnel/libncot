@@ -54,7 +54,7 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 				connection = connection->next;
 				continue;
 			}
-			NCOT_LOG_INFO("ncot_process_fd: listening connection is ready in rfds\n");
+			NCOT_LOG_INFO("ncot_process_fd: listening connection was ready in rfds and is now connected\n");
 			node = ncot_context_get_node_by_connection(context, connection);
 			if (node) {
 				ncot_node_authenticate_peer(node, connection);

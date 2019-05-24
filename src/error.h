@@ -17,5 +17,6 @@
 
 #define RETURN_FAIL_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return -1;}
 #define RETURN_NULL_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return NULL;}
+#define RETURN_ZERO_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return 0;}
 
 #endif

@@ -18,10 +18,10 @@ ncot_connection_send(struct ncot_context *context, struct ncot_connection *conne
 {
 	struct ncot_packet *packet;
 	packet = ncot_packet_new_with_data(message, length);
-	RETURN_FAIL_IF_NULL(packet, "ncot_connection_send: Out of memory");
+	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send: Out of memory");
 	LL_APPEND(connection->packetlist, packet);
 	ncot_context_enqueue_connection_writing(context, connection);
-	return 0;
+	return length;
 }
 
 struct ncot_connection*
@@ -106,7 +106,7 @@ ncot_connection_accept(struct ncot_context *context, struct ncot_connection *con
 
 		NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
 		do {
-			NCOT_LOG_INFO("gnutls_handshake accept iteration\n");
+			NCOT_LOG_INFO("Gnutls_handshake accept iteration\n");
 			res = gnutls_handshake(connection->session);
 			NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
 		} while ( res != 0 && !gnutls_error_is_fatal(res) );
@@ -250,9 +250,9 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 
 		NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
 		do {
-			NCOT_LOG_INFO("gnutls_handshake connect iteration\n");
+			NCOT_LOG_INFO("Gnutls_handshake connect iteration\n");
 			res = gnutls_handshake(connection->session);
-			NCOT_LOG_INFO("gnutls_handshake returned %i \n", res);
+			NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
 		} while ( res != 0 && !gnutls_error_is_fatal(res) );
 		if (gnutls_error_is_fatal(res)) {
 			GNUTLS_ERROR(res, "Fatal error during TLS handshake.");

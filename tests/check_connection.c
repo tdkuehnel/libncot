@@ -108,7 +108,7 @@ START_TEST (test_connection_daemon)
 	ret = ncot_connection_connect(context, conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
 
-	ret = ncot_connection_send(context, conn2, message);
+	ret = ncot_connection_send(context, conn2, message, strlen(message));
 	ck_assert_int_eq(ret, strlen(message));
 
 	ncot_connection_free(&conn2);
