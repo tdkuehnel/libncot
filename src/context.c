@@ -117,3 +117,30 @@ ncot_context_dequeue_connection_writing(struct ncot_context *context, struct nco
 	LL_DELETE(context->connections_writing, connection);
 }
 
+int
+ncot_context_get_highest_fd(struct ncot_context *context)
+{
+	int maxfd = 0;
+	struct ncot_connection *connection;
+
+	/* First the connected ones */
+	connection = context->connections_connected;
+	while (connection) {
+		if (connection->sd > maxfd) maxfd = connection->sd;
+		connection = connection->next;
+	}
+
+	connection = context->connections_listen;
+	while (connection) {
+		if (connection->sd > maxfd) maxfd = connection->sd;
+		connection = connection->next;
+	}
+
+	if (context->controlconnection->status == NCOT_CONN_LISTEN ||
+		context->controlconnection->status == NCOT_CONN_CONNECTED) {
+		if (context->controlconnection->sd > maxfd)
+			maxfd = context->controlconnection->sd;
+	}
+	return maxfd;
+}
+

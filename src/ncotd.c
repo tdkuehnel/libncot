@@ -186,7 +186,8 @@ main(int argc, char **argv)
 		r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 
 		if (r > 0) {
-			NCOT_LOG( NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+			NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+			NCOT_DEBUG("input/ouput ready\n");
 			ncot_process_fd(context, r, &rfds, &wfds);
 		} else {
 			switch (errno) {

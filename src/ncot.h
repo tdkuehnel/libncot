@@ -10,6 +10,8 @@
 
 #include "context.h"
 
+#define GNUTLS_LOG_LEVEL 8
+
 typedef struct ncot_identity_t {
   uuid_t *uuid;
 } ncot_identity_t;

@@ -1,5 +1,5 @@
-TESTS = check_helper check_ncot check_node check_connection
-check_PROGRAMS = check_helper check_ncot check_node check_connection
+TESTS = check_connection check_ncot check_helper
+check_PROGRAMS = check_helper check_ncot check_node check_connection server client
 
 check_helper_SOURCES = check_helper.c $(top_builddir)/src/ncot.h ../src/log.c ../src/ncot.c ../src/connection.c ../src/context.c ../src/node.c
 check_helper_CFLAGS = @CHECK_CFLAGS@
@@ -17,3 +17,8 @@ check_connection_SOURCES = check_connection.c $(top_builddir)/src/connection.h .
 check_connection_CFLAGS = @CHECK_CFLAGS@
 check_connection_LDADD = @CHECK_LIBS@ @GNUTLS_LIBS@  @UUID_LIBS@ 
 
+server_SOURCES = server.c
+server_LDADD = @GNUTLS_LIBS@
+
+client_SOURCES = client.c
+client_LDADD = @GNUTLS_LIBS@

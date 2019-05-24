@@ -10,6 +10,12 @@
 #include "context.h"
 #include "node.h"
 
+// GnuTLS will call this function whenever there is a new debugging log message.
+void print_logs(int level, const char* msg)
+{
+	NCOT_LOG_INFO("GnuTLS [%d]: %s", level, msg);
+}
+
 int
 ncot_control_connection_authenticate(struct ncot_connection *connection)
 {
@@ -166,6 +172,8 @@ void ncot_init()
 
 	/*NCOT_LOG_INFO("%s\n", PACKAGE_STRING);*/
 	gnutls_global_init();
+	gnutls_global_set_log_level(GNUTLS_LOG_LEVEL);
+	gnutls_global_set_log_function(print_logs);
 
 }
 

@@ -42,6 +42,10 @@
    the server in terms of the GnuTLS library implementation.
 */
 
+/* For the proof on concept working sample, and until we have a UI for
+ * its input, we use this hard coded PSK */
+#define SECRET_KEY "THIS IS THE PRE-SHARED SECRET KEY"
+
 /* We try to stick to the linux kernel coding style */
 
 /* Maximum pending listen queue length */
@@ -96,9 +100,14 @@ struct ncot_connection {
 	gnutls_session_t session;
 	gnutls_anon_server_credentials_t servercred;
 	gnutls_anon_client_credentials_t clientcred;
+	gnutls_psk_client_credentials_t pskclientcredentials;
+	gnutls_psk_server_credentials_t pskservercredentials;
+	gnutls_datum_t key;
+	int *connfdPtr;
 	enum ncot_connection_type type;
 	enum ncot_connection_status status;
 	int optval;
+	int authenticated;
 };
 
 struct ncot_connection *ncot_connection_new();

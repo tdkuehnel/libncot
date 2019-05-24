@@ -53,3 +53,5 @@ ncotd.pid
 tests/ncotd1.pid
 tests/check_node
 tests/check_connection
+tests/client
+tests/server

@@ -14,6 +14,9 @@ ncot_connection_new()
 {
 	struct ncot_connection *connection;
 	connection = calloc(1, sizeof(struct ncot_connection));
+	if (connection) {
+		connection->connfdPtr = malloc(sizeof(int));
+	}
 	return connection;
 }
 
@@ -27,12 +30,34 @@ ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_ty
 	}
 }
 
+ssize_t data_push(gnutls_transport_ptr_t ptr, const void* data, size_t len);
+ssize_t data_pull(gnutls_transport_ptr_t ptr, void* data, size_t maxlen);
+// GnuTLS calls this function to get the pre-shared key. The client will tell
+// the server its username, and GnuTLS will give us that username. We have to
+// return the key that we share with that client. We set this callback with
+// gnutls_psk_set_server_credentials_function().
+int psk_creds(gnutls_session_t session, const char *username, gnutls_datum_t *key)
+{
+	// For this example, we ignore the username and return the same key every
+	// time. In a real application, you would look up the key for the username
+	// and return that. If the username does not exist, return a negative
+	// number (see the manual).
+	key->size = strlen(SECRET_KEY);
+	key->data = gnutls_malloc(key->size);
+	if (key->data == NULL) {
+		return -1;
+	}
+	memcpy(key->data, SECRET_KEY, key->size);
+	return 0;
+}
+
 int
 ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
 {
 	if (connection->status == NCOT_CONN_LISTEN) {
 		int nsd;
 		int err;
+		int res;
 		nsd = accept(connection->sd, &connection->client, &connection->client_len);
 		SOCKET_NERR(nsd, "ncot_connection_accept: accept()");
 		err = close(connection->sd);
@@ -42,6 +67,40 @@ ncot_connection_accept(struct ncot_context *context, struct ncot_connection *con
 		ncot_context_dequeue_connection_listen(context, connection);
 		ncot_context_enqueue_connection_connected(context, connection);
 		NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
+
+		err = gnutls_init(&connection->session, GNUTLS_SERVER);
+		GNUTLS_ERROR(err, "Error during gnutls_init()");
+
+		err = gnutls_psk_allocate_server_credentials(&connection->pskservercredentials);
+		GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_server_credentials()");
+
+		gnutls_psk_set_server_credentials_function(connection->pskservercredentials, psk_creds);
+
+		res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskservercredentials);
+		GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
+
+		res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
+		GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
+
+		*connection->connfdPtr = connection->sd;
+/*		gnutls_transport_set_ptr(connection->session, connection->connfdPtr);
+		gnutls_transport_set_push_function(connection->session, data_push);
+		gnutls_transport_set_pull_function(connection->session, data_pull); */
+
+		gnutls_transport_set_int(connection->session, connection->sd);
+
+		NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
+		do {
+			NCOT_LOG_INFO("gnutls_handshake accept iteration\n");
+			res = gnutls_handshake(connection->session);
+			NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
+		} while ( res != 0 && !gnutls_error_is_fatal(res) );
+		if (gnutls_error_is_fatal(res)) {
+			GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
+		}
+		NCOT_LOG_INFO("Gnutls handshake complete\n");
+		/*gnutls_transport_set_int(connection->session, connection->sd);*/
+		connection->authenticated = 1;
 		return 0;
 	} else {
 		NCOT_LOG_ERROR("ncot_connection_accept: connection not in status listen\n");
@@ -71,112 +130,123 @@ int
 ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port)
 {
 	int err;
-	if (connection)
+	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_listen: Invalid argument: connection");
+	if (connection->status == NCOT_CONN_CONNECTED)
 	{
-		if (connection->status == NCOT_CONN_CONNECTED)
-		{
-			NCOT_LOG_ERROR("Error connection still connected, cant listen\n");
-			return 1;
-		}
-		if (connection->status == NCOT_CONN_INIT)
-		{
-			connection->sd = socket(AF_INET, SOCK_STREAM, 0);
-			SOCKET_ERR(connection->sd, "ncot_connection_listen: socket()");
-			memset(&connection->sa_server, '\0', sizeof(connection->sa_server));
-			connection->sa_server.sin_family = AF_INET;
-			connection->sa_server.sin_addr.s_addr = INADDR_ANY;
-			connection->sa_server.sin_port = htons(port); /* Server Port number */
-			setsockopt(connection->sd, SOL_SOCKET, SO_REUSEADDR, (void *) &connection->optval, sizeof(int));
-			err = bind(connection->sd, (struct sockaddr *) &connection->sa_server, sizeof(connection->sa_server));
-			SOCKET_ERR(err, "ncot_connection_listen: bind()");
-			connection->status = NCOT_CONN_BOUND;
-		}
-
-		int ret;
-		ret = listen(connection->sd, LISTEN_BACKLOG);
-		if (ret == -1) {
-			NCOT_LOG_ERROR("Error listening with connection\n");
-			return 1;
-		}
-		else {
-			connection->status = NCOT_CONN_LISTEN;
-			ncot_context_enqueue_connection_listen(context, connection);
-			NCOT_LOG_INFO("connection now listening on port %i\n", port);
-			return 0;
-		}
+		NCOT_LOG_ERROR("Error connection still connected, cant listen\n");
+		return 1;
 	}
+	if (connection->status == NCOT_CONN_INIT)
+	{
+		connection->sd = socket(AF_INET, SOCK_STREAM, 0);
+		SOCKET_ERR(connection->sd, "ncot_connection_listen: socket()");
+		memset(&connection->sa_server, '\0', sizeof(connection->sa_server));
+		connection->sa_server.sin_family = AF_INET;
+		connection->sa_server.sin_addr.s_addr = INADDR_ANY;
+		connection->sa_server.sin_port = htons(port); /* Server Port number */
+		setsockopt(connection->sd, SOL_SOCKET, SO_REUSEADDR, (void *) &connection->optval, sizeof(int));
+		err = bind(connection->sd, (struct sockaddr *) &connection->sa_server, sizeof(connection->sa_server));
+		SOCKET_ERR(err, "ncot_connection_listen: bind()");
+		connection->status = NCOT_CONN_BOUND;
+	}
+
+	int ret;
+	ret = listen(connection->sd, LISTEN_BACKLOG);
+	SOCKET_ERR(ret, "Error listening with connection\n");
+	connection->status = NCOT_CONN_LISTEN;
+	ncot_context_enqueue_connection_listen(context, connection);
+	NCOT_LOG_INFO("connection now listening on port %i\n", port);
+	return 0;
+}
+
+// GnuTLS calls this function to send data through the transport layer. We set
+// this callback with gnutls_transport_set_push_function(). It should behave
+// like send() (see the manual for specifics).
+ssize_t data_push(gnutls_transport_ptr_t ptr, const void* data, size_t len)
+{
+	int sockfd = *(int*)(ptr);
+	return send(sockfd, data, len, 0);
+}
+
+// GnuTLS calls this function to receive data from the transport layer. We set
+// this callback with gnutls_transport_set_pull_function(). It should act like
+// recv() (see the manual for specifics).
+ssize_t data_pull(gnutls_transport_ptr_t ptr, void* data, size_t maxlen)
+{
+	int sockfd = *(int*)(ptr);
+	return recv(sockfd, data, maxlen, 0);
 }
 
 int
 ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
 {
 	int err;
-	if (connection) {
-		if (connection->status == NCOT_CONN_CONNECTED) {
-			NCOT_LOG_ERROR("Error connection still connected, cant connect again\n");
-			return 1;
+	int res;
+	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_listen: Invalid argument: connection");
+	if (connection->status == NCOT_CONN_CONNECTED) ERROR_MESSAGE_RETURN("ncot_connection_listen - ERROR: connection still connected, cant connect again\n");
+	if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
+		connection->sd = socket(AF_INET, SOCK_STREAM, 0);
+		SOCKET_ERR(connection->sd, "ncot_connection_connect: socket()");
+		memset(&connection->sa_client, '\0', sizeof(connection->sa_client));
+		connection->sa_client.sin_family = AF_INET;
+		connection->sa_client.sin_port = htons(atoi(port));
+		inet_pton(AF_INET, address, &connection->sa_client.sin_addr);
+		NCOT_LOG_ERROR("connecting ...\n");
+		err = connect(connection->sd, (struct sockaddr *) &connection->sa_client, sizeof(connection->sa_client));
+		SOCKET_ERR(err, "ncot_connection_connect: connect()");
+		NCOT_LOG_INFO("connect returned %i\n", err);
+		connection->status = NCOT_CONN_CONNECTED;
+		ncot_context_enqueue_connection_connected(context, connection);
+		NCOT_LOG_INFO("connection connected\n");
+
+		err = gnutls_init(&connection->session, GNUTLS_CLIENT);
+		GNUTLS_ERROR(err, "Error during gnutls_init()");
+
+		err = gnutls_psk_allocate_client_credentials(&connection->pskclientcredentials);
+		GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_client_credentials()");
+
+		connection->key.size = strlen(SECRET_KEY);
+		connection->key.data = malloc(connection->key.size);
+		memcpy(connection->key.data, SECRET_KEY, connection->key.size);
+		res = gnutls_psk_set_client_credentials(connection->pskclientcredentials, "Alice", &connection->key, GNUTLS_PSK_KEY_RAW);
+		memset(connection->key.data, 0, connection->key.size);
+		free(connection->key.data);
+		connection->key.data = NULL;
+		connection->key.size = 0;
+		GNUTLS_ERROR(res, "Error during gnutls_psk_set_client_credentials()");
+
+		res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskclientcredentials);
+		GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
+
+		/* As we use only the parts of GnuTLS which are not
+		   polluted by CA stuff, using NONE here makes sure
+		   GnuTLS does not automagically switch in any
+		   algorithms we do not want. */
+/*		gnutls_priority_set_direct(connection->session,	"NONE:+PSK-DH",	NULL);*/
+		res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
+		GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
+
+		*connection->connfdPtr = connection->sd;
+/*		gnutls_transport_set_ptr(connection->session, connection->connfdPtr);
+		gnutls_transport_set_push_function(connection->session, data_push);
+		gnutls_transport_set_pull_function(connection->session, data_pull);*/
+
+		gnutls_transport_set_int(connection->session, connection->sd);
+
+		NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
+		do {
+			NCOT_LOG_INFO("gnutls_handshake connect iteration\n");
+			res = gnutls_handshake(connection->session);
+			NCOT_LOG_INFO("gnutls_handshake returned %i \n", res);
+		} while ( res != 0 && !gnutls_error_is_fatal(res) );
+		if (gnutls_error_is_fatal(res)) {
+			GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
 		}
-		if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
-			connection->sd = socket(AF_INET, SOCK_STREAM, 0);
-			SOCKET_ERR(connection->sd, "ncot_connection_connect: socket()");
-			memset(&connection->sa_client, '\0', sizeof(connection->sa_client));
-			connection->sa_client.sin_family = AF_INET;
-			connection->sa_client.sin_port = htons(atoi(port));
-			inet_pton(AF_INET, address, &connection->sa_client.sin_addr);
-
-			NCOT_LOG_ERROR("connecting ...\n");
-			err = connect(connection->sd, (struct sockaddr *) &connection->sa_client, sizeof(connection->sa_client));
-			SOCKET_ERR(err, "ncot_connection_connect: connect()");
-			NCOT_LOG_INFO("connect returned %i\n", err);
-			connection->status = NCOT_CONN_CONNECTED;
-			ncot_context_enqueue_connection_connected(context, connection);
-			NCOT_LOG_INFO("connection connected\n");
-
-			gnutls_anon_allocate_client_credentials(&connection->clientcred);
-			gnutls_init(&connection->session, GNUTLS_CLIENT);
-			/* As we use only that parts of GnuTLS which are not polluted by
-			   CA stuff, using NONE here makes sure GnuTLS does not
-			   automagically switch in any algorithms we do not want. */
-			gnutls_priority_set_direct(connection->session,
-						"NONE:+ANON-ECDH:+ANON-DH",
-						NULL);
-			gnutls_credentials_set(connection->session, GNUTLS_CRD_ANON, connection->clientcred);
-			gnutls_transport_set_int(connection->session, connection->sd);
-			gnutls_handshake_set_timeout(connection->session, GNUTLS_DEFAULT_HANDSHAKE_TIMEOUT);
-
-			return 0;
-		}
-	} else {
-		NCOT_LOG_ERROR("invalid argument ncot_connection\n");
-		return 1;
+		NCOT_LOG_INFO("Gnutls handshake complete\n");
+		/*gnutls_transport_set_int(connection->session, connection->sd);*/
+		connection->authenticated = 1;
+		return 0;
 	}
-}
-
-int
-ncot_context_get_highest_fd(struct ncot_context *context)
-{
-	int maxfd = 0;
-	struct ncot_connection *connection;
-
-	/* First the connected ones */
-	connection = context->connections_connected;
-	while (connection) {
-		if (connection->sd > maxfd) maxfd = connection->sd;
-		connection = connection->next;
-	}
-
-	connection = context->connections_listen;
-	while (connection) {
-		if (connection->sd > maxfd) maxfd = connection->sd;
-		connection = connection->next;
-	}
-
-	if (context->controlconnection->status == NCOT_CONN_LISTEN ||
-		context->controlconnection->status == NCOT_CONN_CONNECTED) {
-		if (context->controlconnection->sd > maxfd)
-			maxfd = context->controlconnection->sd;
-	}
-	return maxfd;
 }
 
 void
@@ -186,8 +256,9 @@ ncot_connection_close(struct ncot_connection *connection)
 	{
 		if (connection->status == NCOT_CONN_CONNECTED) {
 			gnutls_bye(connection->session, GNUTLS_SHUT_WR);
-			close(connection->sd);
 			gnutls_deinit(connection->session);
+			gnutls_psk_free_client_credentials(connection->pskclientcredentials);
+			close(connection->sd);
 		} else
 			NCOT_LOG_WARNING("Trying to close a connection not open\n");
 	} else
@@ -203,6 +274,7 @@ ncot_connection_free(struct ncot_connection **pconnection)
 		connection = *pconnection;
 		if (connection)
 		{
+			free(connection->connfdPtr);
 			free(connection);
 			*pconnection = NULL;
 		} else
