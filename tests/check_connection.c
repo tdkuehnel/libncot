@@ -88,6 +88,9 @@ START_TEST (test_connection_daemon)
 
 	int ret;
 	int i;
+	int r;
+	int highestfd;
+	fd_set rfds, wfds;
 
 	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_connection_daemon-ncotd1.log");
 
@@ -114,8 +117,16 @@ START_TEST (test_connection_daemon)
 	ret = ncot_connection_send(context, conn2, message, strlen(message));
 	ck_assert_int_eq(ret, strlen(message));
 
+	FD_ZERO(&rfds);
+	FD_ZERO(&wfds);
 
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
 
 	ncot_connection_free(&conn2);
 
