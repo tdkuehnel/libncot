@@ -67,60 +67,62 @@ int psk_creds(gnutls_session_t session, const char *username, gnutls_datum_t *ke
 }
 
 int
-ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
+ncot_connection_authenticate_client(struct ncot_connection *connection)
 {
-	if (connection->status == NCOT_CONN_LISTEN) {
-		int nsd;
-		int err;
-		int res;
-		nsd = accept(connection->sd, &connection->client, &connection->client_len);
-		SOCKET_NERR(nsd, "ncot_connection_accept: accept()");
-		err = close(connection->sd);
-		SOCKET_NERR(err, "ncot_connection_accept: close(connection->sd)");
-		connection->sd = nsd;
-		connection->status = NCOT_CONN_CONNECTED;
-		ncot_context_dequeue_connection_listen(context, connection);
-		ncot_context_enqueue_connection_connected(context, connection);
-		NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
+	int err;
+	int res;
+	err = gnutls_init(&connection->session, GNUTLS_SERVER);
+	GNUTLS_ERROR(err, "Error during gnutls_init()");
 
-		err = gnutls_init(&connection->session, GNUTLS_SERVER);
-		GNUTLS_ERROR(err, "Error during gnutls_init()");
+	err = gnutls_psk_allocate_server_credentials(&connection->pskservercredentials);
+	GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_server_credentials()");
 
-		err = gnutls_psk_allocate_server_credentials(&connection->pskservercredentials);
-		GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_server_credentials()");
+	gnutls_psk_set_server_credentials_function(connection->pskservercredentials, psk_creds);
 
-		gnutls_psk_set_server_credentials_function(connection->pskservercredentials, psk_creds);
+	res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskservercredentials);
+	GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
 
-		res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskservercredentials);
-		GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
+	res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
+	GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
 
-		res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
-		GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
-
-		*connection->connfdPtr = connection->sd;
+	*connection->connfdPtr = connection->sd;
 /*		gnutls_transport_set_ptr(connection->session, connection->connfdPtr);
 		gnutls_transport_set_push_function(connection->session, data_push);
 		gnutls_transport_set_pull_function(connection->session, data_pull); */
 
-		gnutls_transport_set_int(connection->session, connection->sd);
+	gnutls_transport_set_int(connection->session, connection->sd);
 
-		NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
-		do {
-			NCOT_LOG_INFO("Gnutls_handshake accept iteration\n");
-			res = gnutls_handshake(connection->session);
-			NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
-		} while ( res != 0 && !gnutls_error_is_fatal(res) );
-		if (gnutls_error_is_fatal(res)) {
-			GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
-		}
-		NCOT_LOG_INFO("Gnutls handshake complete\n");
-		/*gnutls_transport_set_int(connection->session, connection->sd);*/
-		connection->authenticated = 1;
-		return 0;
-	} else {
-		NCOT_LOG_ERROR("ncot_connection_accept: connection not in status listen\n");
-		return -1;
+	NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
+	do {
+		NCOT_LOG_INFO("Gnutls_handshake accept iteration\n");
+		res = gnutls_handshake(connection->session);
+		NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
+	} while ( res != 0 && !gnutls_error_is_fatal(res) );
+	if (gnutls_error_is_fatal(res)) {
+		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
 	}
+	NCOT_LOG_INFO("Gnutls handshake complete\n");
+	/*gnutls_transport_set_int(connection->session, connection->sd);*/
+	connection->authenticated = 1;
+	return 0;
+}
+
+int
+ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
+{
+	if (connection->status != NCOT_CONN_LISTEN) RETURN_FAIL("ncot_connection_accept: connection not in listening state");
+	int nsd;
+	int err;
+	nsd = accept(connection->sd, &connection->client, &connection->client_len);
+	SOCKET_NERR(nsd, "ncot_connection_accept: accept()");
+	err = close(connection->sd);
+	SOCKET_NERR(err, "ncot_connection_accept: close(connection->sd)");
+	connection->sd = nsd;
+	connection->status = NCOT_CONN_CONNECTED;
+	ncot_context_dequeue_connection_listen(context, connection);
+	ncot_context_enqueue_connection_connected(context, connection);
+	NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
+	return 0;
 }
 
 int
@@ -193,6 +195,61 @@ ssize_t data_pull(gnutls_transport_ptr_t ptr, void* data, size_t maxlen)
 }
 
 int
+ncot_connection_authenticate_server(struct ncot_connection *connection)
+{
+	int err;
+	int res;
+	err = gnutls_init(&connection->session, GNUTLS_CLIENT);
+	GNUTLS_ERROR(err, "Error during gnutls_init()");
+
+	err = gnutls_psk_allocate_client_credentials(&connection->pskclientcredentials);
+	GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_client_credentials()");
+
+	connection->key.size = strlen(SECRET_KEY);
+	connection->key.data = malloc(connection->key.size);
+	memcpy(connection->key.data, SECRET_KEY, connection->key.size);
+	res = gnutls_psk_set_client_credentials(connection->pskclientcredentials, "Alice", &connection->key, GNUTLS_PSK_KEY_RAW);
+	memset(connection->key.data, 0, connection->key.size);
+	free(connection->key.data);
+	connection->key.data = NULL;
+	connection->key.size = 0;
+	GNUTLS_ERROR(res, "Error during gnutls_psk_set_client_credentials()");
+
+	res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskclientcredentials);
+	GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
+
+	/* As we use only the parts of GnuTLS which are not
+	   polluted by CA stuff, using NONE here makes sure
+	   GnuTLS does not automagically switch in any
+	   algorithms we do not want. */
+/*		gnutls_priority_set_direct(connection->session,	"NONE:+PSK-DH",	NULL);*/
+	res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
+	GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
+
+	*connection->connfdPtr = connection->sd;
+/*		gnutls_transport_set_ptr(connection->session, connection->connfdPtr);
+		gnutls_transport_set_push_function(connection->session, data_push);
+		gnutls_transport_set_pull_function(connection->session, data_pull);*/
+
+	gnutls_transport_set_int(connection->session, connection->sd);
+
+	NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
+	do {
+		NCOT_LOG_INFO("Gnutls_handshake connect iteration\n");
+		res = gnutls_handshake(connection->session);
+		NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
+	} while ( res != 0 && !gnutls_error_is_fatal(res) );
+	if (gnutls_error_is_fatal(res)) {
+		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
+	}
+	NCOT_LOG_INFO("Gnutls handshake complete\n");
+	/*gnutls_transport_set_int(connection->session, connection->sd);*/
+	connection->authenticated = 1;
+	return 0;
+}
+
+
+int
 ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
 {
 	int err;
@@ -213,53 +270,6 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 		connection->status = NCOT_CONN_CONNECTED;
 		ncot_context_enqueue_connection_connected(context, connection);
 		NCOT_LOG_INFO("connection connected\n");
-
-		err = gnutls_init(&connection->session, GNUTLS_CLIENT);
-		GNUTLS_ERROR(err, "Error during gnutls_init()");
-
-		err = gnutls_psk_allocate_client_credentials(&connection->pskclientcredentials);
-		GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_client_credentials()");
-
-		connection->key.size = strlen(SECRET_KEY);
-		connection->key.data = malloc(connection->key.size);
-		memcpy(connection->key.data, SECRET_KEY, connection->key.size);
-		res = gnutls_psk_set_client_credentials(connection->pskclientcredentials, "Alice", &connection->key, GNUTLS_PSK_KEY_RAW);
-		memset(connection->key.data, 0, connection->key.size);
-		free(connection->key.data);
-		connection->key.data = NULL;
-		connection->key.size = 0;
-		GNUTLS_ERROR(res, "Error during gnutls_psk_set_client_credentials()");
-
-		res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskclientcredentials);
-		GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
-
-		/* As we use only the parts of GnuTLS which are not
-		   polluted by CA stuff, using NONE here makes sure
-		   GnuTLS does not automagically switch in any
-		   algorithms we do not want. */
-/*		gnutls_priority_set_direct(connection->session,	"NONE:+PSK-DH",	NULL);*/
-		res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
-		GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
-
-		*connection->connfdPtr = connection->sd;
-/*		gnutls_transport_set_ptr(connection->session, connection->connfdPtr);
-		gnutls_transport_set_push_function(connection->session, data_push);
-		gnutls_transport_set_pull_function(connection->session, data_pull);*/
-
-		gnutls_transport_set_int(connection->session, connection->sd);
-
-		NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
-		do {
-			NCOT_LOG_INFO("Gnutls_handshake connect iteration\n");
-			res = gnutls_handshake(connection->session);
-			NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
-		} while ( res != 0 && !gnutls_error_is_fatal(res) );
-		if (gnutls_error_is_fatal(res)) {
-			GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
-		}
-		NCOT_LOG_INFO("Gnutls handshake complete\n");
-		/*gnutls_transport_set_int(connection->session, connection->sd);*/
-		connection->authenticated = 1;
 		return 0;
 	}
 }

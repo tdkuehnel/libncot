@@ -59,10 +59,17 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 			if (node) {
 				ncot_node_authenticate_peer(node, connection);
 			} else {
-				if (context->controlconnection == connection)
-					ncot_context_controlconnection_authenticate(context, connection);
-				else
+				if (context->controlconnection == connection) {
+					/* ncot_context_controlconnection_authenticate(context, connection); */
+					ret = ncot_connection_authenticate_client(connection);
+					/* We need to take appropriate
+					 * action when authentication
+					 * fails and set the
+					 * connection into the listen
+					 * state again maybe */
+				} else {
 					NCOT_LOG_WARNING("ncot_process_fd: node and/or connection list inconsistency\n");
+				}
 			}
 		}
 		connection = connection->next;
