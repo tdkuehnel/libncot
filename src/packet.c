@@ -22,6 +22,24 @@ ncot_packet_new_with_data(const char *message, int length)
 	return packet;
 }
 
+int
+ncot_packet_set_data(struct ncot_packet *packet, const char *message, int length)
+{
+	RETURN_FAIL_IF_NULL(packet, "ncot_packet_set_data: invalid packet argument.");
+	if (!packet->data) {
+		packet->data = malloc(length);
+	} else {
+		if (packet->length != length) {
+			free(packet->data);
+			packet->data = malloc(length);
+		}
+	}
+	RETURN_FAIL_IF_NULL(packet->data, "ncot_packet_set_data: out of memory.");
+	packet->length = length;
+	memcpy(packet->data, message, length);
+	return packet->length;
+}
+
 void
 ncot_packet_free(struct ncot_packet **ppacket)
 {

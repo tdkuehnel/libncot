@@ -13,6 +13,7 @@ struct ncot_packet {
 
 struct ncot_packet *ncot_packet_new();
 struct ncot_packet *ncot_packet_new_with_data(const char *message, int length);
+int ncot_packet_set_data(struct ncot_packet *packet, const char *message, int length);
 void ncot_packet_free(struct ncot_packet **ppacket);
 
 #endif
