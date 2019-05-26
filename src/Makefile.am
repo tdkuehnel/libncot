@@ -1,5 +1,5 @@
 lib_LTLIBRARIES = libncot.la
-libncot_la_SOURCES = ncot.c ncot.h debug.h log.c log.h utlist.h context.c context.h arg.c arg.h connection.h connection.c node.h node.c packet.c packet.h
+libncot_la_SOURCES = ncot.c ncot.h debug.h log.c log.h utlist.h context.c context.h arg.c arg.h connection.h connection.c node.h node.c packet.c packet.h select.c select.h init.c init.h
 
 include_HEADERS = ncot.h
 
@@ -8,7 +8,7 @@ libncot_la_LIBADD = @UUID_LIBS@ @GNUTLS_LIBS@
 
 bin_PROGRAMS = ncot ncotd
 
-ncot_SOURCES = ncotclient.c
+ncot_SOURCES = ncot.c
 ncot_LDADD = libncot.la @GNUTLS_LIBS@
 
 ncotd_SOURCES = ncotd.c

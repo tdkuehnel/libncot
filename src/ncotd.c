@@ -12,11 +12,11 @@
 #include <string.h>
 
 #include "ncot.h"
+#include "init.h"
 #include "node.h"
-
-#include "utlist.h"
-
 #include "context.h"
+#include "select.h"
+#include "utlist.h"
 
 #define DEBUG 1
 #include "debug.h"
@@ -116,8 +116,13 @@ int daemonize()
 
 }
 
-void ncot_client_init(int argc, char **argv) {
-	char *str;
+int
+main(int argc, char **argv)
+{
+	int r, highestfd;
+	fd_set rfds, wfds;
+	sigset_t sigmask;
+
 	new_action.sa_handler = sig_handler;
 	sigemptyset (&new_action.sa_mask);
 	new_action.sa_flags = 0;
@@ -135,38 +140,15 @@ void ncot_client_init(int argc, char **argv) {
 	/* initialize global context */
 	context = ncot_context_new();
 	ncot_context_init(context);
-
 	ncot_arg_parse(context->arguments, argc, argv);
 	ncot_init();
 	ncot_log_set_logfile(context->arguments->logfile_name);
-	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client");
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "daemon");
 	if (context->arguments->daemonize) daemonize();
 	if (context->arguments->daemonize) NCOT_LOG_INFO("%s Looks like we are running as a deamon, good.\n", PACKAGE_STRING);
 
 	NCOT_LOG_INFO("%s our PID is %ld\n", PACKAGE_STRING, (long) getpid());
 
-/*	node = ncot_node_new();
-	if (node) {
-		ncot_node_init(node);
-		str = NULL;
-		uuid_export(node->uuid, UUID_FMT_STR, &str, NULL);
-		NCOT_LOG_INFO("Node created with uuid: %s \n", str);
-
-	} else {
-		NCOT_LOG_WARNING("unable to create ncot node.");
-	}
-*/
-	/* main initialization ends here */
-}
-
-int
-main(int argc, char **argv)
-{
-	int r, highestfd;
-	fd_set rfds, wfds;
-	sigset_t sigmask;
-
-	ncot_client_init(argc, argv);
 	ncot_connection_listen(context, context->controlconnection,
 			atoi(context->arguments->port));
 

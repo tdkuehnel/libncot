@@ -12,6 +12,8 @@
 #include "../src/log.h"
 #include "../src/ncot.h"
 #include "../src/context.h"
+#include "../src/init.h"
+#include "../src/select.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 #define PIDFILE_NAME_1 "ncotd1.pid"

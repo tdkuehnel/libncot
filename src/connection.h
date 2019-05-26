@@ -128,4 +128,6 @@ int ncot_connection_write_data(struct ncot_context *context, struct ncot_connect
 int ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length);
 void ncot_connection_free(struct ncot_connection **connection);
 
+int ncot_control_connection_authenticate(struct ncot_connection *connection);
+
 #endif
