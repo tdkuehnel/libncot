@@ -3,12 +3,15 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
 #include <stdio.h>
 
 /*#include "../src/config.h"
   #include "../src/helper.h"
 */
+
+#include "../src/log.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 #define PIDFILE_NAME_1 "ncotd1.pid"
@@ -19,7 +22,29 @@ void setup()
 
 void teardown()
 {
+	int i;
+	struct stat logfilestat;
+	i = stat("logfilename", &logfilestat);
+	if (i == 0) {
+		unlink("logfilename");
+	}
+
 }
+
+START_TEST (test_logfile)
+{
+	char *s1 = "";
+	char *s2 = "logfilename";
+	int ret;
+
+	ncot_log_init(NCOT_LOG_LEVEL_DEFAULT);
+	ret = ncot_log_set_logfile(s1);
+	ck_assert(ret == -1);
+	ret = ncot_log_set_logfile(s2);
+	ck_assert(ret == 0);
+	ncot_log_done();
+}
+END_TEST
 
 START_TEST (test_ncot)
 {
@@ -71,6 +96,7 @@ Suite * helper_suite(void)
 	tcase_add_checked_fixture(tc_core, setup, teardown);
 
 	tcase_add_test(tc_core, test_ncot);
+	tcase_add_test(tc_core, test_logfile);
 	suite_add_tcase(s, tc_core);
 	return s;
 }

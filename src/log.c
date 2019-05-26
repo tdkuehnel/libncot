@@ -5,7 +5,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <unistd.h>
+#include <string.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #include "log.h"
 
@@ -47,8 +49,10 @@ void ncot_log_logfile( int level, const char *fmt, ... ) {
 	}
 }
 
-void ncot_log_set_logfile(const char *filename) {
+int
+ncot_log_set_logfile(const char *filename) {
 	int i;
+	int fd;
 	struct stat logfilestat;
 	/* TODO: need check if filename is a valid filename, alternatively
 	 * we could check in arguments parsing */
@@ -56,8 +60,20 @@ void ncot_log_set_logfile(const char *filename) {
 	if (i == 0) {
 		unlink(filename);
 	}
-	logfilename = filename;
-	log_ptr = &ncot_log_logfile;
+	if (strlen(filename) != 0) {
+		fd = creat(filename, S_IRWXU);
+		if (fd < 0) {
+			NCOT_LOG_ERROR( "invalid logfilename: %s, %s\n", filename, strerror(errno));
+			return -1;
+		}
+		close(fd);
+		logfilename = filename;
+		log_ptr = &ncot_log_logfile;
+	} else {
+		NCOT_LOG_ERROR( "invalid empty logfilename.\n");
+		return -1;
+	}
+	return 0;
 }
 
 void ncot_log_init(int level) {
