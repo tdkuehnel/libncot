@@ -140,7 +140,7 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	 * writing to take the connection out of the writing list */
 	ssize_t amount;
 	struct ncot_packet *packet;
-	char *pointer;
+	struct ncot_packet_data *pointer;
 	if (!connection->packetlist) {
 		ncot_context_dequeue_connection_writing(context, connection);
 		NCOT_LOG_INFO("ncot_connection_write_data: No more packets in queue\n");

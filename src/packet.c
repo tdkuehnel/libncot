@@ -1,6 +1,24 @@
 #include "packet.h"
 #include "error.h"
 
+int
+ncot_packet_is_subtype(struct ncot_packet *packet, const char subtype[4])
+{
+	struct ncot_packet_data *packetdata;
+	RETURN_FAIL_IF_NULL(packet, "ncot_packet_is_subtype: invalid packet argument.");
+	packetdata = packet->data;
+	return strncmp(subtype, packetdata->subtype, 4);
+}
+
+void
+ncot_packet_set_subtype(struct ncot_packet *packet, const char subtype[4])
+{
+	struct ncot_packet_data *packetdata;
+	RETURN_IF_NULL(packet, "ncot_packet_set_subtype: invalid packet argument.");
+	packetdata = packet->data;
+	memcpy(packetdata->subtype, subtype, 4);
+}
+
 struct ncot_packet*
 ncot_packet_new()
 {

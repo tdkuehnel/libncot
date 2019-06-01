@@ -1,7 +1,7 @@
 #ifndef NCOT_NODE
 #define NCOT_NODE
 
-#include <uuid.h>
+/*#include <uuid.h>*/
 #include "connection.h"
 
 /* A node is a possible participant in a circle of other nodes. Every
@@ -114,7 +114,7 @@
 struct ncot_node;
 struct ncot_node {
 	struct ncot_connection *connections;
-	uuid_t *uuid;
+	/*	uuid_t *uuid;*/
 	struct ncot_node *next;
 };
 

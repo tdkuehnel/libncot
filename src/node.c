@@ -12,8 +12,8 @@ ncot_node_new()
 void
 ncot_node_init(struct ncot_node *node) {
 	if (node) {
-		uuid_create(&node->uuid);
-		uuid_make(node->uuid, UUID_MAKE_V1);
+/*		uuid_create(&node->uuid);
+		uuid_make(node->uuid, UUID_MAKE_V1); */
 	} else {
 		NCOT_LOG_WARNING("Invalid node passed to ncot_node_init\n");
 	}
@@ -33,7 +33,7 @@ ncot_node_free(struct ncot_node **pnode) {
 	if (pnode) {
 		node = *pnode;
 		if (node) {
-			if (node->uuid) uuid_destroy(node->uuid);
+/*			if (node->uuid) uuid_destroy(node->uuid);*/
 			free(node);
 			*pnode = NULL;
 		} else

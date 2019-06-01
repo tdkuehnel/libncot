@@ -54,6 +54,13 @@ START_TEST (test_packet)
 	ret = ncot_packet_set_data(packet, TEST_PACKET_DATA, strlen(TEST_PACKET_DATA));
 	ck_assert(ret == strlen(TEST_PACKET_DATA));
 
+	ncot_packet_set_subtype(packet, NCOT_PACKET_IDENTIFIER_COMMAND);
+	ret = ncot_packet_is_subtype(packet, NCOT_PACKET_IDENTIFIER_COMMAND);
+	ck_assert(ret == 0);
+
+	ret = ncot_packet_is_subtype(packet, NCOT_PACKET_IDENTIFIER_RESPONSE);
+	ck_assert(ret != 0);
+
 	ncot_packet_free(&packet);
 	ck_assert(packet == NULL);
 

@@ -24,12 +24,14 @@ int last_signum = 0;
 int r;
 int gpid;
 
-void sig_handler(int signum) {
+void
+sig_handler(int signum) {
 	count++;
 	last_signum = signum;
 }
 
-struct sigaction new_action, old_action;
+struct sigaction new_action;
+struct sigaction old_action;
 
 int
 main(int argc, char **argv)
@@ -50,6 +52,8 @@ main(int argc, char **argv)
 	if (old_action.sa_handler != SIG_IGN)
 		sigaction (SIGTERM, &new_action, NULL);
 
+	context = ncot_context_new();
+	ncot_context_init(context);
 	ncot_arg_parse(context->arguments, argc, argv);
 	ncot_init();
 	ncot_log_set_logfile(context->arguments->logfile_name);

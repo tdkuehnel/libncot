@@ -21,8 +21,8 @@ LT_INIT
 
 # Checks for libraries.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.8])
-PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 3.2])
-PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
+#PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 3.2])
+#PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
 #PKG_CHECK_MODULES([LIBRESSL], [libtls >= 18.1.0])
 PKG_CHECK_MODULES([GNUTLS], [gnutls >= 0.29.2 ])
 # PKG_CHECK_MODULES([AVUTIL], [libavutil >= 54])

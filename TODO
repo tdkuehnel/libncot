@@ -12,3 +12,5 @@ Maybe first work on proper libncot function names to get a clean interface. sche
 ncot_<library_part>_function_name where library_part is something like circle, node, controlpacket, request and such.
 
 Get this stuff running !!
+
+Let us use the Internet the way it is layed out, as losley connected nodes.

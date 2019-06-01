@@ -40,6 +40,7 @@ void teardown()
 #define TEST_CONNECTION_SIMPLE_SERVER_PORT  "24003"
 #define TESTADDRESS_STRING "127.0.0.1"
 
+
 START_TEST (test_connection_simple)
 {
 	struct ncot_connection *conn1;
@@ -129,6 +130,7 @@ START_TEST (test_connection_daemon)
 		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
+	ck_assert(r > 0);
 
 	ncot_connection_free(&conn2);
 

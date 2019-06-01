@@ -1,6 +1,6 @@
 #include "autoconfig.h"
 
-#include <uuid.h>
+/*#include <uuid.h>*/
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>

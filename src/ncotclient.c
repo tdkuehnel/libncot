@@ -68,9 +68,10 @@ void ncot_client_init(int argc, char **argv) {
 	if (node) {
 		ncot_node_init(node);
 		str = NULL;
-		uuid_export(node->uuid, UUID_FMT_STR, &str, NULL);
+/*		uuid_export(node->uuid, UUID_FMT_STR, &str, NULL);
 		NCOT_LOG_INFO("Node created with uuid: %s \n", str);
-
+*/
+		NCOT_LOG_INFO("Node created. \n");
 	} else {
 		NCOT_LOG_WARNING("unable to create ncot node.");
 	}
