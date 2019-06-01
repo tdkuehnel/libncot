@@ -5,7 +5,11 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#ifdef(WIN32)
+#include <winsock2.h>
+#elif(UNIX)
 #include <sys/select.h>
+#endif
 #include <sys/time.h>
 #include <errno.h>
 #include <stdlib.h>
