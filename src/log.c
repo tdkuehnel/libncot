@@ -36,16 +36,32 @@ void ncot_log_logfile( int level, const char *fmt, ... ) {
 		va_list vl;
 		i = stat(logfilename, &logfilestat);
 		if (i == 0) {
+#ifdef _WIN32
+			fd = open(logfilename, O_APPEND|O_WRONLY );
+#else
 			fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );
+#endif
 		} else {
 			fd = creat(logfilename, S_IRWXU);
 		}
+#ifdef _WIN32
+		if (fd > 0) {
+			char string[2048];
+			int ret;
+			va_start(vl, fmt);
+			ret = vsprintf((char*)&string, fmt, vl);
+			va_end(vl);
+			if (ret > 0) write(fd, &string, ret);
+			close(fd);
+		}
+#else
 		if (fd > 0) {
 			va_start(vl, fmt);
 			vdprintf(fd, fmt, vl);
 			va_end(vl);
 			close(fd);
 		}
+#endif
 	}
 }
 

@@ -30,12 +30,31 @@ int gpid;
 
 void
 sig_handler(int signum) {
+	int got_sighup = 0;
+	int got_sigint = 0;
+	switch (signum) {
+#ifdef _WIN32
+	case SIGTERM:
+	case SIGABRT:
+	case SIGBREAK:
+#else
+	case SIGHUP:
+#endif
+		got_sighup = 1;
+		break;
+	case SIGINT:
+		got_sigint = 1;
+		break;
+	}
 	count++;
 	last_signum = signum;
 }
 
+#ifdef _WIN32
+#else
 struct sigaction new_action;
 struct sigaction old_action;
+#endif
 
 int
 main(int argc, char **argv)
@@ -43,6 +62,11 @@ main(int argc, char **argv)
 	int r, highestfd;
 	fd_set rfds, wfds;
 
+#ifdef _WIN32
+	signal(SIGINT, sig_handler);
+	signal(SIGTERM, sig_handler);
+	signal(SIGABRT, sig_handler);
+#else
 	new_action.sa_handler = sig_handler;
 	sigemptyset (&new_action.sa_mask);
 	new_action.sa_flags = 0;
@@ -55,7 +79,7 @@ main(int argc, char **argv)
 	sigaction (SIGTERM, NULL, &old_action);
 	if (old_action.sa_handler != SIG_IGN)
 		sigaction (SIGTERM, &new_action, NULL);
-
+#endif
 	context = ncot_context_new();
 	ncot_context_init(context);
 	ncot_arg_parse(context->arguments, argc, argv);
