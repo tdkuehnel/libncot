@@ -1,9 +1,9 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
-#ifdef(WIN32)
+#ifdef _WIN32
 #include <winsock2.h>
-#elif(UNIX)
+#elif __unix__
 #include <sys/select.h>
 #endif
 #include <sys/time.h>
