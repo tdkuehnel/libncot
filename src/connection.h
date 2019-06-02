@@ -1,8 +1,15 @@
 #ifndef _NCOT_CONNECTION_
 #define _NCOT_CONNECTION_
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#elif __unix__
 #include <arpa/inet.h>
 #include <netinet/in.h>
+#endif
+
+
 #include <gnutls/gnutls.h>
 
 #include "context.h"

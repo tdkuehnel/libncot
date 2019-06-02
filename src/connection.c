@@ -3,7 +3,14 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#elif __unix__
 #include <sys/socket.h>
+#endif
+
 
 #include "log.h"
 #include "connection.h"
@@ -58,7 +65,11 @@ int psk_creds(gnutls_session_t session, const char *username, gnutls_datum_t *ke
 	// and return that. If the username does not exist, return a negative
 	// number (see the manual).
 	key->size = strlen(SECRET_KEY);
+#ifdef _WIN32
+	key->data = malloc(key->size);
+#else
 	key->data = gnutls_malloc(key->size);
+#endif
 	if (key->data == NULL) {
 		return -1;
 	}
@@ -124,7 +135,17 @@ int
 ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection)
 {
 	int r;
+#ifdef _WIN32
+	u_long iMode = 1;
+	ioctlsocket(connection->sd, FIONBIO, &iMode);
+	r = recv(connection->sd, (char*)&connection->buffer, NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH, 0);
+#else
 	r = recv(connection->sd, &connection->buffer, NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH, MSG_DONTWAIT);
+#endif
+#ifdef _WIN32
+	iMode = 0;
+	ioctlsocket(connection->sd, FIONBIO, &iMode);
+#endif
 	SOCKET_NERR(r, "ncot_connection_read_data: error recv:");
 	connection->buffer[r] = 0;
 	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n", r);
@@ -167,7 +188,17 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	NCOT_LOG_INFO("ncot_connection_write_data: connection->chunksize is %i bytes\n", connection->chunksize);
 	pointer = packet->data + packet->index;
 	NCOT_LOG_INFO("ncot_connection_write_data: going to send %i bytes\n", amount);
+#ifdef _WIN32
+	u_long iMode = 1;
+	ioctlsocket(connection->sd, FIONBIO, &iMode);
+	amount = send(connection->sd, (char*)pointer, amount, 0);
+#else
 	amount = send(connection->sd, pointer, amount, MSG_DONTWAIT);
+#endif
+#ifdef _WIN32
+	iMode = 0;
+	ioctlsocket(connection->sd, FIONBIO, &iMode);
+#endif
 	NCOT_LOG_INFO("ncot_connection_write_data: %i bytes send by call\n", amount);
 	if (amount == -1) {
 		/* We need to check for the reason why this may
