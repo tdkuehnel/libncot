@@ -12,6 +12,8 @@ without warranty of any kind.
 Basic Installation
 ==================
 
+   You need to run autoreconf -i beforehand.
+
    Briefly, the shell command `./configure && make && make install'
 should configure, build, and install this package.  The following
 more-detailed instructions are generic; see the `README' file for
