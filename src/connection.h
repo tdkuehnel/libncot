@@ -108,8 +108,11 @@ struct ncot_connection {
 	socklen_t client_len;
 	char topbuf[512];
 	char buffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
+	char readbuffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
+	char *readpointer;
 	/* Simple packet queue as utlist */
 	struct ncot_packet *packetlist;
+	struct ncot_packet *readpacketlist;
 	int chunksize;
 	gnutls_session_t session;
 	gnutls_anon_server_credentials_t servercred;
@@ -127,10 +130,12 @@ struct ncot_connection *ncot_connection_new();
 void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
 int ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port);
 int ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address);
+void ncot_connection_close(struct ncot_connection *connection);
 int ncot_connection_authenticate_client(struct ncot_connection *connection);
 int ncot_connection_authenticate_server(struct ncot_connection *connection);
 int ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection);
+int ncot_connection_process_data(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_write_data(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length);
 void ncot_connection_free(struct ncot_connection **connection);

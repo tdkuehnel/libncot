@@ -3,14 +3,16 @@
 #include "node.h"
 
 struct ncot_context*
-ncot_context_new() {
+ncot_context_new()
+{
 	struct ncot_context *context;
 	context = calloc(1, sizeof(struct ncot_context));
 	return context;
 }
 
 void
-ncot_context_init(struct ncot_context *context) {
+ncot_context_init(struct ncot_context *context)
+{
 	if (context) {
 		/*    context->config = ncot_config_new(); */
 		context->arguments = calloc(1, sizeof(struct ncot_arguments));
@@ -23,6 +25,45 @@ ncot_context_init(struct ncot_context *context) {
 }
 
 void
+ncot_context_abort_connection_io(struct ncot_context *context)
+{
+	struct ncot_connection *connection;
+	connection = context->connections_listen;
+	while (connection) {
+		LL_DELETE(context->connections_listen, connection);
+		connection = context->connections_listen;
+	}
+	connection = context->connections_writing;
+	while (connection) {
+		LL_DELETE(context->connections_writing, connection);
+		connection = context->connections_writing;
+	}
+	connection = context->connections_connected;
+	while (connection) {
+		LL_DELETE(context->connections_connected, connection);
+		connection = context->connections_connected;
+	}
+	connection = context->connections_closed;
+	while (connection) {
+		LL_DELETE(context->connections_closed, connection);
+		connection = context->connections_closed;
+	}
+
+}
+
+void
+ncot_context_nodes_free(struct ncot_context *context)
+{
+	struct ncot_node *node;
+	node = context->globalnodelist;
+	while (node) {
+		LL_DELETE(context->globalnodelist, node);
+		ncot_node_free(&node);
+		node = context->globalnodelist;
+	}
+}
+
+void
 ncot_context_free(struct ncot_context **pcontext) {
 	struct ncot_context *context;
 	if (pcontext) {
@@ -30,6 +71,9 @@ ncot_context_free(struct ncot_context **pcontext) {
 		if (context) {
 			context = *pcontext;
 			/*      if (context->config) free(context->config); */
+			ncot_context_abort_connection_io(context);
+			ncot_context_nodes_free(context);
+			if (context->controlconnection) ncot_connection_free(&context->controlconnection);
 			if (context->arguments) free(context->arguments);
 			free(context);
 			*pcontext = NULL;

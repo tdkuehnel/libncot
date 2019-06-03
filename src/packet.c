@@ -1,5 +1,28 @@
+#include <arpa/inet.h>
+
 #include "packet.h"
 #include "error.h"
+
+int
+ncot_packet_print(struct ncot_packet *packet)
+{
+	char string[128];
+	uint16_t length;
+	RETURN_FAIL_IF_NULL(packet, "ncot_packet_print: invalid packet argument.");
+	RETURN_FAIL_IF_NULL(packet->data, "ncot_packet_print: invalid packet->data argument.");
+	strncpy(string, packet->data->magic, 4);
+	string[4] = 0;
+	NCOT_LOG_INFO("packet at 0x%x: %s\n", packet, string);
+	strncpy(string, packet->data->version, 8);
+	string[8] = 0;
+	NCOT_LOG_INFO("packet at 0x%x: %s\n", packet, string);
+	strncpy(string, packet->data->subtype, 4);
+	string[4] = 0;
+	NCOT_LOG_INFO("packet at 0x%x: %s\n", packet, string);
+	length = ntohs(packet->data->length);
+	NCOT_LOG_INFO("packet at 0x%x: %i bytes\n", packet, length);
+	return 0;
+}
 
 int
 ncot_packet_is_subtype(struct ncot_packet *packet, const char subtype[4])
@@ -31,11 +54,13 @@ struct ncot_packet*
 ncot_packet_new_with_data(const char *message, int length)
 {
 	struct ncot_packet *packet;
+	struct ncot_packet_data *data;
 	packet = ncot_packet_new();
-	RETURN_NULL_IF_NULL(packet, "ncot_packet_new_with_data: out of mem");
+	RETURN_NULL_IF_NULL(packet, "ncot_packet_new_with_data: out of memory");
 	packet->data = malloc(length);
-	RETURN_NULL_IF_NULL(packet->data, "ncot_packet_new_with_data: out of mem");
+	RETURN_NULL_IF_NULL(packet->data, "ncot_packet_new_with_data: out of memory");
 	memcpy(packet->data, message, length);
+	packet->data->length = htons(length - NCOT_PACKET_DATA_HEADER_LENGTH);
 	packet->length = length;
 	return packet;
 }

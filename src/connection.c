@@ -38,6 +38,7 @@ ncot_connection_new()
 	connection = calloc(1, sizeof(struct ncot_connection));
 	if (connection) {
 		connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
+		connection->readpointer = connection->readbuffer;
 	}
 	return connection;
 }
@@ -135,22 +136,60 @@ int
 ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection)
 {
 	int r;
+	int read_max;
+	read_max = NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH - (connection->readpointer - connection->readbuffer);
+	if (read_max <= 0) {
+		NCOT_LOG_WARNING("ncot_connection_read_data: read buffer full\n");
+		return 0;
+	}
 #ifdef _WIN32
 	u_long iMode = 1;
 	ioctlsocket(connection->sd, FIONBIO, &iMode);
-	r = recv(connection->sd, (char*)&connection->buffer, NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH, 0);
+	r = recv(connection->sd, (char*)connection->readpointer, read_max, 0);
 #else
-	r = recv(connection->sd, &connection->buffer, NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH, MSG_DONTWAIT);
+	r = recv(connection->sd, connection->readpointer, read_max, MSG_DONTWAIT);
 #endif
 #ifdef _WIN32
 	iMode = 0;
 	ioctlsocket(connection->sd, FIONBIO, &iMode);
 #endif
 	SOCKET_NERR(r, "ncot_connection_read_data: error recv:");
-	connection->buffer[r] = 0;
+	connection->readpointer += r;
+	*connection->readpointer = 0;
 	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n", r);
-	NCOT_LOG_INFO("ncot_connection_read_data: data read is: %s\n", connection->buffer);
+	NCOT_LOG_INFO("ncot_connection_read_data: data read is: %s\n", connection->readbuffer);
 	return r;
+}
+
+int
+ncot_connection_process_data(struct ncot_context *context, struct ncot_connection *connection)
+{
+	int buffread; /* amount of read in data */
+	int packetdatalength;
+	int packetlength;
+	struct ncot_packet_data *packetdata;
+	struct ncot_packet *packet;
+
+	buffread = connection->readpointer - connection->readbuffer;
+	/* We need at least the size of an empty (command only) packet */
+	if (buffread < NCOT_PACKET_VALID_MIN_LENGTH) return 0;
+	/* Assume a valid packet starts buffer beginning */
+	packetdata = (struct ncot_packet_data*)connection->readbuffer;
+	/* We have at least the packet header with length field */
+	packetdatalength = ntohs(packetdata->length);
+	packetlength = packetdatalength + NCOT_PACKET_DATA_HEADER_LENGTH;
+	/* When we have a complete packet, store it away */
+	if (buffread >= packetlength) {
+		NCOT_LOG_INFO("ncot_connection_process_data: packet with length %i\n", packetlength);
+		packet = ncot_packet_new_with_data(connection->readbuffer, packetdatalength + NCOT_PACKET_DATA_HEADER_LENGTH);
+		LL_APPEND(connection->readpacketlist, packet);
+		/* Copy the rest of the read in bytes to the beginning
+		 * of the readbuffer (part of or complete packet) */
+		memmove(connection->readbuffer, connection->readbuffer + packetlength, connection->readpointer - (connection->readbuffer + packetlength));
+		connection->readpointer -= packetlength;
+		return 1; /* One packet taken out of buffer */
+	}
+	return 0;
 }
 
 int
@@ -319,14 +358,13 @@ ncot_connection_authenticate_server(struct ncot_connection *connection)
 	return 0;
 }
 
-
 int
 ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
 {
 	int err;
 	int res;
-	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_listen: Invalid argument: connection");
-	if (connection->status == NCOT_CONN_CONNECTED) ERROR_MESSAGE_RETURN("ncot_connection_listen - ERROR: connection still connected, cant connect again\n");
+	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_connect: Invalid argument: connection");
+	if (connection->status == NCOT_CONN_CONNECTED) ERROR_MESSAGE_RETURN("ncot_connection_connect - ERROR: connection still connected, cant connect again\n");
 	if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
 		connection->sd = socket(AF_INET, SOCK_STREAM, 0);
 		SOCKET_ERR(connection->sd, "ncot_connection_connect: socket()");
@@ -365,11 +403,21 @@ void
 ncot_connection_free(struct ncot_connection **pconnection)
 {
 	struct ncot_connection *connection;
+	struct ncot_packet *packet;
+	struct ncot_packet *deletepacket;
 	if (pconnection)
 	{
 		connection = *pconnection;
 		if (connection)
 		{
+			packet = connection->readpacketlist;
+			while (packet) {
+				ncot_packet_print(packet);
+				deletepacket = packet;
+				packet = packet->next;
+				LL_DELETE(connection->readpacketlist, deletepacket);
+				ncot_packet_free(&deletepacket);
+			}
 			free(connection);
 			*pconnection = NULL;
 		} else

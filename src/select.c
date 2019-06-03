@@ -27,8 +27,11 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	connection = context->connections_connected;
 	while (connection) {
 		if (FD_ISSET(connection->sd, rfds)) {
-			ncot_connection_read_data(context, connection);
 			NCOT_LOG_INFO("ncot_process_fd: connected connection is ready in rfds\n");
+			ncot_connection_read_data(context, connection);
+			while (ncot_connection_process_data(context, connection) > 0) {
+				NCOT_LOG_INFO("ncot_process_fd: packet processed\n");
+			}
 		}
 		connection = connection->next;
 	}

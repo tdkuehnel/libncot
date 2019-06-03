@@ -87,7 +87,7 @@ START_TEST (test_connection_daemon)
 	struct ncot_connection *conn2;
 	struct ncot_context *context;
 
-	const char *message = "NCOT message";
+	const char *message = "NCOT00.00.01TEST00message";
 
 	int ret;
 	int i;
@@ -103,9 +103,12 @@ START_TEST (test_connection_daemon)
 	ncot_init();
 	ncot_log_set_logfile("test_connection_daemon.log");
 	context = ncot_context_new();
+	ncot_context_init(context);
 
-	conn2 = ncot_connection_new();
-	ncot_connection_init(conn2, NCOT_CONN_CONTROL);
+	/*conn2 = ncot_connection_new();*/
+	conn2 = context->controlconnection;
+
+	/*ncot_connection_init(conn2, NCOT_CONN_CONTROL);*/
 
 	/* Try to connect to an unreachable port */
 /*	ret = ncot_connection_connect(context, conn2, TESTPORT_BAD, TESTADDRESS_STRING);
@@ -132,7 +135,7 @@ START_TEST (test_connection_daemon)
 	}
 	ck_assert(r > 0);
 
-	ncot_connection_free(&conn2);
+	/*ncot_connection_free(&conn2);*/
 
 	ck_assert(conn1 == NULL);
 
@@ -143,6 +146,8 @@ START_TEST (test_connection_daemon)
 	 * weather the pselect loops run away, until we find a way to
 	 * check against that with a ck_assert statement */
 	sleep(1);
+	/* When the following fails, our daemon process probably
+	 * segfaulted! */
 	i = system("cat ncotd1.pid | xargs kill");
 	ck_assert(i == 0);
 }

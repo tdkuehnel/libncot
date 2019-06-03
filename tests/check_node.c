@@ -58,10 +58,10 @@ START_TEST (test_find_node_by_connection)
 	resultnode = ncot_context_get_node_by_connection(context, conn3);
 	ck_assert(resultnode == NULL);
 
-	ncot_connection_free(&conn1);
-	ncot_connection_free(&conn2);
-	ncot_node_free(&node1);
-	ncot_node_free(&node2);
+/*	ncot_connection_free(&conn1);
+	ncot_connection_free(&conn2);*/
+/*	ncot_node_free(&node1);
+	ncot_node_free(&node2);*/
 	ncot_context_free(&context);
 
 	ncot_done();

@@ -1,5 +1,6 @@
 #include "node.h"
 #include "log.h"
+#include "utlist.h"
 
 struct ncot_node*
 ncot_node_new()
@@ -30,10 +31,17 @@ ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *conn
 void
 ncot_node_free(struct ncot_node **pnode) {
 	struct ncot_node *node;
+	struct ncot_connection *connection;
 	if (pnode) {
 		node = *pnode;
 		if (node) {
 /*			if (node->uuid) uuid_destroy(node->uuid);*/
+			connection = node->connections;
+			while (connection) {
+				LL_DELETE(node->connections, connection);
+				/*ncot_connection_free(&connection);*/
+				connection = node->connections;
+			}
 			free(node);
 			*pnode = NULL;
 		} else
