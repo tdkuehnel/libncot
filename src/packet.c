@@ -1,5 +1,7 @@
 #include <arpa/inet.h>
 
+#define DEBUG 0
+#include "debug.h"
 #include "packet.h"
 #include "error.h"
 
@@ -72,11 +74,11 @@ ncot_packet_new_with_message(const char *message, int length, enum ncot_packet_t
 	RETURN_NULL_IF_NULL(packet, "ncot_packet_new_with_message: out of memory");
 	packet->data = calloc(1, length + NCOT_PACKET_DATA_HEADER_LENGTH);
 	RETURN_NULL_IF_NULL(packet->data, "ncot_packet_new_with_message: out of memory");
-	NCOT_LOG_INFO("ncot_packet_new_with_message: %s, %i\n", message, length);
+	NCOT_DEBUG("ncot_packet_new_with_message: %s, %i\n", message, length);
 	pointer = (char*)packet->data;
 	pointer += NCOT_PACKET_DATA_HEADER_LENGTH;
-	NCOT_LOG_INFO("ncot_packet_new_with_message: pointer     : 0x%x\n", pointer);
-	NCOT_LOG_INFO("ncot_packet_new_with_message: packet->data: 0x%x\n", packet->data);
+	NCOT_DEBUG("ncot_packet_new_with_message: pointer     : 0x%x\n", pointer);
+	NCOT_DEBUG("ncot_packet_new_with_message: packet->data: 0x%x\n", packet->data);
 	memcpy(pointer, message, length);
 	packet->data->length = htons(length);
 	switch (type) {
@@ -90,7 +92,7 @@ ncot_packet_new_with_message(const char *message, int length, enum ncot_packet_t
 	memcpy(packet->data->magic, NCOT_MAGIC, 4);
 	memcpy(packet->data->version, NCOT_VERSION, 8);
 	packet->length = length + NCOT_PACKET_DATA_HEADER_LENGTH;
-	ncot_log_hex("packetdata before send", packet->data, NCOT_PACKET_DATA_HEADER_LENGTH + length);
+	NCOT_DEBUG_HEX("packetdata before send", packet->data, NCOT_PACKET_DATA_HEADER_LENGTH + length);
 	return packet;
 }
 

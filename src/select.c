@@ -5,6 +5,8 @@
 #include <sys/types.h>
 #include <unistd.h>
 
+#define DEBUG 0
+#include "debug.h"
 #include "log.h"
 #include "context.h"
 #include "node.h"
@@ -27,10 +29,10 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	connection = context->connections_connected;
 	while (connection) {
 		if (FD_ISSET(connection->sd, rfds)) {
-			NCOT_LOG_INFO("ncot_process_fd: connected connection is ready in rfds\n");
+			NCOT_DEBUG("ncot_process_fd: connected connection is ready in rfds\n");
 			ncot_connection_read_data(context, connection);
 			while (ncot_connection_process_data(context, connection) > 0) {
-				NCOT_LOG_INFO("ncot_process_fd: packet processed\n");
+				NCOT_DEBUG("ncot_process_fd: packet processed\n");
 			}
 		}
 		connection = connection->next;
@@ -45,7 +47,7 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 				connection = connection->next;
 				continue;
 			}
-			NCOT_LOG_INFO("ncot_process_fd: listening connection was ready in rfds and is now connected\n");
+			NCOT_DEBUG("ncot_process_fd: listening connection was ready in rfds and is now connected\n");
 			node = ncot_context_get_node_by_connection(context, connection);
 			if (node) {
 				ncot_node_authenticate_peer(node, connection);
@@ -69,7 +71,7 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	connection = context->connections_writing;
 	while (connection) {
 		if (FD_ISSET(connection->sd, wfds)) {
-			NCOT_LOG_INFO("ncot_process_fd: writing connection is ready in wfds\n");
+			NCOT_DEBUG("ncot_process_fd: writing connection is ready in wfds\n");
 			ncot_connection_write_data(context, connection);
 		}
 		connection = connection->next;

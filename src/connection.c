@@ -11,7 +11,8 @@
 #include <sys/socket.h>
 #endif
 
-
+#define DEBUG 0
+#include "debug.h"
 #include "log.h"
 #include "connection.h"
 #include "packet.h"
@@ -110,16 +111,17 @@ ncot_connection_authenticate_client(struct ncot_connection *connection)
 
 	gnutls_transport_set_int(connection->session, connection->sd);
 
-	NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
+	NCOT_DEBUG("Gnutls stuff setup, lets shake hands\n");
 	do {
-		NCOT_LOG_INFO("Gnutls_handshake accept iteration\n");
+		NCOT_DEBUG("Gnutls_handshake accept iteration\n");
 		res = gnutls_handshake(connection->session);
-		NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
+		NCOT_DEBUG("Gnutls_handshake returned %i \n", res);
 	} while ( res != 0 && !gnutls_error_is_fatal(res) );
 	if (gnutls_error_is_fatal(res)) {
 		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
 	}
-	NCOT_LOG_INFO("Gnutls handshake complete\n");
+	NCOT_DEBUG("ncot_connection_authenticate_client: Gnutls handshake complete\n");
+	NCOT_LOG_INFO("Info: Gnutls handshake complete\n");
 	/*gnutls_transport_set_int(connection->session, connection->sd);*/
 	connection->authenticated = 1;
 	return 0;
@@ -139,7 +141,7 @@ ncot_connection_accept(struct ncot_context *context, struct ncot_connection *con
 	connection->status = NCOT_CONN_CONNECTED;
 	ncot_context_dequeue_connection_listen(context, connection);
 	ncot_context_enqueue_connection_connected(context, connection);
-	NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
+	NCOT_LOG_INFO("Info: connection accepted\n");
 	return 0;
 }
 
@@ -167,8 +169,8 @@ ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *
 	SOCKET_NERR(r, "ncot_connection_read_data: error recv:");
 	connection->readpointer += r;
 	*connection->readpointer = 0;
-	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n", r);
-	ncot_log_hex("ncot_connection_read_data: data read is", connection->readbuffer, 64);
+	NCOT_DEBUG("ncot_connection_read_data: %i bytes read\n", r);
+	NCOT_DEBUG_HEX("ncot_connection_read_data: data read is", connection->readbuffer, 64);
 	return r;
 }
 
@@ -184,7 +186,7 @@ ncot_connection_process_data(struct ncot_context *context, struct ncot_connectio
 	buffread = connection->readpointer - connection->readbuffer;
 	/* We need at least the size of an empty (command only) packet */
 	if (buffread < NCOT_PACKET_VALID_MIN_LENGTH) {
-		NCOT_LOG_INFO("ncot_connection_process_data: to few new bytes to process data: %i\n", buffread);
+		NCOT_DEBUG("ncot_connection_process_data: to few new bytes to process data: %i\n", buffread);
 		return 0;
 	}
 	/* Assume a valid packet starts buffer beginning */
@@ -192,10 +194,10 @@ ncot_connection_process_data(struct ncot_context *context, struct ncot_connectio
 	/* We have at least the packet header with length field */
 	packetdatalength = ntohs(packetdata->length);
 	packetlength = packetdatalength + NCOT_PACKET_DATA_HEADER_LENGTH;
-	NCOT_LOG_INFO("ncot_connection_process_data: packetlength: %i, packetdatalength: %i, buffread: %i\n", packetlength, packetdatalength, buffread);
+	NCOT_DEBUG("ncot_connection_process_data: packetlength: %i, packetdatalength: %i, buffread: %i\n", packetlength, packetdatalength, buffread);
 	/* When we have a complete packet, store it away */
 	if (buffread >= packetlength) {
-		NCOT_LOG_INFO("ncot_connection_process_data: processing packet data with length %i\n", packetlength);
+		NCOT_DEBUG("ncot_connection_process_data: processing packet data with length %i\n", packetlength);
 
 		packet = ncot_packet_new_with_data(connection->readbuffer, packetdatalength + NCOT_PACKET_DATA_HEADER_LENGTH);
 		LL_APPEND(connection->readpacketlist, packet);
@@ -205,7 +207,7 @@ ncot_connection_process_data(struct ncot_context *context, struct ncot_connectio
 		connection->readpointer -= packetlength;
 		return 1; /* One packet taken out of buffer */
 	}
-	NCOT_LOG_INFO("ncot_connection_process_data: no complete packet in buffer, bytes: %i\n", buffread);
+	NCOT_DEBUG("ncot_connection_process_data: no complete packet in buffer, bytes: %i\n", buffread);
 	return 0;
 }
 
@@ -220,13 +222,13 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	struct ncot_packet_data *pointer;
 	if (!connection->packetlist) {
 		ncot_context_dequeue_connection_writing(context, connection);
-		NCOT_LOG_INFO("ncot_connection_write_data: No more packets in queue\n");
+		NCOT_DEBUG("ncot_connection_write_data: No more packets in queue\n");
 		return 0;
 	}
 	packet = connection->packetlist;
-	NCOT_LOG_INFO("ncot_connection_write_data: packet->length is %i bytes\n", packet->length);
+	NCOT_DEBUG("ncot_connection_write_data: packet->length is %i bytes\n", packet->length);
 	amount = packet->length - packet->index;
-	NCOT_LOG_INFO("ncot_connection_write_data: amount is %i bytes\n", amount);
+	NCOT_DEBUG("ncot_connection_write_data: amount is %i bytes\n", amount);
 	if (amount == 0) {
 		LL_DELETE(connection->packetlist, packet);
 		/* We deliberately return here, as the pselect loop
@@ -236,14 +238,14 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 		/* We need somehow reuse our packets or all this
 		 * allocating/deallocating of memory may led to
 		 * problems ? */
-		NCOT_LOG_INFO("ncot_connection_write_data: taking empty packet out of packetlist and freeing packet\n");
+		NCOT_DEBUG("ncot_connection_write_data: taking empty packet out of packetlist and freeing packet\n");
 		ncot_packet_free(&packet);
 		return 0;
 	}
 	if (amount > connection->chunksize) amount = connection->chunksize;
-	NCOT_LOG_INFO("ncot_connection_write_data: connection->chunksize is %i bytes\n", connection->chunksize);
+	NCOT_DEBUG("ncot_connection_write_data: connection->chunksize is %i bytes\n", connection->chunksize);
 	pointer = packet->data + packet->index;
-	NCOT_LOG_INFO("ncot_connection_write_data: going to send %i bytes\n", amount);
+	NCOT_DEBUG("ncot_connection_write_data: going to send %i bytes\n", amount);
 #ifdef _WIN32
 	u_long iMode = 1;
 	ioctlsocket(connection->sd, FIONBIO, &iMode);
@@ -255,7 +257,7 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	iMode = 0;
 	ioctlsocket(connection->sd, FIONBIO, &iMode);
 #endif
-	NCOT_LOG_INFO("ncot_connection_write_data: %i bytes send by call\n", amount);
+	NCOT_DEBUG("ncot_connection_write_data: %i bytes send by call\n", amount);
 	if (amount == -1) {
 		/* We need to check for the reason why this may
 		fail. If it would block, we need somehow take our
@@ -270,7 +272,7 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	}
 	/* We have sent some data.*/
 	packet->index += amount;
-	NCOT_LOG_INFO("ncot_connection_write_data: %i bytes send.\n", amount);
+	NCOT_DEBUG("ncot_connection_write_data: %i bytes send.\n", amount);
 	return amount;
 	/* TODO: We need to check for EMSGSIZE and split the chunksize accordingly. */
 }
@@ -304,7 +306,7 @@ ncot_connection_listen(struct ncot_context *context, struct ncot_connection *con
 	SOCKET_ERR(ret, "Error listening with connection\n");
 	connection->status = NCOT_CONN_LISTEN;
 	ncot_context_enqueue_connection_listen(context, connection);
-	NCOT_LOG_INFO("connection now listening on port %i\n", port);
+	NCOT_LOG_INFO("Info: connection now listening on port %i\n", port);
 	return 0;
 }
 
@@ -360,16 +362,16 @@ ncot_connection_authenticate_server(struct ncot_connection *connection)
 
 	gnutls_transport_set_int(connection->session, connection->sd);
 
-	NCOT_LOG_INFO("Gnutls stuff setup, lets shake hands\n");
+	NCOT_DEBUG("Gnutls stuff setup, lets shake hands\n");
 	do {
-		NCOT_LOG_INFO("Gnutls_handshake connect iteration\n");
+		NCOT_DEBUG("Gnutls_handshake connect iteration\n");
 		res = gnutls_handshake(connection->session);
-		NCOT_LOG_INFO("Gnutls_handshake returned %i \n", res);
+		NCOT_DEBUG("Gnutls_handshake returned %i \n", res);
 	} while ( res != 0 && !gnutls_error_is_fatal(res) );
 	if (gnutls_error_is_fatal(res)) {
 		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
 	}
-	NCOT_LOG_INFO("Gnutls handshake complete\n");
+	NCOT_DEBUG("Gnutls handshake complete\n");
 	/*gnutls_transport_set_int(connection->session, connection->sd);*/
 	connection->authenticated = 1;
 	return 0;
@@ -389,13 +391,13 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 		connection->sa_client.sin_family = AF_INET;
 		connection->sa_client.sin_port = htons(atoi(port));
 		inet_pton(AF_INET, address, &connection->sa_client.sin_addr);
-		NCOT_LOG_ERROR("connecting ...\n");
+		NCOT_DEBUG("ncot_connection_connect: connecting ...\n");
 		err = connect(connection->sd, (struct sockaddr *) &connection->sa_client, sizeof(connection->sa_client));
-		SOCKET_ERR(err, "ncot_connection_connect: connect()");
-		NCOT_LOG_INFO("connect returned %i\n", err);
+		SOCKET_ERR(err, "Error: ncot_connection_connect: connect()");
+		NCOT_DEBUG("ncot_connection_connect: connect returned %i\n", err);
 		connection->status = NCOT_CONN_CONNECTED;
 		ncot_context_enqueue_connection_connected(context, connection);
-		NCOT_LOG_INFO("connection connected\n");
+		NCOT_LOG_INFO("Info: connection connected\n");
 		return 0;
 	}
 }
@@ -410,7 +412,7 @@ ncot_connection_close(struct ncot_connection *connection)
 			gnutls_deinit(connection->session);
 			gnutls_psk_free_client_credentials(connection->pskclientcredentials);
 			close(connection->sd);
-			NCOT_LOG_INFO("ncot_connection_close: closing a connection\n");
+			NCOT_LOG_INFO("Info: closing a connection\n");
 		} else
 			NCOT_LOG_WARNING("Trying to close a connection not open\n");
 	} else

@@ -5,11 +5,14 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <sys/time.h>
 
 /*#include "../src/config.h"
 #include "../src/helper.h"
 */
 
+#define DEBUG 0
+#include "../src/debug.h"
 #include "../src/connection.h"
 #include "../src/log.h"
 #include "../src/ncot.h"
@@ -99,46 +102,66 @@ START_TEST (test_connection_daemon)
 	int r;
 	int highestfd;
 	fd_set rfds, wfds;
-
+	struct timeval  tv1, tv2;
+	gettimeofday(&tv1, NULL);
 	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_connection_daemon-ncotd1.log");
-
+	gettimeofday(&tv2, NULL);
+	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
 	ck_assert(i == 0);
 
 	sleep(1);
+	gettimeofday(&tv1, NULL);
 	ncot_init();
 	ncot_log_set_logfile("test_connection_daemon.log");
 	context = ncot_context_new();
 	ncot_context_init(context);
+	gettimeofday(&tv2, NULL);
+	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
 
+	gettimeofday(&tv1, NULL);
 	conn2 = context->controlconnection;
 
 	/* Try to connect to an unreachable port */
 	ret = ncot_connection_connect(context, conn2, TESTPORT_BAD, TESTADDRESS_STRING);
  	ck_assert_int_eq(ret, 1);
+	gettimeofday(&tv2, NULL);
+	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
 
+	gettimeofday(&tv1, NULL);
 	ret = ncot_connection_connect(context, conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
+	gettimeofday(&tv2, NULL);
+	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
 
+	gettimeofday(&tv1, NULL);
 	ret = ncot_connection_authenticate_server(conn2);
 	ck_assert_int_eq(ret, 0);
+	gettimeofday(&tv2, NULL);
+	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
 
+	gettimeofday(&tv1, NULL);
 	ret = ncot_connection_send(context, conn2, message, strlen(message), NCOT_PACKET_COMMAND);
 	ck_assert_int_eq(ret, strlen(message));
+	gettimeofday(&tv2, NULL);
+	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
 
+	gettimeofday(&tv1, NULL);
 	FD_ZERO(&rfds); FD_ZERO(&wfds);
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
+	gettimeofday(&tv2, NULL);
+	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
 
 	FD_ZERO(&rfds); FD_ZERO(&wfds);
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
@@ -149,10 +172,10 @@ START_TEST (test_connection_daemon)
 	strncpy(messagepointer, messageraw, strlen(messageraw));
 	uint16_t *pint;
 	pint = (uint16_t*)&messagepointer[16];
-	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "pint          : 0x%x\n", pint);
-	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "messagepointer: 0x%x\n", messagepointer);
+	NCOT_DEBUG("pint          : 0x%x\n", pint);
+	NCOT_DEBUG("messagepointer: 0x%x\n", messagepointer);
 	*pint = htons(strlen(messageraw) - NCOT_PACKET_DATA_HEADER_LENGTH);
-	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "length converted.\n");
+	NCOT_DEBUG("length converted.\n");
 	ret = ncot_connection_send_raw(context, conn2, messageraw, INCOMPLETE_MESSAGE_LENGTH);
 	ck_assert_int_eq(ret, INCOMPLETE_MESSAGE_LENGTH);
 
@@ -160,7 +183,7 @@ START_TEST (test_connection_daemon)
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
@@ -169,7 +192,7 @@ START_TEST (test_connection_daemon)
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
@@ -182,7 +205,7 @@ START_TEST (test_connection_daemon)
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
@@ -191,7 +214,7 @@ START_TEST (test_connection_daemon)
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
@@ -204,7 +227,7 @@ START_TEST (test_connection_daemon)
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
@@ -213,7 +236,7 @@ START_TEST (test_connection_daemon)
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
 	if (r > 0) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
