@@ -70,6 +70,7 @@ ncot_context_free(struct ncot_context **pcontext) {
 		context = *pcontext;
 		if (context) {
 			context = *pcontext;
+			NCOT_LOG_INFO("ncot_context_free: freeing context at 0x%x\n", context);
 			/*      if (context->config) free(context->config); */
 			ncot_context_abort_connection_io(context);
 			ncot_context_nodes_free(context);

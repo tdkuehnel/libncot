@@ -137,7 +137,8 @@ int ncot_connection_accept(struct ncot_context *context, struct ncot_connection 
 int ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_process_data(struct ncot_context *context, struct ncot_connection *connection);
 int ncot_connection_write_data(struct ncot_context *context, struct ncot_connection *connection);
-int ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length);
+int ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length, enum ncot_packet_type type);
+int ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length);
 void ncot_connection_free(struct ncot_connection **connection);
 
 int ncot_control_connection_authenticate(struct ncot_connection *connection);

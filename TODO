@@ -14,3 +14,5 @@ ncot_<library_part>_function_name where library_part is something like circle, n
 Get this stuff running !!
 
 Let us use the Internet the way it is layed out, as losley connected nodes.
+
+service under win32: https://code.msdn.microsoft.com/windowsdesktop/CppWindowsService-cacf4948/sourcecode?fileId=21604&pathId=1953777814

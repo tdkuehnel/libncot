@@ -33,5 +33,6 @@ void ncot_log_done();
 /* Our different log functions */
 
 void ncot_log_printf( int level, const char *fmt, ... );
+void ncot_log_hex (char *desc, void *addr, int len);
 
 #endif

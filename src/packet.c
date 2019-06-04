@@ -51,17 +51,46 @@ ncot_packet_new()
 }
 
 struct ncot_packet*
-ncot_packet_new_with_data(const char *message, int length)
+ncot_packet_new_with_data(const char *data, int length)
 {
 	struct ncot_packet *packet;
-	struct ncot_packet_data *data;
 	packet = ncot_packet_new();
 	RETURN_NULL_IF_NULL(packet, "ncot_packet_new_with_data: out of memory");
 	packet->data = malloc(length);
 	RETURN_NULL_IF_NULL(packet->data, "ncot_packet_new_with_data: out of memory");
-	memcpy(packet->data, message, length);
-	packet->data->length = htons(length - NCOT_PACKET_DATA_HEADER_LENGTH);
+	memcpy(packet->data, data, length);
 	packet->length = length;
+	return packet;
+}
+
+struct ncot_packet*
+ncot_packet_new_with_message(const char *message, int length, enum ncot_packet_type type)
+{
+	struct ncot_packet *packet;
+	char *pointer;
+	packet = ncot_packet_new();
+	RETURN_NULL_IF_NULL(packet, "ncot_packet_new_with_message: out of memory");
+	packet->data = calloc(1, length + NCOT_PACKET_DATA_HEADER_LENGTH);
+	RETURN_NULL_IF_NULL(packet->data, "ncot_packet_new_with_message: out of memory");
+	NCOT_LOG_INFO("ncot_packet_new_with_message: %s, %i\n", message, length);
+	pointer = (char*)packet->data;
+	pointer += NCOT_PACKET_DATA_HEADER_LENGTH;
+	NCOT_LOG_INFO("ncot_packet_new_with_message: pointer     : 0x%x\n", pointer);
+	NCOT_LOG_INFO("ncot_packet_new_with_message: packet->data: 0x%x\n", packet->data);
+	memcpy(pointer, message, length);
+	packet->data->length = htons(length);
+	switch (type) {
+	case NCOT_PACKET_COMMAND:
+		memcpy(packet->data->subtype, NCOT_PACKET_IDENTIFIER_COMMAND, 4);
+	case NCOT_PACKET_RING_INTEGRITY:
+		memcpy(packet->data->subtype, NCOT_PACKET_IDENTIFIER_RINGINTEGRITY, 4);
+	case NCOT_PACKET_QUIT:
+		memcpy(packet->data->subtype, NCOT_PACKET_IDENTIFIER_QUIT, 4);
+	}
+	memcpy(packet->data->magic, NCOT_MAGIC, 4);
+	memcpy(packet->data->version, NCOT_VERSION, 8);
+	packet->length = length + NCOT_PACKET_DATA_HEADER_LENGTH;
+	ncot_log_hex("packetdata before send", packet->data, NCOT_PACKET_DATA_HEADER_LENGTH + length);
 	return packet;
 }
 

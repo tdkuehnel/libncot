@@ -79,6 +79,10 @@ START_TEST (test_connection_simple)
 }
 END_TEST
 
+void test_iterate_io()
+{
+}
+
 #define TESTPORT_GOOD  "24002"
 #define TESTPORT_BAD  "24001"
 START_TEST (test_connection_daemon)
@@ -87,8 +91,9 @@ START_TEST (test_connection_daemon)
 	struct ncot_connection *conn2;
 	struct ncot_context *context;
 
-	const char *message = "NCOT00.00.01TEST00message";
-
+	const char *message = "message";
+	const char *messageraw = "NCOT00.00.01TEST00messageraw";
+	char *messagepointer;
 	int ret;
 	int i;
 	int r;
@@ -105,47 +110,122 @@ START_TEST (test_connection_daemon)
 	context = ncot_context_new();
 	ncot_context_init(context);
 
-	/*conn2 = ncot_connection_new();*/
 	conn2 = context->controlconnection;
 
-	/*ncot_connection_init(conn2, NCOT_CONN_CONTROL);*/
-
 	/* Try to connect to an unreachable port */
-/*	ret = ncot_connection_connect(context, conn2, TESTPORT_BAD, TESTADDRESS_STRING);
+	ret = ncot_connection_connect(context, conn2, TESTPORT_BAD, TESTADDRESS_STRING);
  	ck_assert_int_eq(ret, 1);
-*/
+
 	ret = ncot_connection_connect(context, conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
 
 	ret = ncot_connection_authenticate_server(conn2);
 	ck_assert_int_eq(ret, 0);
 
-	ret = ncot_connection_send(context, conn2, message, strlen(message));
+	ret = ncot_connection_send(context, conn2, message, strlen(message), NCOT_PACKET_COMMAND);
 	ck_assert_int_eq(ret, strlen(message));
 
-	FD_ZERO(&rfds);
-	FD_ZERO(&wfds);
-
+	FD_ZERO(&rfds); FD_ZERO(&wfds);
 	highestfd = ncot_set_fds(context, &rfds, &wfds);
 	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
-
 	if (r > 0) {
 		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
 		ncot_process_fd(context, r, &rfds, &wfds);
 	}
 	ck_assert(r > 0);
 
-	/*ncot_connection_free(&conn2);*/
+	FD_ZERO(&rfds); FD_ZERO(&wfds);
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
+	ck_assert(r > 0);
 
+#define INCOMPLETE_MESSAGE_LENGTH 16
+	/* Send an incomplete message to simulate high i/o load */
+	messagepointer = malloc(strlen(messageraw) + 1);
+	strncpy(messagepointer, messageraw, strlen(messageraw));
+	uint16_t *pint;
+	pint = (uint16_t*)&messagepointer[16];
+	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "pint          : 0x%x\n", pint);
+	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "messagepointer: 0x%x\n", messagepointer);
+	*pint = htons(strlen(messageraw) - NCOT_PACKET_DATA_HEADER_LENGTH);
+	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "length converted.\n");
+	ret = ncot_connection_send_raw(context, conn2, messageraw, INCOMPLETE_MESSAGE_LENGTH);
+	ck_assert_int_eq(ret, INCOMPLETE_MESSAGE_LENGTH);
+
+	FD_ZERO(&rfds);	FD_ZERO(&wfds);
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
+	ck_assert(r > 0);
+
+	FD_ZERO(&rfds);	FD_ZERO(&wfds);
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
+	ck_assert(r > 0);
+
+	/* Send another two bytes to have the header complete */
+	ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH, 2);
+	ck_assert_int_eq(ret, 2);
+
+	FD_ZERO(&rfds);	FD_ZERO(&wfds);
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
+	ck_assert(r > 0);
+
+	FD_ZERO(&rfds);	FD_ZERO(&wfds);
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
+	ck_assert(r > 0);
+
+	/* Send rest of message */
+	ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH + 2, 10);
+	ck_assert_int_eq(ret, 10);
+
+	FD_ZERO(&rfds);	FD_ZERO(&wfds);
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
+	ck_assert(r > 0);
+
+	FD_ZERO(&rfds);	FD_ZERO(&wfds);
+	highestfd = ncot_set_fds(context, &rfds, &wfds);
+	r = pselect(highestfd + 1, &rfds, &wfds, NULL, NULL, NULL);
+	if (r > 0) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+		ncot_process_fd(context, r, &rfds, &wfds);
+	}
+	ck_assert(r > 0);
+
+	free(messagepointer);
 	ck_assert(conn1 == NULL);
-
 	ncot_context_free(&context);
 	ncot_done();
-
 	/* We need to sleep here for a while to see in the log files
 	 * weather the pselect loops run away, until we find a way to
 	 * check against that with a ck_assert statement */
-	sleep(1);
+	sleep(2);
 	/* When the following fails, our daemon process probably
 	 * segfaulted! */
 	i = system("cat ncotd1.pid | xargs kill");
@@ -164,7 +244,7 @@ Suite * helper_suite(void)
 	/* Core test case */
 	tc_core = tcase_create("Core");
 	tcase_add_unchecked_fixture(tc_core, setup, teardown);
-	tcase_set_timeout(tc_core, 12);
+	tcase_set_timeout(tc_core, 30);
 	/* The simple test is disabled because ncot_connection_connect
 	 * now blocks because of the GnuTLS handshake. */
 	/*tcase_add_test(tc_core, test_connection_simple);*/

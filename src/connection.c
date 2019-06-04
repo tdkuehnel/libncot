@@ -21,11 +21,22 @@
 /* This is a function that, yes, copies a message, queues it and takes
  * the necessary steps to send it to the peer */
 int
-ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length)
+ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length, enum ncot_packet_type type)
+{
+	struct ncot_packet *packet;
+	packet = ncot_packet_new_with_message(message, length, type);
+	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send: Out of memory");
+	LL_APPEND(connection->packetlist, packet);
+	ncot_context_enqueue_connection_writing(context, connection);
+	return length;
+}
+
+int
+ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length)
 {
 	struct ncot_packet *packet;
 	packet = ncot_packet_new_with_data(message, length);
-	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send: Out of memory");
+	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send_raw: Out of memory");
 	LL_APPEND(connection->packetlist, packet);
 	ncot_context_enqueue_connection_writing(context, connection);
 	return length;
@@ -157,7 +168,7 @@ ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *
 	connection->readpointer += r;
 	*connection->readpointer = 0;
 	NCOT_LOG_INFO("ncot_connection_read_data: %i bytes read\n", r);
-	NCOT_LOG_INFO("ncot_connection_read_data: data read is: %s\n", connection->readbuffer);
+	ncot_log_hex("ncot_connection_read_data: data read is", connection->readbuffer, 64);
 	return r;
 }
 
@@ -172,15 +183,20 @@ ncot_connection_process_data(struct ncot_context *context, struct ncot_connectio
 
 	buffread = connection->readpointer - connection->readbuffer;
 	/* We need at least the size of an empty (command only) packet */
-	if (buffread < NCOT_PACKET_VALID_MIN_LENGTH) return 0;
+	if (buffread < NCOT_PACKET_VALID_MIN_LENGTH) {
+		NCOT_LOG_INFO("ncot_connection_process_data: to few new bytes to process data: %i\n", buffread);
+		return 0;
+	}
 	/* Assume a valid packet starts buffer beginning */
 	packetdata = (struct ncot_packet_data*)connection->readbuffer;
 	/* We have at least the packet header with length field */
 	packetdatalength = ntohs(packetdata->length);
 	packetlength = packetdatalength + NCOT_PACKET_DATA_HEADER_LENGTH;
+	NCOT_LOG_INFO("ncot_connection_process_data: packetlength: %i, packetdatalength: %i, buffread: %i\n", packetlength, packetdatalength, buffread);
 	/* When we have a complete packet, store it away */
 	if (buffread >= packetlength) {
-		NCOT_LOG_INFO("ncot_connection_process_data: packet with length %i\n", packetlength);
+		NCOT_LOG_INFO("ncot_connection_process_data: processing packet data with length %i\n", packetlength);
+
 		packet = ncot_packet_new_with_data(connection->readbuffer, packetdatalength + NCOT_PACKET_DATA_HEADER_LENGTH);
 		LL_APPEND(connection->readpacketlist, packet);
 		/* Copy the rest of the read in bytes to the beginning
@@ -189,6 +205,7 @@ ncot_connection_process_data(struct ncot_context *context, struct ncot_connectio
 		connection->readpointer -= packetlength;
 		return 1; /* One packet taken out of buffer */
 	}
+	NCOT_LOG_INFO("ncot_connection_process_data: no complete packet in buffer, bytes: %i\n", buffread);
 	return 0;
 }
 
@@ -393,6 +410,7 @@ ncot_connection_close(struct ncot_connection *connection)
 			gnutls_deinit(connection->session);
 			gnutls_psk_free_client_credentials(connection->pskclientcredentials);
 			close(connection->sd);
+			NCOT_LOG_INFO("ncot_connection_close: closing a connection\n");
 		} else
 			NCOT_LOG_WARNING("Trying to close a connection not open\n");
 	} else
