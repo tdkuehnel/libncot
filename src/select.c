@@ -5,7 +5,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 
-#define DEBUG 0
+#define DEBUG 1
 #include "debug.h"
 #include "log.h"
 #include "context.h"
@@ -30,11 +30,24 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	while (connection) {
 		if (FD_ISSET(connection->sd, rfds)) {
 			NCOT_DEBUG("ncot_process_fd: connected connection is ready in rfds\n");
-			ncot_connection_read_data(context, connection);
+			/* recv 0 bytes means orderly peer shut down,
+			 * so react on it accordingly */
+			if (ncot_connection_read_data(context, connection) == 0) {
+				ncot_context_enqueue_connection_closed(context, connection);
+				NCOT_DEBUG("ncot_process_fd: remote connection closed\n");
+				connection = connection->next;
+				continue;
+			}
 			while (ncot_connection_process_data(context, connection) > 0) {
 				NCOT_DEBUG("ncot_process_fd: packet processed\n");
 			}
 		}
+		connection = connection->next;
+	}
+	/* Lets take our closed connections out of the connected queue */
+	connection = context->connections_closed;
+	while (connection) {
+		ncot_context_dequeue_connection_connected(context, connection);
 		connection = connection->next;
 	}
 	/* Then the listening ones */

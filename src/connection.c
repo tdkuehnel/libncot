@@ -438,6 +438,7 @@ ncot_connection_free(struct ncot_connection **pconnection)
 				LL_DELETE(connection->readpacketlist, deletepacket);
 				ncot_packet_free(&deletepacket);
 			}
+			ncot_connection_close(connection);
 			free(connection);
 			*pconnection = NULL;
 		} else

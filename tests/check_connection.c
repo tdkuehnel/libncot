@@ -246,7 +246,7 @@ START_TEST (test_connection_daemon)
 	ncot_context_free(&context);
 	ncot_done();
 	/* We need to sleep here for a while to see in the log files
-	 * weather the pselect loops run away, until we find a way to
+	 * wether the pselect loops run away, until we find a way to
 	 * check against that with a ck_assert statement */
 	sleep(2);
 	/* When the following fails, our daemon process probably
