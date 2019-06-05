@@ -23,7 +23,7 @@
 #include "select.h"
 #include "utlist.h"
 
-#define DEBUG 1
+#define DEBUG 0
 #include "debug.h"
 #include "log.h"
 
@@ -55,7 +55,7 @@ int daemonize()
 	struct stat pidfilestat;
 	char pidbuf[7] = {0};
 
-	NCOT_LOG_INFO("daemonizing\n");
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "daemonizing");
 	/* check if we are still running with this pidfile name, or there is a stale one */
 	i = stat(context->arguments->pidfile_name, &pidfilestat);
 	if (i == 0) {
@@ -148,7 +148,7 @@ main(int argc, char **argv)
 	ncot_arg_parse(context->arguments, argc, argv);
 	ncot_init();
 	ncot_log_set_logfile(context->arguments->logfile_name);
-	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "daemon");
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "ncot daemon");
 	if (context->arguments->daemonize) daemonize();
 	if (context->arguments->daemonize) NCOT_LOG_INFO("%s Looks like we are running as a deamon, good.\n", PACKAGE_STRING);
 
