@@ -19,12 +19,18 @@
 #include "error.h"
 #include "utlist.h"
 
+
+#ifdef DEBUG
+#undef DEBUG
+#define DEBUG 1
+#endif
 /* This is a function that, yes, copies a message, queues it and takes
  * the necessary steps to send it to the peer */
 int
 ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length, enum ncot_packet_type type)
 {
 	struct ncot_packet *packet;
+	NCOT_DEBUG("ncot_connections_send: sending message with %i bytes\n", length);
 	packet = ncot_packet_new_with_message(message, length, type);
 	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send: Out of memory");
 	LL_APPEND(connection->packetlist, packet);
@@ -36,12 +42,16 @@ int
 ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length)
 {
 	struct ncot_packet *packet;
+	NCOT_DEBUG("ncot_connections_send_raw: sending raw %i bytes\n", length);
 	packet = ncot_packet_new_with_data(message, length);
 	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send_raw: Out of memory");
 	LL_APPEND(connection->packetlist, packet);
 	ncot_context_enqueue_connection_writing(context, connection);
 	return length;
 }
+
+#undef DEBUG
+#define DEBUG 0
 
 struct ncot_connection*
 ncot_connection_new()

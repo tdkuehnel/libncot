@@ -223,6 +223,9 @@ ncot_log_init(int level) {
 	logbufferpointer = logbuffer;
 	logtimeofday = 1;
 	gettimeofday(&stv, NULL);
+	/* This is a dirty thing of code, but it makes the log time
+	 * stamps start at ~ 0.05. */
+	while (stv.tv_usec > 50000) gettimeofday(&stv, NULL);
 	NCOT_DEBUG("set log level to: %d\n", ncot_log_level);
 }
 
