@@ -60,7 +60,7 @@ START_TEST (test_ncot)
 
 	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_ncot.log");
 	ck_assert(i == 0);
-	sleep(1);
+	/*sleep(1);*/
 	i = stat(PIDFILE_NAME_1, &pidfilestat);
 	ck_assert(i == 0);
 
@@ -75,7 +75,7 @@ START_TEST (test_ncot)
 	i = system("cat ncotd1.pid | xargs kill");
 	ck_assert(i == 0);
 
-	sleep(1);
+	/*sleep(1);*/
 
 	i = stat(PIDFILE_NAME_1, &pidfilestat);
 	ck_assert(i != 0);

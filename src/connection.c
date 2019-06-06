@@ -134,7 +134,7 @@ ncot_connection_authenticate_client(struct ncot_connection *connection)
 		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
 	}
 	NCOT_DEBUG("ncot_connection_authenticate_client: Gnutls handshake complete\n");
-	NCOT_LOG_INFO("Info: Gnutls handshake complete\n");
+	NCOT_LOG_INFO("Gnutls handshake complete\n");
 	/*gnutls_transport_set_int(connection->session, connection->sd);*/
 	connection->authenticated = 1;
 	return 0;
@@ -154,7 +154,7 @@ ncot_connection_accept(struct ncot_context *context, struct ncot_connection *con
 	connection->status = NCOT_CONN_CONNECTED;
 	ncot_context_dequeue_connection_listen(context, connection);
 	ncot_context_enqueue_connection_connected(context, connection);
-	NCOT_LOG_INFO("Info: connection accepted\n");
+	NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
 	return 0;
 }
 
@@ -319,7 +319,7 @@ ncot_connection_listen(struct ncot_context *context, struct ncot_connection *con
 	SOCKET_ERR(ret, "Error listening with connection\n");
 	connection->status = NCOT_CONN_LISTEN;
 	ncot_context_enqueue_connection_listen(context, connection);
-	NCOT_LOG_INFO("Info: connection now listening on port %i\n", port);
+	NCOT_LOG_INFO("ncot_connection_listen: connection now listening on port %i\n", port);
 	return 0;
 }
 
@@ -410,7 +410,7 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 		NCOT_DEBUG("ncot_connection_connect: connect returned %i\n", err);
 		connection->status = NCOT_CONN_CONNECTED;
 		ncot_context_enqueue_connection_connected(context, connection);
-		NCOT_LOG_INFO("Info: connection connected\n");
+		NCOT_LOG_INFO("ncot_connection_connect: connection connected\n");
 		return 0;
 	}
 }
