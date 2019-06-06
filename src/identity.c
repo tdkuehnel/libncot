@@ -1,11 +1,15 @@
-ncot_identity_t *ncot_identity_new()
+#include "identity.h"
+
+struct ncot_identity*
+ncot_identity_new()
 {
-	ncot_identity_t *identity;
-	identity = calloc(1, sizeof(ncot_identity_t));
+	struct ncot_identity *identity;
+	identity = calloc(1, sizeof(struct ncot_identity));
 	return identity;
 }
 
-void ncot_identity_init(ncot_identity_t *identity) {
+void
+ncot_identity_init(struct ncot_identity *identity) {
 	if (identity) {
 		uuid_create(&identity->uuid);
 		uuid_make(identity->uuid, UUID_MAKE_V1);
@@ -14,8 +18,9 @@ void ncot_identity_init(ncot_identity_t *identity) {
 	}
 }
 
-void ncot_identity_free(ncot_identity_t **pidentity) {
-	ncot_identity_t *identity;
+void
+ncot_identity_free(struct ncot_identity **pidentity) {
+	struct ncot_identity *identity;
 	if (pidentity) {
 		identity = *pidentity;
 		if (identity) {

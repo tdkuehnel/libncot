@@ -7,12 +7,38 @@
  * all. Maybe we can abstract the user away. :-) Needs rework as it
  * still uses typedefs. */
 
-typedef struct ncot_identity_t {
-  uuid_t *uuid;
-} ncot_identity_t;
+/* After some thoughts we came to the point that identities are
+   important. We follow the mantra "The data is yours, and you have
+   full control over your data.", so if one wishes he can stay
+   anonymous with as few public visible data as possible, or fullblown
+   exhibit everthing you can, its the users choice. We need to provide
+   a way so the people can find out by themselves what is best for
+   them.
+*/
 
-ncot_identity_t *ncot_identity_new();
-void ncot_identity_free(ncot_identity_t **pidentity);
-void ncot_identity_init(ncot_identity_t *identity);
+/* Anyway, an identity is connected to the nodes it holds, an so in a
+ * ring of trust, every identity is known to the other
+ * identieties/nodes in the same ring. The messages that pass over
+ * your node from one ring to another is something that is allways
+ * traceable back to you. When you let spam pass, its you who gets
+ * excluded from the ring when the ring policy says NO SPAM.
+*/
+
+struct ncot_identity;
+struct ncot_identity {
+	uuid_t *uuid;
+	char name[256];
+	char avatar[2048];
+	/* We make this listable as we may need to cope with the
+	 * public part of identities from peers */
+	struct ncot_identity next;
+	/* Somehow represent the public/private credentials involved
+	 * of an identity */
+	/* struct ncot_identity_credentials credentials; */
+};
+
+struct ncot_identity *ncot_identity_new();
+void ncot_identity_free(struct ncot_identity **pidentity);
+void ncot_identity_init(struct ncot_identity *identity);
 
 #endif
