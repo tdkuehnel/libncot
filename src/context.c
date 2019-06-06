@@ -65,6 +65,10 @@ ncot_context_nodes_free(struct ncot_context *context)
 	}
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG 0
 void
 ncot_context_free(struct ncot_context **pcontext) {
 	struct ncot_context *context;
@@ -72,12 +76,16 @@ ncot_context_free(struct ncot_context **pcontext) {
 		context = *pcontext;
 		if (context) {
 			context = *pcontext;
-			NCOT_DEBUG("ncot_context_free: freeing context at 0x%x\n", context);
+			NCOT_DEBUG("ncot_context_free: 1 freeing context at 0x%x\n", context);
 			/*      if (context->config) free(context->config); */
 			ncot_context_abort_connection_io(context);
+			NCOT_DEBUG("ncot_context_free: 2 freeing context at 0x%x\n", context);
 			ncot_context_nodes_free(context);
+			NCOT_DEBUG("ncot_context_free: 3 freeing context at 0x%x\n", context);
 			if (context->controlconnection) ncot_connection_free(&context->controlconnection);
+			NCOT_DEBUG("ncot_context_free: 4 freeing context at 0x%x\n", context);
 			if (context->arguments) free(context->arguments);
+			NCOT_DEBUG("ncot_context_free: 5 freeing context at 0x%x\n", context);
 			free(context);
 			*pcontext = NULL;
 		} else
@@ -85,6 +93,8 @@ ncot_context_free(struct ncot_context **pcontext) {
 	} else
 		NCOT_LOG_ERROR("Invalid argument (*context)\n");
 }
+#undef DEBUG
+#define DEBUG 0
 
 void
 ncot_context_controlconnection_authenticate(struct ncot_context *context, struct ncot_connection *connection)

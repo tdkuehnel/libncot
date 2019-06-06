@@ -62,6 +62,8 @@ ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_ty
 	{
 		connection->type = type;
 		connection->status = NCOT_CONN_INIT;
+		connection->pskclientcredentialsallocated = 0;
+		connection->pskservercredentialsallocated = 0;
 	}
 }
 
@@ -100,6 +102,7 @@ ncot_connection_authenticate_client(struct ncot_connection *connection)
 
 	err = gnutls_psk_allocate_server_credentials(&connection->pskservercredentials);
 	GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_server_credentials()");
+	connection->pskservercredentialsallocated = 1;
 
 	gnutls_psk_set_server_credentials_function(connection->pskservercredentials, psk_creds);
 
@@ -338,7 +341,7 @@ ncot_connection_authenticate_server(struct ncot_connection *connection)
 
 	err = gnutls_psk_allocate_client_credentials(&connection->pskclientcredentials);
 	GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_client_credentials()");
-
+	connection->pskclientcredentialsallocated = 1;
 	connection->key.size = strlen(SECRET_KEY);
 	connection->key.data = malloc(connection->key.size);
 	memcpy(connection->key.data, SECRET_KEY, connection->key.size);
@@ -402,17 +405,33 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 	}
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG 0
 void
 ncot_connection_close(struct ncot_connection *connection)
 {
 	if (connection)
 	{
+		NCOT_DEBUG("ncot_connection_close: 1\n");
 		if (connection->status == NCOT_CONN_CONNECTED) {
+			NCOT_DEBUG("ncot_connection_close: 2\n");
 			gnutls_bye(connection->session, GNUTLS_SHUT_WR);
+			NCOT_DEBUG("ncot_connection_close: 3\n");
 			gnutls_deinit(connection->session);
-			gnutls_psk_free_client_credentials(connection->pskclientcredentials);
+			NCOT_DEBUG("ncot_connection_close: 4\n");
+			/* We have our pskclientcredentials plain in the struct (FIXME?)
+			   gnutls_psk_free_client_credentials(connection->pskclientcredentials);*/
+			if (connection->pskclientcredentialsallocated)
+				gnutls_psk_free_client_credentials(connection->pskclientcredentials);
+			if (connection->pskservercredentialsallocated)
+				gnutls_psk_free_server_credentials(connection->pskservercredentials);
+			NCOT_DEBUG("ncot_connection_close: 5\n");
 			close(connection->sd);
-			NCOT_LOG_INFO("Info: closing a connection\n");
+			NCOT_DEBUG("ncot_connection_close: 6\n");
+			connection->status == NCOT_CONN_INIT;
+			NCOT_LOG_INFO("closing a connection\n");
 		} else
 			NCOT_LOG_WARNING("Trying to close a connection not open\n");
 	} else
@@ -431,14 +450,18 @@ ncot_connection_free(struct ncot_connection **pconnection)
 		if (connection)
 		{
 			packet = connection->readpacketlist;
+			NCOT_DEBUG("ncot_connection_free: 1\n");
 			while (packet) {
-				ncot_packet_print(packet);
+				/*ncot_packet_print(packet);*/
+				NCOT_DEBUG("ncot_connection_free: deleting packet\n");
 				deletepacket = packet;
 				packet = packet->next;
 				LL_DELETE(connection->readpacketlist, deletepacket);
 				ncot_packet_free(&deletepacket);
 			}
+			NCOT_DEBUG("ncot_connection_free: closing connection\n");
 			ncot_connection_close(connection);
+			NCOT_DEBUG("ncot_connection_free: freeing connection\n");
 			free(connection);
 			*pconnection = NULL;
 		} else

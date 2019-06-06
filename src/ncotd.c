@@ -34,7 +34,6 @@ int count = 0;
 int last_signum = 0;
 int r;
 char *buf;
-int gpid;
 
 void sig_handler(int signum) {
 	count++;
@@ -78,6 +77,10 @@ int daemonize()
 		}
 	}
 
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "before buffer");
+	NCOT_LOG_INFO_BUFFERED("now forking ..\n");
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "before buffer flush");
+	NCOT_LOG_INFO_BUFFER_FLUSH();
 	i = fork();
 	if (i < 0) {
 		NCOT_LOG_INFO("unable to fork, exiting %d\n");
@@ -86,7 +89,10 @@ int daemonize()
 		exit(EXIT_FAILURE);
 	}
 	if (i) {
-		NCOT_LOG_INFO("parent exiting, pid of child: %d\n", i);
+		sleep(1); /* needed for proper log output */
+		NCOT_LOG_INFO_BUFFERED("parent exiting, pid of child: %d\n", i);
+		NCOT_LOG_INFO_BUFFER_FLUSH();
+		ncot_log_done();
 		ncot_context_free(&context);
 		ncot_done();
 		_exit(EXIT_SUCCESS);
@@ -106,7 +112,9 @@ int daemonize()
 		exit(EXIT_FAILURE);
 	}
 	if (i) {
-		NCOT_LOG_INFO("child exiting, pid of daemon: %d\n", i);
+		sleep(1); /* needed for proper log output */
+		NCOT_LOG_INFO_BUFFERED("child exiting, pid of daemon: %d\n", i);
+		ncot_log_done();
 		fd = creat(context->arguments->pidfile_name, S_IRWXU);
 		if (fd > 0) {
 			snprintf((char*)&pidbuf, 7, "%d", i);
@@ -192,27 +200,20 @@ main(int argc, char **argv)
 				NCOT_LOG(NCOT_LOG_LEVEL_ERROR, "error during pselect: unknown (should never happen)\n");
 			}
 		}
-		if (last_signum != 0) {
-			break;
-		}
+		if (last_signum != 0) break;
 		/*sleep(1);*/
 		loop_counter++;
 		/* Before we have a clean running loop we keep this
 		 * restriction to simplify testing */
 	} while (loop_counter < 128);
-
-	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%d signals handled\n", count);
-	kill(gpid, SIGTERM);
-
+	NCOT_LOG_INFO("%d signals handled\n", count);
 	/*ncot_node_free(&node);*/
-
 	if (context->arguments->daemonize) {
 		struct stat pidfilestat;
 		if (stat(context->arguments->pidfile_name, &pidfilestat) == 0) unlink(context->arguments->pidfile_name);
 	}
 
 	ncot_context_free(&context);
-
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "done\n");
 	ncot_done();
 

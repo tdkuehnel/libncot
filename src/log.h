@@ -17,9 +17,21 @@
 #define NCOT_LOG_LEVEL_WARNING 24
 #define NCOT_LOG_LEVEL_INFO    32
 #define NCOT_LOG_LEVEL_VERBOSE 40
-#define NCOT_LOG_LEVEL_DEBUG   48
+#define NCOT_LOG_LEVEL_DEBUG   48 /* debug.h has own macros for debugging*/
 
 #define NCOT_LOG_LEVEL_DEFAULT 32
+
+/* Function pointer to log function */
+
+typedef void (*ncot_log_pointer)(int, const char *, ...);
+extern ncot_log_pointer log_ptr;
+
+typedef void (*ncot_log_flush_pointer)();
+extern ncot_log_flush_pointer log_flush_ptr;
+
+extern ncot_log_pointer log_ptr;
+extern ncot_log_pointer log_buffered_ptr;
+extern ncot_log_flush_pointer log_buffer_flush_ptr;
 
 #define NCOT_LOG(level, fmt, ...)					\
   if (log_ptr != NULL) { (*log_ptr)(level, fmt,  ## __VA_ARGS__); }
@@ -32,13 +44,6 @@
 
 #define NCOT_LOG_INFO_BUFFERED(fmt, ...) NCOT_LOG_BUFFERED(NCOT_LOG_LEVEL_INFO, fmt, ## __VA_ARGS__);
 #define NCOT_LOG_INFO_BUFFER_FLUSH() if (log_buffered_ptr != NULL) { (*log_buffer_flush_ptr)(); }
-/* Function pointer to log function */
-
-typedef void (*ncot_log_pointer)(int, const char *, ...);
-extern ncot_log_pointer log_ptr;
-
-typedef void (*ncot_log_flush_pointer)();
-extern ncot_log_flush_pointer log_flush_ptr;
 
 void ncot_log_init(int level);
 int ncot_log_set_logfile(const char *filename);

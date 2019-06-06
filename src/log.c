@@ -8,6 +8,7 @@
 #include <string.h>
 #include <fcntl.h>
 #include <errno.h>
+#include <sys/time.h>
 
 #include "log.h"
 
@@ -26,6 +27,136 @@ const char* logfilename = {"ncot.log"};
 
 char logbuffer[NCOT_LOG_BUFFER_LENGTH];
 char *logbufferpointer;
+struct timeval stv;
+int logtimeofday;
+char timestring[256];
+
+void
+ncot_log_logfile( int level, const char *fmt, ... )
+{
+	int fd;
+	int i;
+	struct stat logfilestat;
+	char timestring[256];
+	struct timeval tv;
+	if ( level <= ncot_log_level ) {
+		va_list vl;
+		i = stat(logfilename, &logfilestat);
+		if (i == 0) {
+#ifdef _WIN32
+			fd = open(logfilename, O_APPEND|O_WRONLY );
+#else
+/*			fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );*/
+			fd = open(logfilename, O_APPEND|O_WRONLY );
+ #endif
+		} else {
+			fd = creat(logfilename, S_IRWXU);
+		}
+		gettimeofday(&tv, NULL);
+		/* This gives bogus usecs for the first timestring
+		 * logged after ncot_log_init */
+		snprintf (timestring, 256, "[%3ld.%06ld]", tv.tv_sec - stv.tv_sec, tv.tv_usec);
+		if (fd > 0) {
+#ifdef _WIN32
+			char string[2048];
+			char *stringptr;
+			int ret;
+			stringptr = (char*)string;
+			switch (level) {
+			case NCOT_LOG_LEVEL_ERROR:
+				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_RED);
+				stringptr += sprintf(" Err");
+				break;
+			case NCOT_LOG_LEVEL_WARNING:
+				stringprt += sprintf(stringptr, "%s", ANSI_COLOR_YELLOW);
+				stringptr += sprintf("Warn");
+				break;
+			case NCOT_LOG_LEVEL_INFO:
+				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_GREEN);
+				stringptr += sprintf("Info");
+				break;
+			}
+			stringptr += sprintf(stringptr, "%s", ANSI_COLOR_RESET);
+			if (logtimeofday) stringptr += sprintf(timestring);
+			stringptr += sprintf(": ");
+			va_start(vl, fmt);
+			ret = vsprintf(stringptr, fmt, vl);
+			va_end(vl);
+			if (ret > 0) write(fd, &string, ret);
+#else
+			switch (level) {
+			case NCOT_LOG_LEVEL_ERROR:
+				dprintf(fd, ANSI_COLOR_RED " Err");
+				break;
+			case NCOT_LOG_LEVEL_WARNING:
+				dprintf(fd, ANSI_COLOR_YELLOW "Warn");
+				break;
+			case NCOT_LOG_LEVEL_INFO:
+				dprintf(fd, ANSI_COLOR_GREEN "Info");
+				break;
+			}
+			dprintf(fd, ANSI_COLOR_RESET);
+			if (logtimeofday) dprintf(fd, timestring);
+			dprintf(fd, ": ");
+			va_start(vl, fmt);
+			vdprintf(fd, fmt, vl);
+			va_end(vl);
+#endif
+			close(fd);
+		}
+	}
+}
+
+void
+ncot_log_logfile_buffered( int level, const char *fmt, ... )
+{
+	int ret;
+	int printsize;
+	va_list vl;
+	return;
+	printsize = logbuffer + NCOT_LOG_BUFFER_LENGTH - logbufferpointer;
+	va_start(vl, fmt);
+	ret = vsnprintf(logbufferpointer, printsize, fmt, vl);
+	va_end(vl);
+	if (ret >= printsize) {
+		ncot_log_logfile_buffer_flush();
+		logbufferpointer = logbuffer;
+		printsize = logbuffer + NCOT_LOG_BUFFER_LENGTH - logbufferpointer;
+		va_start(vl, fmt);
+		ret = vsnprintf(logbufferpointer, printsize, fmt, vl);
+		va_end(vl);
+		if (ret >= printsize) {
+			ncot_log_logfile(NCOT_LOG_LEVEL_ERROR, "logbuffer to small for atomic log\n" );
+			logbufferpointer = logbuffer;
+			return;
+		}
+	}
+	logbufferpointer += ret;
+}
+
+void
+ncot_log_logfile_buffer_flush()
+{
+	int fd, i;
+	struct stat logfilestat;
+	return;
+	i = stat(logfilename, &logfilestat);
+	if (i == 0) {
+#ifdef _WIN32
+		fd = open(logfilename, O_APPEND|O_WRONLY );
+#else
+		fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );
+#endif
+	} else {
+		fd = creat(logfilename, S_IRWXU);
+	}
+	*logbufferpointer = 0;
+	if (fd > 0) {
+		write(fd, logbuffer, logbufferpointer - logbuffer);
+		close(fd);
+	}
+	logbufferpointer = logbuffer;
+}
 
 void
 ncot_log_printf( int level, const char *fmt, ... )
@@ -51,93 +182,6 @@ ncot_log_printf_buffered( int level, const char *fmt, ... )
 void
 ncot_log_printf_buffer_flush()
 {
-}
-
-void
-ncot_log_logfile_buffer_flush()
-{
-	int fd, i;
-	struct stat logfilestat;
-	i = stat(logfilename, &logfilestat);
-	if (i == 0) {
-#ifdef _WIN32
-		fd = open(logfilename, O_APPEND|O_WRONLY );
-#else
-		fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );
-#endif
-	} else {
-		fd = creat(logfilename, S_IRWXU);
-	}
-	*logbufferpointer = 0;
-	if (fd > 0) {
-		write(fd, logbuffer, logbufferpointer - logbuffer);
-		close(fd);
-	}
-	logbufferpointer = logbuffer;
-}
-
-void
-ncot_log_logfile_buffered( int level, const char *fmt, ... )
-{
-	int ret;
-	int printsize;
-	va_list vl;
-	printsize = logbuffer + NCOT_LOG_BUFFER_LENGTH - logbufferpointer;
-	va_start(vl, fmt);
-	ret = vsnprintf(logbufferpointer, printsize, fmt, vl);
-	va_end(vl);
-	if (ret >= printsize) {
-		ncot_log_logfile_buffer_flush();
-		logbufferpointer = logbuffer;
-		printsize = logbuffer + NCOT_LOG_BUFFER_LENGTH - logbufferpointer;
-		va_start(vl, fmt);
-		ret = vsnprintf(logbufferpointer, printsize, fmt, vl);
-		va_end(vl);
-		if (ret >= printsize) {
-			ncot_log_logfile(NCOT_LOG_LEVEL_ERROR, "logbuffer to small for atomic log\n" );
-			logbufferpointer = logbuffer;
-			return;
-		}
-	}
-	logbufferpointer += ret;
-}
-
-void
-ncot_log_logfile( int level, const char *fmt, ... )
-{
-	int fd, i;
-	struct stat logfilestat;
-	if ( level <= ncot_log_level ) {
-		va_list vl;
-		i = stat(logfilename, &logfilestat);
-		if (i == 0) {
-#ifdef _WIN32
-			fd = open(logfilename, O_APPEND|O_WRONLY );
-#else
-			fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );
-#endif
-		} else {
-			fd = creat(logfilename, S_IRWXU);
-		}
-#ifdef _WIN32
-		if (fd > 0) {
-			char string[2048];
-			int ret;
-			va_start(vl, fmt);
-			ret = vsprintf((char*)&string, fmt, vl);
-			va_end(vl);
-			if (ret > 0) write(fd, &string, ret);
-			close(fd);
-		}
-#else
-		if (fd > 0) {
-			va_start(vl, fmt);
-			vdprintf(fd, fmt, vl);
-			va_end(vl);
-			close(fd);
-		}
-#endif
-	}
 }
 
 int
@@ -176,13 +220,19 @@ ncot_log_init(int level) {
 	log_buffered_ptr = &ncot_log_printf_buffered;
 	log_buffer_flush_ptr = &ncot_log_printf_buffer_flush;
 	ncot_log_level = level * 8;
-
+	logbufferpointer = logbuffer;
+	logtimeofday = 1;
+	gettimeofday(&stv, NULL);
 	NCOT_DEBUG("set log level to: %d\n", ncot_log_level);
 }
 
 void
 ncot_log_done()
 {
+	NCOT_LOG_INFO_BUFFER_FLUSH();
+	log_ptr = NULL;
+	log_buffered_ptr = NULL;
+	log_buffer_flush_ptr = NULL;
 }
 
 void

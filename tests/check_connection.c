@@ -29,6 +29,7 @@ void setup()
 void teardown()
 {
 	struct stat pidfilestat;
+	sleep(1);
 	printf("teardown\n");
 	if (stat("ncotd1.pid", &pidfilestat) == 0) {
 		printf("executing kill by pid\n");
@@ -105,9 +106,10 @@ START_TEST (test_connection_daemon)
 	struct timeval  tv1, tv2;
 	gettimeofday(&tv1, NULL);
 	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_connection_daemon-ncotd1.log");
+	ck_assert(i == 0);
+
 	gettimeofday(&tv2, NULL);
 	printf ("Total time = %f seconds\n", (double) (tv2.tv_usec - tv1.tv_usec) / 1000000 + (double) (tv2.tv_sec - tv1.tv_sec));
-	ck_assert(i == 0);
 
 	sleep(1);
 	gettimeofday(&tv1, NULL);

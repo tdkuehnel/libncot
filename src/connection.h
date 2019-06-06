@@ -119,6 +119,8 @@ struct ncot_connection {
 	gnutls_anon_client_credentials_t clientcred;
 	gnutls_psk_client_credentials_t pskclientcredentials;
 	gnutls_psk_server_credentials_t pskservercredentials;
+	int pskclientcredentialsallocated;
+	int pskservercredentialsallocated;
 	gnutls_datum_t key;
 	enum ncot_connection_type type;
 	enum ncot_connection_status status;
