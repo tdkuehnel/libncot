@@ -1,4 +1,8 @@
+#ifdef _WIN32
+#include <winsock2.h>
+#else
 #include <arpa/inet.h>
+#endif
 
 #define DEBUG 0
 #include "debug.h"

@@ -19,6 +19,15 @@ AM_PROG_AR
 
 LT_INIT
 
+AC_CANONICAL_HOST
+if test "$host_os" = mingw32.static
+echo "$host_os"
+then
+    EXTRA_LD_ADD="libargp.a"
+    export EXTRA_LD_ADD
+fi
+AC_SUBST([EXTRA_LD_ADD])
+
 # Checks for libraries.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.8])
 #PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 3.2])

@@ -11,10 +11,10 @@ libncot_la_LIBADD = @GNUTLS_LIBS@
 bin_PROGRAMS = ncot ncotd
 
 ncot_SOURCES = ncot.c
-ncot_LDADD = libncot.la @GNUTLS_LIBS@
+ncot_LDADD = libncot.la @GNUTLS_LIBS@ @EXTRA_LD_ADD@
 
 ncotd_SOURCES = ncotd.c
-ncotd_LDADD = libncot.la @GNUTLS_LIBS@
+ncotd_LDADD = libncot.la @GNUTLS_LIBS@ @EXTRA_LD_ADD@
 
 ##simple_SOURCES = simple.c simple.h
 ##cpw_LDADD = @AVUTIL_LIBS@

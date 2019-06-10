@@ -65,20 +65,20 @@ ncot_log_logfile( int level, const char *fmt, ... )
 			switch (level) {
 			case NCOT_LOG_LEVEL_ERROR:
 				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_RED);
-				stringptr += sprintf(" Err");
+				stringptr += sprintf(stringptr, " Err");
 				break;
 			case NCOT_LOG_LEVEL_WARNING:
-				stringprt += sprintf(stringptr, "%s", ANSI_COLOR_YELLOW);
-				stringptr += sprintf("Warn");
+				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_YELLOW);
+				stringptr += sprintf(stringptr, "Warn");
 				break;
 			case NCOT_LOG_LEVEL_INFO:
 				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_GREEN);
-				stringptr += sprintf("Info");
+				stringptr += sprintf(stringptr, "Info");
 				break;
 			}
 			stringptr += sprintf(stringptr, "%s", ANSI_COLOR_RESET);
-			if (logtimeofday) stringptr += sprintf(timestring);
-			stringptr += sprintf(": ");
+			if (logtimeofday) stringptr += sprintf(stringptr, timestring);
+			stringptr += sprintf(stringptr, ": ");
 			va_start(vl, fmt);
 			ret = vsprintf(stringptr, fmt, vl);
 			va_end(vl);

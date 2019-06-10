@@ -1,3 +1,5 @@
+Add empty m4 directory to repository.
+
 Write tests that check the implementation of asynchronous operation for a listening socket and several connected sockets. <- out of date
 
 Write tests to fire up two daemons, let each create a node and let those nodes connect with a pre shared secret over a secure tcp connection.
