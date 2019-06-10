@@ -1,5 +1,7 @@
 #include "autoconfig.h"
 
+#include <netdb.h>
+
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
@@ -395,19 +397,33 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 {
 	int err;
 	int res;
+	struct addrinfo hints;
+	struct addrinfo *results;
+	struct addrinfo *result;
 	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_connect: Invalid argument: connection");
 	if (connection->status == NCOT_CONN_CONNECTED) ERROR_MESSAGE_RETURN("ncot_connection_connect - ERROR: connection still connected, cant connect again\n");
 	if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
-		connection->sd = socket(AF_INET, SOCK_STREAM, 0);
-		SOCKET_ERR(connection->sd, "ncot_connection_connect: socket()");
-		memset(&connection->sa_client, '\0', sizeof(connection->sa_client));
-		connection->sa_client.sin_family = AF_INET;
-		connection->sa_client.sin_port = htons(atoi(port));
-		inet_pton(AF_INET, address, &connection->sa_client.sin_addr);
+		memset(&hints, '\0', sizeof(struct addrinfo));
+		hints.ai_family = AF_INET; /* ip4 for the moment only to simplify*/
+		hints.ai_socktype = SOCK_STREAM;
+		hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV ; /* for simplicity of this proof of concept */
+		res = getaddrinfo(address, port, &hints, &results);
+		if (res != 0) {
+			NCOT_LOG_ERROR("ncot_connection_connect: error in getaddrinfo - &s\n", gai_strerror(res));
+			return -1;
+		}
 		NCOT_DEBUG("ncot_connection_connect: connecting ...\n");
-		err = connect(connection->sd, (struct sockaddr *) &connection->sa_client, sizeof(connection->sa_client));
-		SOCKET_ERR(err, "Error: ncot_connection_connect: connect()");
-		NCOT_DEBUG("ncot_connection_connect: connect returned %i\n", err);
+		for (result = results; result != NULL; result = result->ai_next) {
+			connection->sd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+			if (connection->sd == -1)
+				continue;
+			if (connect(connection->sd, result->ai_addr, result->ai_addrlen) != -1)
+				break;
+			close(connection->sd);
+		}
+		freeaddrinfo(results);
+		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)\n")
+		NCOT_DEBUG("ncot_connection_connect: connect successful (after getaddrinfo iteration) %i\n", err);
 		connection->status = NCOT_CONN_CONNECTED;
 		ncot_context_enqueue_connection_connected(context, connection);
 		NCOT_LOG_INFO("ncot_connection_connect: connection connected\n");

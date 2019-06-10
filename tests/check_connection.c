@@ -130,7 +130,7 @@ START_TEST (test_connection_daemon)
 	conn2 = context->controlconnection;
 	/* Try to connect to an unreachable port */
 	ret = ncot_connection_connect(context, conn2, TESTPORT_BAD, TESTADDRESS_STRING);
- 	ck_assert_int_eq(ret, 1);
+ 	ck_assert_int_eq(ret, -1);
 
 	ret = ncot_connection_connect(context, conn2, TESTPORT_GOOD, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
