@@ -22,6 +22,8 @@
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 
+#define PIDFILE_NAME_TEST_CONNECTION "connection_ncotd.pid"
+
 void setup()
 {
 }
@@ -31,9 +33,9 @@ void teardown()
 	struct stat pidfilestat;
 	sleep(1);
 	printf("teardown\n");
-	if (stat("ncotd1.pid", &pidfilestat) == 0) {
+	if (stat(PIDFILE_NAME_TEST_CONNECTION, &pidfilestat) == 0) {
 		printf("executing kill by pid\n");
-		system("cat ncotd1.pid | xargs kill");
+		system("cat " PIDFILE_NAME_TEST_CONNECTION " | xargs kill");
 	}
 }
 
@@ -121,7 +123,7 @@ START_TEST (test_connection_daemon)
 	context = ncot_context_new();
 	ncot_context_init(context);
 
-	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_connection_daemon-ncotd1.log");
+	i = system("../src/ncotd -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log");
 	ck_assert(i == 0);
 	/*sleep(1);*/
 
@@ -181,7 +183,7 @@ START_TEST (test_connection_daemon)
 	 sleep(2);*/
 	/* When the following fails, our daemon process probably
 	 * segfaulted! */
-	i = system("cat ncotd1.pid | xargs kill");
+	i = system("cat " PIDFILE_NAME_TEST_CONNECTION " | xargs kill");
 	ck_assert(i == 0);
 }
 END_TEST

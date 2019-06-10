@@ -14,7 +14,7 @@
 #include "../src/log.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
-#define PIDFILE_NAME_1 "ncotd1.pid"
+#define PIDFILE_NAME_TEST_NCOT "test_ncotd.pid"
 
 void setup()
 {
@@ -27,6 +27,14 @@ void teardown()
 	i = stat("logfilename", &logfilestat);
 	if (i == 0) {
 		unlink("logfilename");
+	}
+
+	struct stat pidfilestat;
+	sleep(1);
+	printf("teardown\n");
+	if (stat(PIDFILE_NAME_TEST_NCOT, &pidfilestat) == 0) {
+		printf("executing kill by pid\n");
+		system("cat " PIDFILE_NAME_TEST_NCOT " | xargs kill");
 	}
 
 }
@@ -53,18 +61,19 @@ START_TEST (test_ncot)
 	char pidbuf[7] = {0};
 	/* Remove stale pid files from failed tests */
 	/*system("unlink ncotd1.pid");*/
-	i = stat(PIDFILE_NAME_1, &pidfilestat);
-	if (i == 0) unlink(PIDFILE_NAME_1);
+	/* sleep(1); Give the former test ncotd time to clean up */
+	i = stat(PIDFILE_NAME_TEST_NCOT, &pidfilestat);
+	if (i == 0) unlink(PIDFILE_NAME_TEST_NCOT);
 
 	printf("test_ncot PID is %ld\n", (long) getpid());
 
-	i = system("../src/ncotd -d --pidfile=ncotd1.pid --logfile=test_ncot.log");
+	i = system("../src/ncotd -d --pidfile=" PIDFILE_NAME_TEST_NCOT " --logfile=test_ncot.log");
 	ck_assert(i == 0);
-	/*sleep(1);*/
-	i = stat(PIDFILE_NAME_1, &pidfilestat);
+	sleep(1);
+	i = stat(PIDFILE_NAME_TEST_NCOT, &pidfilestat);
 	ck_assert(i == 0);
 
-	fd = open(PIDFILE_NAME_1, O_RDONLY);
+	fd = open(PIDFILE_NAME_TEST_NCOT, O_RDONLY);
 	ck_assert(fd > 0);
 
 	read(fd, &pidbuf, 6);
@@ -72,12 +81,12 @@ START_TEST (test_ncot)
 
 	close(fd);
 
-	i = system("cat ncotd1.pid | xargs kill");
+	i = system("cat " PIDFILE_NAME_TEST_NCOT " | xargs kill");
 	ck_assert(i == 0);
 
 	/*sleep(1);*/
 
-	i = stat(PIDFILE_NAME_1, &pidfilestat);
+	i = stat(PIDFILE_NAME_TEST_NCOT, &pidfilestat);
 	ck_assert(i != 0);
 
 }
