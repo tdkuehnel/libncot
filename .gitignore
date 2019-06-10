@@ -57,3 +57,4 @@ tests/client
 tests/server
 check_packet
 src/ncot.exe
+src/cmdi
