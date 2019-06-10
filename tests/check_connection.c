@@ -99,6 +99,8 @@ test_iterate_io(struct ncot_context *context, fd_set *rfds, fd_set *wfds, int *h
 
 #define TESTPORT_GOOD  "24002"
 #define TESTPORT_BAD  "24001"
+#define INCOMPLETE_MESSAGE_LENGTH 16
+
 START_TEST (test_connection_daemon)
 {
 	struct ncot_connection *conn1;
@@ -142,7 +144,6 @@ START_TEST (test_connection_daemon)
 	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
 	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
 
-#define INCOMPLETE_MESSAGE_LENGTH 16
 	/* Send an incomplete message to simulate high i/o load */
 	messagepointer = malloc(strlen(messageraw) + 1);
 	strncpy(messagepointer, messageraw, strlen(messageraw));
