@@ -56,3 +56,4 @@ tests/check_connection
 tests/client
 tests/server
 check_packet
+src/cmdi
