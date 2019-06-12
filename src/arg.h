@@ -15,6 +15,7 @@ struct ncot_arguments
 	int daemonize;
 };
 
-void ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv);
+int
+ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv);
 
 #endif
