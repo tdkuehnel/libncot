@@ -17,19 +17,18 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AM_PROG_AR
 
-LT_INIT
+AC_CHECK_HEADERS([argp.h])
+
+LT_INIT([win32-dll])
+#AC_DEFINE([WINVER], [0x0501], 'Minimum plattform winxp for mingw crossbuild')
 
 AC_CANONICAL_HOST
-if test "$host_os" = mingw32.static
 echo "$host_os"
-then
-    EXTRA_LD_ADD="libargp.a"
-    export EXTRA_LD_ADD
-fi
-AC_SUBST([EXTRA_LD_ADD])
 
+AC_LIBTOOL_WIN32_DLL
 # Checks for libraries.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.8])
+PKG_CHECK_MODULES([POPT], [popt >= 1.16])
 #PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 3.2])
 #PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
 #PKG_CHECK_MODULES([LIBRESSL], [libtls >= 18.1.0])
@@ -39,7 +38,10 @@ PKG_CHECK_MODULES([GNUTLS], [gnutls >= 0.29.2 ])
 # AC_SUBST([AVUTIL_LIBS])
 AC_SUBST([GNUTLS_CFLAGS])
 AC_SUBST([GNUTLS_LIBS])
-
+AC_SUBST([POPT_CFLAGS])
+AC_SUBST([POPT_LIBS])
+echo "$POPT_LIBS"
+echo "$GNUTLS_LIBS"
 # Checks for header files.
 
 # Checks for typedefs, structures, and compiler characteristics.

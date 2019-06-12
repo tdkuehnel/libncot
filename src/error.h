@@ -16,9 +16,17 @@
 #define ERROR_MESSAGE_RETURN(s) {NCOT_LOG_ERROR("%s\n", s);return -1;}
 
 #define RETURN_FAIL(s) {NCOT_LOG_ERROR("%s\n", s);return -1;}
+#define RETURN_IF_FAIL(i) if(i!=0){return i;}
 #define RETURN_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return;}
 #define RETURN_FAIL_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return -1;}
 #define RETURN_NULL_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return NULL;}
 #define RETURN_ZERO_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return 0;}
+
+#ifdef _WIN32
+#include <winsock2.h>
+#include <windef.h>
+#define SOCKET_ERROR_FAIL(err, s)  if(err==SOCKET_ERROR) {NCOT_LOG_ERROR("%s: %i\n", s, WSAGetLastError());return(1);}
+#define INVALID_SOCKET_ERROR(err, s)  if(err==INVALID_SOCKET) {NCOT_LOG_ERROR("%s: %i\n", s, WSAGetLastError());return(1);}
+#endif
 
 #endif
