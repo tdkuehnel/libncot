@@ -1,7 +1,5 @@
 #include "autoconfig.h"
 
-#include <netdb.h>
-
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
@@ -11,6 +9,7 @@
 #include <ws2tcpip.h>
 #elif __unix__
 #include <sys/socket.h>
+#include <netdb.h>
 #endif
 
 #define DEBUG 0
