@@ -6,7 +6,79 @@
 #include "init.h"
 #include "context.h"
 
-void ncot_init()
+#ifdef _WIN32
+
+/* This function is no more used as it is implemented in ncot.c
+ * directly */
+int
+ncot_socket_pair(int *fd1, int *fd2)
+{
+    struct sockaddr_in inaddr;
+    struct sockaddr addr;
+    int lst;
+    int ret;
+    lst = socket(AF_INET, SOCK_STREAM, IPPROTO_TCP);
+    if (lst == INVALID_SOCKET) {
+	    NCOT_LOG_ERROR("ncot_socket_pair: socket() -%i\n", WSAGetLastError());
+	    return -1;
+    }
+    memset(&inaddr, 0, sizeof(inaddr));
+    memset(&addr, 0, sizeof(addr));
+    inaddr.sin_family = AF_INET;
+    inaddr.sin_addr.s_addr = htonl(INADDR_LOOPBACK);
+    inaddr.sin_port = 0;
+    int yes=1;
+    ret = setsockopt(lst,SOL_SOCKET,SO_REUSEADDR,(char*)&yes,sizeof(yes));
+    if (ret == SOCKET_ERROR) {
+	    NCOT_LOG_ERROR("ncot_socket_pair: setsockopt() %i\n", WSAGetLastError());
+	    return -1;
+    }
+    ret = bind(lst,(struct sockaddr *)&inaddr,sizeof(inaddr));
+    if (ret == SOCKET_ERROR) {
+	    NCOT_LOG_ERROR("ncot_socket_pair: bind() %i\n", WSAGetLastError());
+	    return -1;
+    }
+    ret = listen(lst,1);
+    if (ret == SOCKET_ERROR) {
+	    NCOT_LOG_ERROR("ncot_socket_pair: listen() %i\n", WSAGetLastError());
+	    return -1;
+    }
+    int len=sizeof(inaddr);
+    getsockname(lst, &addr,&len);
+    *fd1=socket(AF_INET, SOCK_STREAM,0);
+    if (*fd1 == INVALID_SOCKET) {
+	    NCOT_LOG_ERROR("ncot_socket_pair: socket() -%i\n", WSAGetLastError());
+	    return -1;
+    }
+    connect(*fd1,&addr,len);
+    *fd2=accept(lst,0,0);
+    if (*fd2 == INVALID_SOCKET) {
+	    NCOT_LOG_ERROR("ncot_socket_pair: accept() -%i\n", WSAGetLastError());
+	    return -1;
+    }
+    closesocket(lst);
+    return 0;
+}
+
+int
+ncot_init_selfpipe()
+{
+	/* Set up self pipe trick under _WIN32 */
+	PHANDLE handle1;
+	PHANDLE handle2;
+	int res;
+	res = CreatePipe(handle1, handle2, NULL, 0);
+	if (res) {
+		NCOT_LOG_ERROR("ncot_init: can't create self pipe handle\n");
+		return -1;
+	}
+	return 0;
+#endif
+
+}
+
+void
+ncot_init()
 {
 	ncot_log_init(NCOT_LOG_LEVEL_WARNING);
 	/* During tests we like to log to different files which is set
@@ -22,7 +94,8 @@ void ncot_init()
 
 }
 
-void ncot_done()
+void
+ncot_done()
 {
 	gnutls_global_deinit();
 	ncot_log_done();
@@ -42,7 +115,8 @@ void ncot_done()
 	/* main initialization ends here */
 
 // GnuTLS will call this function whenever there is a new debugging log message.
-void print_logs(int level, const char* msg)
+void
+print_logs(int level, const char* msg)
 {
-	NCOT_LOG_INFO("GnuTLS [%d]: %s", level, msg);
+ 	NCOT_LOG_INFO("GnuTLS [%d]: %s", level, msg);
 }
