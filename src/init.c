@@ -1,5 +1,12 @@
 #include "autoconfig.h"
 
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <signal.h>
+#include <fcntl.h>
+#include <stdlib.h>
+#include <string.h>
+#include <unistd.h>
 #include <gnutls/gnutls.h>
 
 #include "log.h"
@@ -103,4 +110,87 @@ void
 print_logs(int level, const char* msg)
 {
  	NCOT_LOG_INFO("GnuTLS [%d]: %s", level, msg);
+}
+
+int
+ncot_daemonize(struct ncot_context *context)
+{
+	int i, fd, pid;
+	pid_t sid;
+	struct stat pidfilestat;
+	char pidbuf[7] = {0};
+
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "daemonizing");
+	/* check if we are still running with this pidfile name, or there is a stale one */
+	i = stat(context->arguments->pidfile_name, &pidfilestat);
+	if (i == 0) {
+		if (pidfilestat.st_size <= 6) {
+			fd = open(context->arguments->pidfile_name, O_RDONLY);
+			if (fd > 0) {
+				read(fd, &pidbuf, 6);
+				printf("pid of pidfile %s: %s\n", context->arguments->pidfile_name, &pidbuf);
+				close(fd);
+				pid = strtol((const char*)&pidbuf, NULL, 10);
+				i = kill(pid, 0);
+				if (i == 0) {
+					printf("process with pid %d found\n", pid);
+					return 0;
+				} else {
+					printf("no process with pid %d, removing stale pidfile\n", pid);
+					i = unlink(context->arguments->pidfile_name);
+				}
+			}
+		}
+	}
+
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "before buffer");
+	NCOT_LOG_INFO_BUFFERED("now forking ..\n");
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "before buffer flush");
+	NCOT_LOG_INFO_BUFFER_FLUSH();
+	i = fork();
+	if (i < 0) {
+		NCOT_LOG_INFO("unable to fork, exiting %d\n");
+		ncot_context_free(&context);
+		ncot_done();
+		exit(EXIT_FAILURE);
+	}
+	if (i) {
+		sleep(1); /* needed for proper log output */
+		NCOT_LOG_INFO_BUFFERED("parent exiting, pid of child: %d\n", i);
+		NCOT_LOG_INFO_BUFFER_FLUSH();
+		ncot_log_done();
+		ncot_context_free(&context);
+		ncot_done();
+		_exit(EXIT_SUCCESS);
+	}
+	sid = setsid();
+	if (sid < 0) {
+		NCOT_LOG_INFO("unable for child to setsid, exiting %d\n");
+		ncot_context_free(&context);
+		ncot_done();
+		exit(EXIT_FAILURE);
+	}
+	i = fork();
+	if (i < 0) {
+		NCOT_LOG_INFO("child unable to fork, exiting %d\n");
+		ncot_context_free(&context);
+		ncot_done();
+		exit(EXIT_FAILURE);
+	}
+	if (i) {
+		sleep(1); /* needed for proper log output */
+		NCOT_LOG_INFO_BUFFERED("child exiting, pid of daemon: %d\n", i);
+		ncot_log_done();
+		fd = creat(context->arguments->pidfile_name, S_IRWXU);
+		if (fd > 0) {
+			snprintf((char*)&pidbuf, 7, "%d", i);
+			write(fd, &pidbuf, strlen((const char*)&pidbuf));
+			close(fd);
+		}
+		ncot_context_free(&context);
+		ncot_done();
+		exit(EXIT_SUCCESS);
+	}
+	NCOT_LOG_INFO("%s child daemonized\n", PACKAGE_STRING);
+
 }

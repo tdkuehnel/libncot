@@ -26,7 +26,9 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	struct poptOption optionsTable[] = {
 		{ "verbose",    'v', POPT_ARG_NONE,   0,                        0,  "Produce verbose output", NULL },
 		{ "quiet",      'q', POPT_ARG_NONE,   0,                        0,  "Don't produce any output", NULL },
+#ifndef _WIN32
 		{ "daemonize",  'd', POPT_ARG_NONE,   &arguments->daemonize,    0,  "Daemonize to background", NULL },
+#endif
 		{ "address",    'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
 		{ "port",       'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
 		{ "configfile", 'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ...", NULL},

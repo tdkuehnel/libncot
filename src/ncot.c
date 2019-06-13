@@ -136,9 +136,17 @@ main(int argc, char **argv)
 	RETURN_IF_FAIL(ncot_arg_parse(context->arguments, argc, argv));
 	ncot_init();
 	ncot_log_set_logfile(context->arguments->logfile_name);
+#ifdef _WIN32
 	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client");
+#else
+	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client/daemon");
+	if (context->arguments->daemonize) ncot_daemonize(context);
+	if (context->arguments->daemonize) NCOT_LOG_INFO("%s Looks like we are running as a deamon, good.\n", PACKAGE_STRING);
+	if (context->arguments->daemonize)
+		ncot_connection_listen(context, context->controlconnection,
+				atoi(context->arguments->port));
+#endif
 	NCOT_LOG_INFO("%s our PID is %ld\n", PACKAGE_STRING, (long) getpid());
-
 	/* initialize main loop */
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "entering main loop, CTRL-C to bail out\n");
 
@@ -230,8 +238,12 @@ main(int argc, char **argv)
 	WSACleanup();
 #endif
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%d signals handled\n", count);
-	ncot_context_free(&context);
+	if (context->arguments->daemonize) {
+		struct stat pidfilestat;
+		if (stat(context->arguments->pidfile_name, &pidfilestat) == 0) unlink(context->arguments->pidfile_name);
+	}
 
+	ncot_context_free(&context);
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "done\n");
 	ncot_done();
 

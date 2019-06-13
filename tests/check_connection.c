@@ -125,7 +125,7 @@ START_TEST (test_connection_daemon)
 	context = ncot_context_new();
 	ncot_context_init(context);
 
-	i = system("../src/ncotd -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log");
+	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log");
 	ck_assert(i == 0);
 	/*sleep(1);*/
 

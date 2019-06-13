@@ -17,8 +17,8 @@ bin_PROGRAMS = ncot ncotd cmdi
 ncot_SOURCES = ncot.c
 ncot_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@
 
-#ncotd_SOURCES = ncotd.c
-#ncotd_LDADD = libncot.la @GNUTLS_LIBS@ @EXTRA_LD_ADD@
+ncotd_SOURCES = ncotd.c
+ncotd_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@
 
 cmdi_SOURCES = interpretersample.c
 cmdi_LDADD = -lm
