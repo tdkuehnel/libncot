@@ -12,13 +12,10 @@ include_HEADERS = ncot.h
 libncot_la_CFLAGS = @GNUTLS_CFLAGS@ @POPT_CFLAGS@
 libncot_la_LIBADD = @GNUTLS_LIBS@ @POPT_LIBS@
 
-bin_PROGRAMS = ncot ncotd cmdi
+bin_PROGRAMS = ncot cmdi
 
 ncot_SOURCES = ncot.c
 ncot_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@
-
-ncotd_SOURCES = ncotd.c
-ncotd_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@
 
 cmdi_SOURCES = interpretersample.c
 cmdi_LDADD = -lm
