@@ -1,4 +1,6 @@
 #define DEBUG 0
+
+#include <unistd.h>
 #include "debug.h"
 #include "context.h"
 #include "utlist.h"
@@ -86,6 +88,7 @@ ncot_context_free(struct ncot_context **pcontext) {
 			NCOT_DEBUG("ncot_context_free: 4 freeing context at 0x%x\n", context);
 			if (context->arguments) free(context->arguments);
 			NCOT_DEBUG("ncot_context_free: 5 freeing context at 0x%x\n", context);
+			if (context->shell) ncot_shell_free(&context->shell);
 			free(context);
 			*pcontext = NULL;
 		} else

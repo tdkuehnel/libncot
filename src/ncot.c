@@ -18,6 +18,7 @@
 #include "init.h"
 #include "select.h"
 #include "context.h"
+#include "shell.h"
 #define DEBUG 1
 #include "debug.h"
 #include "log.h"
@@ -150,9 +151,16 @@ main(int argc, char **argv)
 				atoi(context->arguments->port));
 #endif
 	NCOT_LOG_INFO("%s our PID is %ld\n", PACKAGE_STRING, (long) getpid());
-	/* initialize main loop */
-	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "entering main loop, CTRL-C to bail out\n");
-
+	if (context->arguments->interactive) {
+		/* Dangerous: we rely on context->shell. Solved, we
+		 * initialize on this first use if appropriate. */
+		context->shell = ncot_shell_new();
+		ncot_shell_init(context->shell);
+		ncot_shell_print_prompt(context->shell);
+	} else {
+		/* initialize main loop */
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, "entering main loop, CTRL-C to bail out\n");
+	}
 	int loop_counter = 0;
 	do {
 		FD_ZERO(&rfds);
@@ -170,8 +178,11 @@ main(int argc, char **argv)
 #endif
 
 		if (r > 0) {
-			NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
-			NCOT_DEBUG("input/ouput ready\n");
+			if (context->arguments->interactive) {
+			} else {
+				NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
+				NCOT_DEBUG("input/ouput ready\n");
+			}
 			ncot_process_fd(context, r, &rfds, &wfds);
 		} else {
 #ifdef _WIN32
@@ -244,6 +255,10 @@ main(int argc, char **argv)
 	if (context->arguments->daemonize) {
 		struct stat pidfilestat;
 		if (stat(context->arguments->pidfile_name, &pidfilestat) == 0) unlink(context->arguments->pidfile_name);
+	}
+
+	if (context->arguments->interactive) {
+		NCOT_LOG(NCOT_LOG_LEVEL_INFO, context->shell->buffer);
 	}
 
 	ncot_context_free(&context);

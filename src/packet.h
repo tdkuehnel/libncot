@@ -8,10 +8,14 @@
 struct ncot_packet;
 struct ncot_packet_data;
 
+/* struct ncot_packet is used to actually transfer the bytes. It is
+ * passed to the i/o functions to do their jobs
+ */
 struct ncot_packet {
-	struct ncot_packet_data *data;
-	int length;
-	int index;
+	struct ncot_packet_data *data; /* the payload */
+	int length; /* length of payload */
+	int index;  /* index used into the payload used during i/o
+		     * transfer operations */
 	struct ncot_packet *next;
 };
 
@@ -28,6 +32,9 @@ enum ncot_packet_type {
 	NCOT_PACKET_QUIT
 };
 
+/* struct ncot_packet_data is the payload, the actually transferred
+ * bytes which may contain different representations of information
+ */
 struct ncot_packet_data {
 	char magic[4];
 	char version[8];

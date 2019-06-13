@@ -89,6 +89,12 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 		}
 		connection = connection->next;
 	}
+	/* look at shells fd */
+	if (context->shell) {
+		if (FD_ISSET(context->shell->readfd, rfds)) {
+			ncot_shell_read_input(context->shell);
+		}
+	}
 }
 
 int
@@ -125,6 +131,12 @@ ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 		FD_SET(connection->sd, wfds);
 		if (connection->sd > maxfd) maxfd = connection->sd;
 		connection = connection->next;
+	}
+	/* In interactive mode we include stdin */
+	if (context->arguments->interactive) {
+		FD_SET(STDIN_FILENO, rfds);
+		if (STDIN_FILENO > maxfd)
+			maxfd = STDIN_FILENO;
 	}
 	return maxfd;
 }

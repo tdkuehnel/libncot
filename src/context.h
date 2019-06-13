@@ -15,6 +15,8 @@ struct ncot_context;
 #include "log.h"
 #include "arg.h"
 #include "connection.h"
+#include "packet.h"
+#include "shell.h"
 
 struct ncot_context {
 
@@ -22,6 +24,9 @@ struct ncot_context {
 	struct ncot_arguments *arguments;
 
 	/* global main stuff */
+
+	/* Our shell struct */
+	struct ncot_shell *shell;
 
 	/* We maintain a list of our nodes which may take part in
 	 * the circle of trusts */
