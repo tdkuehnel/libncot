@@ -133,7 +133,10 @@ main(int argc, char **argv)
 #endif
 	context = ncot_context_new();
 	ncot_context_init(context);
-	RETURN_IF_FAIL(ncot_arg_parse(context->arguments, argc, argv));
+	if (ncot_arg_parse(context->arguments, argc, argv)) {
+		ncot_context_free(&context);
+		return 1;
+	}
 	ncot_init();
 	ncot_log_set_logfile(context->arguments->logfile_name);
 #ifdef _WIN32

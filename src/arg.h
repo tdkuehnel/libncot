@@ -13,6 +13,7 @@ struct ncot_arguments
 	char *address_ip4;
 	int log_level;
 	int daemonize;
+	int interactive;
 };
 
 int
