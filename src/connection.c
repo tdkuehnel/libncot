@@ -425,7 +425,7 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 			close(connection->sd);
 		}
 		freeaddrinfo(results);
-		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)\n")
+		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)")
 		NCOT_DEBUG("ncot_connection_connect: connect successful (after getaddrinfo iteration) %i\n", err);
 		connection->status = NCOT_CONN_CONNECTED;
 		ncot_context_enqueue_connection_connected(context, connection);
