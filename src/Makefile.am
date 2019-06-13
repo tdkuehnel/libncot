@@ -16,7 +16,7 @@ ncot_LDADD = libncot.la @GNUTLS_LIBS@ @EXTRA_LD_ADD@
 ncotd_SOURCES = ncotd.c
 ncotd_LDADD = libncot.la @GNUTLS_LIBS@ @EXTRA_LD_ADD@
 
-cmdi_SOURCES = interpreter.c
+cmdi_SOURCES = interpretersample.c
 cmdi_LDADD = -lm
 ##simple_SOURCES = simple.c simple.h
 ##cpw_LDADD = @AVUTIL_LIBS@
