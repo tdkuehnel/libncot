@@ -59,23 +59,7 @@ ncot_socket_pair(int *fd1, int *fd2)
     closesocket(lst);
     return 0;
 }
-
-int
-ncot_init_selfpipe()
-{
-	/* Set up self pipe trick under _WIN32 */
-	PHANDLE handle1;
-	PHANDLE handle2;
-	int res;
-	res = CreatePipe(handle1, handle2, NULL, 0);
-	if (res) {
-		NCOT_LOG_ERROR("ncot_init: can't create self pipe handle\n");
-		return -1;
-	}
-	return 0;
 #endif
-
-}
 
 void
 ncot_init()

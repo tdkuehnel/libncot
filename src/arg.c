@@ -24,14 +24,14 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	/* FIXME: buffer length ?? */
 	char buf[2048];
 	struct poptOption optionsTable[] = {
-		{ "verbose",    'v', POPT_ARG_NONE,   0,                       0,  "Produce verbose output", NULL },
-		{ "quiet",      'q', POPT_ARG_NONE,   0,                       0,  "Don't produce any output", NULL },
-		{ "daemonize",  'd', POPT_ARG_NONE,   0,                       0,  "Daemonize to background", NULL },
-		{ "address",    'a', POPT_ARG_STRING, arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
-		{ "port",       'c', POPT_ARG_STRING, arguments->port,         0,  "Port to listen on for control connection", NULL},
-		{ "configfile", 'f', POPT_ARG_STRING, arguments->config_file,  0,  "Use configfile instead of ...", NULL},
-		{ "logfile",    'g', POPT_ARG_STRING, arguments->logfile_name, 0,  "Use logfile FILE instead of logging to stdout", NULL},
-		{ "pidfile",    'p', POPT_ARG_STRING, arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
+		{ "verbose",    'v', POPT_ARG_NONE,   0,                        0,  "Produce verbose output", NULL },
+		{ "quiet",      'q', POPT_ARG_NONE,   0,                        0,  "Don't produce any output", NULL },
+		{ "daemonize",  'd', POPT_ARG_NONE,   &arguments->daemonize,    0,  "Daemonize to background", NULL },
+		{ "address",    'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
+		{ "port",       'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
+		{ "configfile", 'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ...", NULL},
+		{ "logfile",    'g', POPT_ARG_STRING, &arguments->logfile_name, 0,  "Use logfile STRING instead of logging to stdout", NULL},
+		{ "pidfile",    'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
 		{ "loglevel",   'l', POPT_ARG_INT,    &arguments->log_level,    0,  "Set log level (0 .. 8), default 1", NULL},
 		POPT_AUTOHELP
 		{ NULL, 0, 0, NULL, 0 }
@@ -97,11 +97,12 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	poptFreeContext(optCon);
 
 	NCOT_DEBUG ("OUTPUT_FILE = %s\n"
-		"VERBOSE = %s\nSILENT = %s\nLOG_LEVEL = %d\n\n",
+		"VERBOSE = %s\nSILENT = %s\nLOG_LEVEL = %d LOG_FILE = %s\n\n",
 		arguments->config_file,
 		arguments->verbose ? "yes" : "no",
 		arguments->silent ? "yes" : "no",
-		arguments->log_level);
+		arguments->log_level,
+		arguments->logfile_name);
 
 	return 0;
 }
