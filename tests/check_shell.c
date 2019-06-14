@@ -31,40 +31,43 @@ void teardown()
 
 START_TEST (test_shell)
 {
-	struct ncot_shell *shell;
+	struct ncot_context *context;
 	int pipefd[2];
 	int res;
+	ncot_init();
+	context = ncot_context_new();
 	res = pipe(pipefd);
 	ck_assert(res == 0);
-	shell = ncot_shell_new();
-	ncot_shell_init(shell);
-	ck_assert(shell != NULL);
-	shell->readfd = pipefd[0];
+	context->shell = ncot_shell_new();
+	ncot_shell_init(context->shell);
+	ck_assert(context->shell != NULL);
+	context->shell->readfd = pipefd[0];
 	/*shell->writefd = pipefd[1];*/
 
 	res = write(pipefd[1], WRITESTRING, strlen(WRITESTRING));
 	ck_assert(res == strlen(WRITESTRING));
-	res = ncot_shell_read_input(shell);
-	ck_assert(res == strlen(WRITESTRING));
-	ck_assert(shell->pbuffer == shell->buffer + 4);
+	res = ncot_shell_read_input(context);
+	ck_assert(res == 0);
+	ck_assert(context->shell->pbuffer == context->shell->buffer + 4);
 
 	res = write(pipefd[1], WRITESTRING, strlen(WRITESTRING));
 	ck_assert(res == strlen(WRITESTRING));
-	res = ncot_shell_read_input(shell);
-	ck_assert(res == strlen(WRITESTRING));
-	ck_assert(shell->pbuffer == shell->buffer + 8);
+	res = ncot_shell_read_input(context);
+	ck_assert(res == 0);
+	ck_assert(context->shell->pbuffer == context->shell->buffer + 8);
 
 	res = write(pipefd[1], LF, strlen(LF));
 	ck_assert(res == strlen(LF));
-	res = ncot_shell_read_input(shell);
-	ck_assert(res == strlen(LF));
-	ck_assert(shell->pbuffer == shell->buffer);
+	res = ncot_shell_read_input(context);
+	ck_assert(res == 0);
+	ck_assert(context->shell->pbuffer == context->shell->buffer);
 
-
-	ncot_shell_free(&shell);
-	ck_assert(shell == NULL);
+	/*ncot_shell_free(&shell);
+	  ck_assert(shell == NULL);*/
 	close(pipefd[0]);
 	close(pipefd[1]);
+	ncot_context_free(&context);
+	ncot_done();
 }
 END_TEST
 
