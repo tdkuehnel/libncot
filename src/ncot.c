@@ -183,7 +183,7 @@ main(int argc, char **argv)
 				NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
 				NCOT_DEBUG("input/ouput ready\n");
 			}
-			ncot_process_fd(context, r, &rfds, &wfds);
+			if (ncot_process_fd(context, r, &rfds, &wfds) != 0) break;
 		} else {
 #ifdef _WIN32
 			if (r != SOCKET_ERROR)

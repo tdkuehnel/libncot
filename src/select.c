@@ -13,13 +13,14 @@
 
 /* Our main pselect loop has encountered some ready sds. Lets see how
  * we can handle that */
-void
+int
 ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 {
+	int res = 0;
  	/* Check if something is really happening */
 	if (r <= 0) {
 		NCOT_LOG_WARNING("ncot_process_fd: no ready fd indicated\n");
-		return;
+		return res;
 	}
 	/* Doing it with the contexts lists. */
 	struct ncot_connection *connection;
@@ -92,9 +93,12 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	/* look at shells fd */
 	if (context->shell) {
 		if (FD_ISSET(context->shell->readfd, rfds)) {
-			ncot_shell_read_input(context->shell);
+			res = ncot_shell_read_input(context->shell);
+			if (!res)
+				ncot_shell_print_prompt(context->shell);
 		}
 	}
+	return res;
 }
 
 int

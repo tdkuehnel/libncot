@@ -44,11 +44,22 @@ ncot_shell_handle_connection(struct ncot_shell *shell, char *command, char *base
 {
 }
 
+void
+ncot_shell_print_help(struct ncot_shell *shell, char *command, char *base)
+{
+	dprintf(shell->writefd, "Commands: identity\n");
+	dprintf(shell->writefd, "          node\n");
+	dprintf(shell->writefd, "          connection\n");
+	dprintf(shell->writefd, "          quit\n");
+	dprintf(shell->writefd, "          help\n");
+}
+
 int
 ncot_shell_handle_command(struct ncot_shell *shell, char *command)
 {
 	char *token;
 	int valid = 0;
+	int ret = 0;
 	token = strtok(command, " ");
 	/*dprintf(shell->writefd, "token: %s\n", token);*/
 	if (token) {
@@ -64,9 +75,18 @@ ncot_shell_handle_command(struct ncot_shell *shell, char *command)
 			ncot_shell_handle_connection(shell, command, token);
 			valid = 1;
 		}
+		if (!strcmp(token, "help")) {
+			ncot_shell_print_help(shell, command, token);
+			valid = 1;
+		}
+		if (!strcmp(token, "quit")) {
+			valid = 1;
+			ret = 1;
+		}
 		if (!valid)
 			dprintf(shell->writefd, "unknown command %s\n", command);
 	}
+	return ret;
 }
 
 int
@@ -77,6 +97,7 @@ ncot_shell_handle_buffer(struct ncot_shell *shell)
 	char *p0;
 	char *command;
 	int datarestlen;
+	int res;
 	command = malloc(NCOT_MAX_COMMAND_LEN);
 	/* Find the first lf */
 	p = strchr(shell->buffer, '\n');
@@ -99,8 +120,7 @@ ncot_shell_handle_buffer(struct ncot_shell *shell)
 	memmove(shell->buffer, p + 1, datarestlen);
 	shell->pbuffer = shell->buffer + datarestlen;
 	*shell->pbuffer = '\0';
-
-	ncot_shell_handle_command(shell, command);
+	res = ncot_shell_handle_command(shell, command);
 /*	dprintf(shell->writefd, "      p: 0x%0x\n", p);
 	dprintf(shell->writefd, "     p0: 0x%0x\n", p0);
 	dprintf(shell->writefd, " buffer: 0x%0x\n", shell->buffer);
@@ -111,7 +131,7 @@ ncot_shell_handle_buffer(struct ncot_shell *shell)
 	ncot_log_hex("buffer", shell->buffer, strlen(shell->buffer));
 	ncot_log_hex("command", command, strlen(command));*/
 	free(command);
-	return 0;
+	return res;
 }
 
 int
@@ -124,9 +144,7 @@ ncot_shell_read_input(struct ncot_shell *shell)
 		res = recv(shell->readfd, shell->pbuffer, NCOT_SHELL_BUFLEN - (shell->pbuffer - shell->buffer), MSG_DONTWAIT);
 	if (res > 0) {
 		shell->pbuffer += res;
-		ncot_shell_handle_buffer(shell);
-		ncot_shell_print_prompt(shell);
-
+		res = ncot_shell_handle_buffer(shell);
 		return res;
 	}
 	if (res == 0)
@@ -139,40 +157,6 @@ void
 ncot_shell_print_prompt(struct ncot_shell *shell)
 {
 	dprintf(shell->writefd, "%s", shell->prompt);
-}
-
-#define NCOT_READLINE_BUFSIZE 1024
-
-char *ncot_read_line(void)
-{
-	int bufsize = NCOT_READLINE_BUFSIZE;
-	int position = 0;
-	char *buffer;
-	int c;
-
-	buffer = malloc(sizeof(char) * bufsize);
-	RETURN_NULL_IF_NULL(buffer, "ncot_read_line: out of mem\n");
-
-	while (1) {
-		// Read a character
-		c = getchar();
-
-		// If we hit EOF, replace it with a null character and return.
-		if (c == EOF || c == '\n') {
-			buffer[position] = '\0';
-			return buffer;
-		} else {
-			buffer[position] = c;
-		}
-		position++;
-
-		// If we have exceeded the buffer, reallocate.
-		if (position >= bufsize) {
-			bufsize += NCOT_READLINE_BUFSIZE;
-			buffer = realloc(buffer, bufsize);
-			RETURN_NULL_IF_NULL(buffer, "ncot_read_line: out of mem\n");
-		}
-	}
 }
 
 struct ncot_shell*
