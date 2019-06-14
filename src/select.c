@@ -93,7 +93,7 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	/* look at shells fd */
 	if (context->shell) {
 		if (FD_ISSET(context->shell->readfd, rfds)) {
-			res = ncot_shell_read_input(context->shell);
+			res = ncot_shell_read_input(context);
 			if (!res)
 				ncot_shell_print_prompt(context->shell);
 		}

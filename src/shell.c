@@ -6,20 +6,34 @@
 #include <sys/socket.h>
 
 #include "shell.h"
+#include "context.h"
 #include "error.h"
 
 #define NCOT_MAX_COMMAND_LEN 1024
 
 void
-ncot_shell_handle_identity(struct ncot_shell *shell, char *command, char *base)
+ncot_shell_handle_identity(struct ncot_context *context, char *command, char *base)
 {
+	struct ncot_shell *shell;
+	shell = context->shell;
+}
+
+void ncot_shell_node_list(struct ncot_context *context)
+{
+	struct ncot_node *node;
+	node = context->globalnodelist;
+	if (!node)
+		dprintf(context->shell->writefd, "no nodes in global nodelist\n");
+
 }
 
 void
-ncot_shell_handle_node(struct ncot_shell *shell, char *command, char *base)
+ncot_shell_handle_node(struct ncot_context *context, char *command, char *base)
 {
+	struct ncot_shell *shell;
 	char *token;
 	int valid = 0;
+	shell = context->shell;
 	token = strtok(NULL, " ");
 	if (token) {
 		if (!strcmp(token, "create")) {
@@ -27,8 +41,8 @@ ncot_shell_handle_node(struct ncot_shell *shell, char *command, char *base)
 			valid = 1;
 		}
 		if (!strcmp(token, "list")) {
-			dprintf(shell->writefd, "list node\n");
 			valid = 1;
+			ncot_shell_node_list(context);
 		}
 		if (!strcmp(token, "delete")) {
 			dprintf(shell->writefd, "delete node\n");
@@ -36,17 +50,24 @@ ncot_shell_handle_node(struct ncot_shell *shell, char *command, char *base)
 		}
 		if (!valid)
 			dprintf(shell->writefd, "unknown subcommand %s to command %s\n", token, base);
+	} else {
+		/* Default is listing the nodes */
+		ncot_shell_node_list(context);
 	}
 }
 
 void
-ncot_shell_handle_connection(struct ncot_shell *shell, char *command, char *base)
+ncot_shell_handle_connection(struct ncot_context *context, char *command, char *base)
 {
+	struct ncot_shell *shell;
+	shell = context->shell;
 }
 
 void
-ncot_shell_print_help(struct ncot_shell *shell, char *command, char *base)
+ncot_shell_print_help(struct ncot_context *context, char *command, char *base)
 {
+	struct ncot_shell *shell;
+	shell = context->shell;
 	dprintf(shell->writefd, "Commands: identity\n");
 	dprintf(shell->writefd, "          node\n");
 	dprintf(shell->writefd, "          connection\n");
@@ -55,28 +76,30 @@ ncot_shell_print_help(struct ncot_shell *shell, char *command, char *base)
 }
 
 int
-ncot_shell_handle_command(struct ncot_shell *shell, char *command)
+ncot_shell_handle_command(struct ncot_context *context, char *command)
 {
+	struct ncot_shell *shell;
 	char *token;
 	int valid = 0;
 	int ret = 0;
+	shell = context->shell;
 	token = strtok(command, " ");
 	/*dprintf(shell->writefd, "token: %s\n", token);*/
 	if (token) {
 		if (!strcmp(token, "identity")) {
-			ncot_shell_handle_identity(shell, command, token);
+			ncot_shell_handle_identity(context, command, token);
 			valid = 1;
 		}
 		if (!strcmp(token, "node")) {
-			ncot_shell_handle_node(shell, command, token);
+			ncot_shell_handle_node(context, command, token);
 			valid = 1;
 		}
 		if (!strcmp(token, "connection")) {
-			ncot_shell_handle_connection(shell, command, token);
+			ncot_shell_handle_connection(context, command, token);
 			valid = 1;
 		}
 		if (!strcmp(token, "help")) {
-			ncot_shell_print_help(shell, command, token);
+			ncot_shell_print_help(context, command, token);
 			valid = 1;
 		}
 		if (!strcmp(token, "quit")) {
@@ -90,14 +113,15 @@ ncot_shell_handle_command(struct ncot_shell *shell, char *command)
 }
 
 int
-ncot_shell_handle_buffer(struct ncot_shell *shell)
+ncot_shell_handle_buffer(struct ncot_context *context)
 {
-	/* TODO: handle the action */
+	struct ncot_shell *shell;
 	char *p;
 	char *p0;
 	char *command;
 	int datarestlen;
 	int res;
+	shell = context->shell;
 	command = malloc(NCOT_MAX_COMMAND_LEN);
 	/* Find the first lf */
 	p = strchr(shell->buffer, '\n');
@@ -120,7 +144,7 @@ ncot_shell_handle_buffer(struct ncot_shell *shell)
 	memmove(shell->buffer, p + 1, datarestlen);
 	shell->pbuffer = shell->buffer + datarestlen;
 	*shell->pbuffer = '\0';
-	res = ncot_shell_handle_command(shell, command);
+	res = ncot_shell_handle_command(context, command);
 /*	dprintf(shell->writefd, "      p: 0x%0x\n", p);
 	dprintf(shell->writefd, "     p0: 0x%0x\n", p0);
 	dprintf(shell->writefd, " buffer: 0x%0x\n", shell->buffer);
@@ -135,16 +159,18 @@ ncot_shell_handle_buffer(struct ncot_shell *shell)
 }
 
 int
-ncot_shell_read_input(struct ncot_shell *shell)
+ncot_shell_read_input(struct ncot_context *context)
 {
+	struct ncot_shell *shell;
 	int res;
+	shell = context->shell;
 	if (shell->type == NCOT_SHELL_TYPE_TTY)
 		res = read(shell->readfd, shell->pbuffer, NCOT_SHELL_BUFLEN - (shell->pbuffer - shell->buffer));
 	if (shell->type == NCOT_SHELL_TYPE_REMOTE)
 		res = recv(shell->readfd, shell->pbuffer, NCOT_SHELL_BUFLEN - (shell->pbuffer - shell->buffer), MSG_DONTWAIT);
 	if (res > 0) {
 		shell->pbuffer += res;
-		res = ncot_shell_handle_buffer(shell);
+		res = ncot_shell_handle_buffer(context);
 		return res;
 	}
 	if (res == 0)
