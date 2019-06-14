@@ -76,23 +76,40 @@ ncot_shell_handle_buffer(struct ncot_shell *shell)
 	char *p;
 	char *p0;
 	char *command;
+	int datarestlen;
 	command = malloc(NCOT_MAX_COMMAND_LEN);
 	/* Find the first lf */
 	p = strchr(shell->buffer, '\n');
-	if (p != NULL) {
-		memcpy(command, shell->buffer, p - shell->buffer);
-		command[p - shell->buffer] = '\0';
-		p0 = strchr(shell->buffer, '\0');
-		memmove(shell->buffer, p, (p0 - 1) - p);
-		shell->pbuffer = shell->buffer + ((p0 - 1) - p);
-		ncot_shell_handle_command(shell, command);
-		dprintf(shell->writefd, "%s\n", command);
+	/* Find the end of data in buffer */
+	p0 = strchr(shell->buffer, '\0');
+	if (p == NULL) {
+		NCOT_LOG_INFO("ncot_shell_handle_buffer: partial buffer read\n");
+		free(command);
+		return 0;
 	}
+	/* We have found one. Copy string up to lf into command */
+	memcpy(command, shell->buffer, p - shell->buffer);
+	/* Terminate with null byte */
+	command[p - shell->buffer] = '\0';
+	/* Clear gap with zeroes */
+	bzero(shell->buffer, p - shell->buffer + 1);
+	/* FIXME: protect against buffer overrun */
+	/* Move rest of buffer to beginning of buffer */
+	datarestlen = p0 - p - 1;
+	memmove(shell->buffer, p + 1, datarestlen);
+	shell->pbuffer = shell->buffer + datarestlen;
+	*shell->pbuffer = '\0';
+
+	ncot_shell_handle_command(shell, command);
+/*	dprintf(shell->writefd, "      p: 0x%0x\n", p);
+	dprintf(shell->writefd, "     p0: 0x%0x\n", p0);
+	dprintf(shell->writefd, " buffer: 0x%0x\n", shell->buffer);
+	dprintf(shell->writefd, "command: %s\n", command);
 	dprintf(shell->writefd, " buffer: 0x%0x\n", shell->buffer);
 	dprintf(shell->writefd, "pbuffer: 0x%0x\n", shell->pbuffer);
-	/*ncot_log_hex("shell->buffer", shell->buffer, p0 - shell->buffer);*/
+	ncot_log_hex("shell->buffer", shell->buffer, p0 - shell->buffer);
 	ncot_log_hex("buffer", shell->buffer, strlen(shell->buffer));
-	ncot_log_hex("command", command, strlen(command));
+	ncot_log_hex("command", command, strlen(command));*/
 	free(command);
 	return 0;
 }
