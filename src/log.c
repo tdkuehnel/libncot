@@ -173,10 +173,12 @@ ncot_log_printf( int level, const char *fmt, ... )
 void
 ncot_log_printf_buffered( int level, const char *fmt, ... )
 {
-	va_list vl;
-	va_start(vl, fmt);
-	ncot_log_printf(level, fmt, vl);
-	va_end(vl);
+	if ( level <= ncot_log_level ) {
+		va_list vl;
+		va_start(vl, fmt);
+		vprintf(fmt, vl);
+		va_end(vl);
+	}
 }
 
 void

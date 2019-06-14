@@ -26,17 +26,45 @@ void teardown()
 {
 }
 
+#define WRITESTRING "NCOT"
+#define LF "\n"
+
 START_TEST (test_shell)
 {
-
 	struct ncot_shell *shell;
-
-	ncot_init();
+	int pipefd[2];
+	int res;
+	res = pipe(pipefd);
+	ck_assert(res == 0);
 	shell = ncot_shell_new();
 	ncot_shell_init(shell);
 	ck_assert(shell != NULL);
+	shell->readfd = pipefd[0];
+	/*shell->writefd = pipefd[1];*/
+
+	res = write(pipefd[1], WRITESTRING, strlen(WRITESTRING));
+	ck_assert(res == strlen(WRITESTRING));
+	res = ncot_shell_read_input(shell);
+	ck_assert(res == strlen(WRITESTRING));
+	ck_assert(shell->pbuffer == shell->buffer + 4);
+
+	res = write(pipefd[1], WRITESTRING, strlen(WRITESTRING));
+	ck_assert(res == strlen(WRITESTRING));
+	res = ncot_shell_read_input(shell);
+	ck_assert(res == strlen(WRITESTRING));
+	ck_assert(shell->pbuffer == shell->buffer + 8);
+
+	res = write(pipefd[1], LF, strlen(LF));
+	ck_assert(res == strlen(LF));
+	res = ncot_shell_read_input(shell);
+	ck_assert(res == strlen(LF));
+	ck_assert(shell->pbuffer == shell->buffer);
+
+
 	ncot_shell_free(&shell);
 	ck_assert(shell == NULL);
+	close(pipefd[0]);
+	close(pipefd[1]);
 }
 END_TEST
 
@@ -45,7 +73,7 @@ Suite * helper_suite(void)
 	Suite *s;
 	TCase *tc_core;
 
-	s = suite_create("Node");
+	s = suite_create("Shell");
 
 	/* Core test case */
 	tc_core = tcase_create("Core");

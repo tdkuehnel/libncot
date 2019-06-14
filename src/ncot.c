@@ -258,7 +258,8 @@ main(int argc, char **argv)
 	}
 
 	if (context->arguments->interactive) {
-		NCOT_LOG(NCOT_LOG_LEVEL_INFO, context->shell->buffer);
+		char *s = "shell->buffer";
+		ncot_log_hex(s, &context->shell->buffer, (int)(context->shell->pbuffer - context->shell->buffer));
 	}
 
 	ncot_context_free(&context);
