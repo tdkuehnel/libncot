@@ -24,6 +24,10 @@ LT_INIT([win32-dll])
 
 AC_CANONICAL_HOST
 echo "$host_os"
+if test "$host_os" != mingw32.static || test "$host_os" != mingw32.shared
+then
+PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
+fi
 
 AC_LIBTOOL_WIN32_DLL
 # Checks for libraries.
