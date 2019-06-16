@@ -59,3 +59,4 @@ check_packet
 src/ncot.exe
 src/cmdi
 *.exe
+tests/check_shell

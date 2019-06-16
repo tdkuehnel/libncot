@@ -21,7 +21,7 @@ char *stringptr = (char*)string;
 int ret;
 #define DPRINTF(fd, fmt, ...) {ret = sprintf(stringptr, fmt, ## __VA_ARGS__);if (ret > 0) write(fd, &string, ret);}
 #else
-#define DPRINTF(fd, fmt, ...) {dprintf(fmt, ## __VA_ARGS__);}
+#define DPRINTF(fd, fmt, ...) {dprintf(fd, fmt, ## __VA_ARGS__);}
 #endif
 
 #define NCOT_MAX_COMMAND_LEN 1024
