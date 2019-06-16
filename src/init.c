@@ -112,6 +112,7 @@ print_logs(int level, const char* msg)
  	NCOT_LOG_INFO("GnuTLS [%d]: %s", level, msg);
 }
 
+#ifndef _WIN32
 int
 ncot_daemonize(struct ncot_context *context)
 {
@@ -194,3 +195,4 @@ ncot_daemonize(struct ncot_context *context)
 	NCOT_LOG_INFO("%s child daemonized\n", PACKAGE_STRING);
 
 }
+#endif
