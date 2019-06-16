@@ -35,17 +35,13 @@ AC_CHECK_HEADERS([errno.h fcntl.h stdio.h stdlib.h unistd.h sys/uio.h])
 AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/ioctl.h sys/time.h])
 AC_CHECK_HEADERS([arpa/inet.h netinet/in.h])
 
-NEED_OSSP_UUID
-
 AC_CANONICAL_HOST
 case "$host" in
 	*mingw* | *cygwin*)
 		LT_LDFLAGS="-no-undefined"
-		NEED_OSSP_UUID=no
 		;;
 	*)
 		LT_LDFLAGS=""
-		NEED_OSSP_UUID=yes
 		;;
 esac
 
@@ -68,9 +64,8 @@ AC_LIBTOOL_WIN32_DLL
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.8])
 PKG_CHECK_MODULES([POPT], [popt >= 1.16])
 #PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 3.2])
-AS_IF([test "x$NEED_OSSP_UUID" = "xyes"], [
-   PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
-])
+#PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
+PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
 #PKG_CHECK_MODULES([LIBRESSL], [libtls >= 18.1.0])
 PKG_CHECK_MODULES([GNUTLS], [gnutls >= 0.29.2 ])
 # PKG_CHECK_MODULES([AVUTIL], [libavutil >= 54])
