@@ -2,6 +2,7 @@
 #define NCOT_NODE
 
 #include <uuid.h>
+#include <json-c/json.h>
 
 #include "connection.h"
 
@@ -117,6 +118,7 @@ struct ncot_node {
 	struct ncot_connection *connections;
 	struct uuid_st *uuid;
 	struct ncot_node *next;
+	struct json_object *json;
 };
 
 struct ncot_node *ncot_node_new();
@@ -125,3 +127,4 @@ void ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection 
 void ncot_node_init(struct ncot_node *node);
 
 #endif
+

@@ -9,8 +9,8 @@
 #include <netinet/in.h>
 #endif
 
-
 #include <gnutls/gnutls.h>
+#include <json-c/json.h>
 
 #include "context.h"
 #include "packet.h"
@@ -126,6 +126,7 @@ struct ncot_connection {
 	enum ncot_connection_status status;
 	int optval;
 	int authenticated;
+	struct json_object *json;
 };
 
 struct ncot_connection *ncot_connection_new();

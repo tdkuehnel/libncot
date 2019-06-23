@@ -1,0 +1,164 @@
+Following are some initial thoughts on ring like trust relationships
+over secure internet data paths established without a third party
+certificate authority involved.
+
+Social aspects of network traffic.
+
+Let's say you want communicate with your peer over the internet. And
+let's say, you want to use a secure connection, a secure channel to do
+so.  The usual practices used today to establish such a secure channel
+are either involving a third party (a CA, a certificate authority), or
+using OOB (out of band) practices to (pre)share a secret token to
+ensure there sits no MITM (man in the middle) during secure connection
+protocol negotiation. Think of DH (Diffie Hellman key exchange) for
+example.
+
+The benefits and the backside of CA infrastructure based solutions are
+already discussed in length. In the last time OOB practices are used
+to add additional security to CA based solutions. Checking a digital
+signature or hash value of a downloaded install package is an OOB
+operation. The ssh shell presenting unknows fingerprints to the user
+asking for proof, and then to be added to the known hosts file is
+another one.
+
+We want to give the open brain a chance to think about another use
+case. A new way of thinking about network traffic in general. A new
+way in thinking about what the Internet provides to us, how we usually
+see it and how we make use of it. Or better the way we usually do not.
+
+
+Speaking in simple technical terms, the internet is nothing more than
+a huge bunch of loosely interconnected hosts, or nodes. From the view
+point of a data packet travelling around, there are only differences
+in the capacity of the bandwith involved on the interconnections, or
+the computing power and software running on the nodes. May that be
+backbone switches, routers, servers, fibre cable, coper wire, what
+ever.
+
+Some important base principles of the internet are:
+
+- from the address point of view, every host can reach every other
+host, often with redundant data paths involved.
+- net neutrality. Every data packet has the same right to be transported.
+- every host can act as a server, or a client, or both.
+
+Let's take a usual use case of using the internet as an endpoint
+user. You have your software app on your smartphone, and you send a
+message to a friend over one of the well known message transporting
+provider company networks. Those provider company networks provide
+your smartphone with a direct connection to the internet, usually over
+RF.
+
+Let's analyze from a data packet and address point of view the message
+sending process. Your message is intented to be received at the
+internet connected device of you peer.
+
+In the case the designated peer to receive the message is connected to
+the internet, too, there is always a more or less direct path to its
+internet device already. There is no need to store the message on a
+third party server in this case. In particular you would have gotten
+an destination host unreachable protocol error reply in that case. If
+not, the message reaches the recipient instantly and on a direct
+connection involved - would we at all make use of it.
+
+With your peers, your firends, your social contacts on the internet,
+there comes the social aspect. What if i say to my known friends, my
+known contact list, 'hey, i'm online again, send me your queued
+messages!', when i activate my device ? Do i need a server involved
+for that ? No. I only need the actual network addresses of my peers.
+
+Network addresses for end user devices, like dial up connection
+addresses, too, are usually dynamically allocated. With the IoT
+movement and IP6 address space dilatation, this may no longer be
+needed. But we have to take it as it is for now.
+
+So when i activate my device, i want to tell my firends my new,
+dynamically allocated address, so they can send me their messages,
+content, comments directly. But wait, what if their addresses
+changed, too ?
+
+It looks, at a first glance, there is no way around a centralized
+structure like the today widespread usual cleint/server network
+topology. We are used to have (and accept), that there is allways an
+authority ABOVE, a MASTER to help us, to connect us to our friends,
+tell us their changed addresses, provide us with legal notices about
+OUR content (how silly is that ? Just today i've got a message from
+youblood telling me THEY changed the terms of use, i.e. how the
+wording of MY license changed i gave to THEM, regarding MY content
+!!!), filter it and so on.
+
+The one who can imagine a solution to this problem, without reading
+further, is usually way ahead of what we have implemented today.
+
+Let's start again with our two peers. Both have their devices turned
+on and connected to the internet. There is a direct data path. Both
+download an open source based app from an app store. This app is able
+to connect directly to any other arbitrary internet address. In this
+case, the two users make a phone call (OOB), share a secret token with
+each other over the out of band telephone transport layer, which
+allows it to establish a fine cryptographically secure two way
+connection to each other. This connection can stay as long as both
+users have turned on their devices and there is no interruption due to
+new internet address negotiation or whatever.
+
+The social aspect of this secure internet connection is, that both
+peers trust each other. Both share the trust that the other peer is
+who the other peer claims to be, (usually CA signed certificate
+authenticity) end does no bad with the secure channel established
+(Usual trust in the other end. When i connect over https to my bank, i
+have trust in what they do with my data send over the secure
+channel). Why should i establish a secure connection when the other
+end is known to be untrustful already ?
+
+So did both peers not share any trust at all, they woulnd'nt have
+established a connection at all.
+
+As the connection is cryptographically secure, they can share private
+and sensible data without fear of beeing seen by unwanted third
+parties. Thats usually a good thing! Think of the last time you had
+really good words with a friend, having a private conversation. There
+was trust involved, too. Now you have a secure two point connection
+over the internet to do the same.
+
+Lets take a third person, a friend of one of the both already having a
+secure, trustworthy channel. This third person takes one of the
+starting two, and makes the same two way secure connection to one of
+the two already involved. We got a V shape secure connection
+structure, with three nodes. Two at the end, and one in the
+middle. When you visualize a man in the middle attack, this is exactly
+what we have now, but as we have cryprographically secure connections
+without any third party involved (remember, OOB pre shared secret
+token connection negotiation), we use the man in the middle scheme to
+our benefit. We turn something bad into something good, which is
+usually also a good thing !
+
+Let's say further, the both single connected nodes at the end of the V
+structure want to establish a direct, secure connection, too. Do they
+have to pre share a secure token OOB ? Think twice. The answer is
+yes. But there is a secure data path already available over the
+friendly man in the middle node! No phone call necessary !!
+
+We end up with a ring or circle shaped structure with two way
+connections all around. Everything what happens inside this simple
+ring of trust is based on trust. One person trust another one and
+accepts a secure pre shared token. A secure connection establishes. A
+third person gains trust two on of the two involved, and a two-way
+connection ring like structure forms - involving only direct data
+paths over the internet.
+
+So long, so simple. This simple approach can easily be extended. Think
+of a ring of 5, 10, 20 nodes, all directly connected in a ring like
+structure. This is how the nature arranges atoms in our molecules. How
+big can a ring expand until it breaks apart ? In how many rings can a
+user have nodes in to participate ? What when data travelles in one
+ring, and on every node gets shared to the other rings the user holding
+the node is connected to ?
+
+Here are some key aspects to think about further:
+
+A ring like structure (think of Token Ring network topology) has imminent positive properties:
+
+The integrity can be assured.
+A point of failure can easily be detected.
+When two points fail, two new rings can form.
+

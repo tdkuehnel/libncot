@@ -9,13 +9,13 @@ include_HEADERS = ncot.h
 
 #libncot_la_CFLAGS = @UUID_CFLAGS@
 #libncot_la_LIBADD = @UUID_LIBS@ @GNUTLS_LIBS@
-libncot_la_CFLAGS = @GNUTLS_CFLAGS@ @POPT_CFLAGS@ @UUID_CFLAGS@
-libncot_la_LIBADD = @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@
+libncot_la_CFLAGS = @GNUTLS_CFLAGS@ @POPT_CFLAGS@ @UUID_CFLAGS@ @JSONC_CFLAGS@
+libncot_la_LIBADD = @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@
 
 bin_PROGRAMS = ncot cmdi
 
 ncot_SOURCES = ncot.c
-ncot_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@
+ncot_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@
 
 cmdi_SOURCES = interpretersample.c
 cmdi_LDADD = -lm

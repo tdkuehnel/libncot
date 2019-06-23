@@ -4,10 +4,14 @@
 #include <string.h>
 #include <gnutls/gnutls.h>
 
+#include "ncot.h"
 #include "log.h"
+
+#define NCOT_ERROR_IF_NULL(val, fmt, ...) if(val==NULL) {NCOT_LOG_ERROR(fmt, ## __VA_ARGS__); return NCOT_ERROR;}
 
 #define SOCKET_ERR(err, s)  if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(1);}
 #define SOCKET_NERR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(-1);}
+#define FD_ERROR(err, s) if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(NULL);}
 
 #define SOCKET_ERR_BREAK(err, s)  if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));break;}
 

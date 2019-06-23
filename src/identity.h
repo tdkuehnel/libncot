@@ -2,6 +2,7 @@
 #define _NCOT_IDENTITY_H_
 
 #include <uuid.h>
+#include <json-c/json.h>
 
 /* Basic identitiy stuff. It is not clear if it is needed at
  * all. Maybe we can abstract the user away. :-) Needs rework as it
@@ -26,8 +27,12 @@
 
 struct ncot_identity;
 struct ncot_identity {
+	/* We need to distinguish identities */
 	uuid_t *uuid;
+	/* For the beginning an identity has two simple properties */
+	/* Name of the identity */
 	char name[256];
+	/* Avatar, may be ASCII art to display on tty */
 	char avatar[2048];
 	/* We make this listable as we may need to cope with the
 	 * public part of identities from peers */
@@ -35,6 +40,7 @@ struct ncot_identity {
 	/* Somehow represent the public/private credentials involved
 	 * of an identity */
 	/* struct ncot_identity_credentials credentials; */
+	struct json_object *json;
 };
 
 struct ncot_identity *ncot_identity_new();

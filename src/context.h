@@ -2,6 +2,8 @@
 #define NCOT_CONTEXT_H
 
 #include <stdio.h>
+#include <uuid.h>
+#include <json-c/json.h>
 
 struct ncot_context;
 
@@ -27,6 +29,9 @@ struct ncot_context {
 
 	/* Our shell struct */
 	struct ncot_shell *shell;
+
+	/* One identity per program instance only */
+	struct ncot_identity *identity;
 
 	/* We maintain a list of our nodes which may take part in
 	 * the circle of trusts */
@@ -54,9 +59,17 @@ struct ncot_context {
 	 * of something, they are connected and in the wfds set,
 	 * possibly in the rfds set, too. */
 	struct ncot_connection *connections_writing;
+
+	/* Our json object for (de)serialization */
+	struct json_object *json;
+
+	/* UUID of this context */
+	struct uuid_st *uuid;
+
 };
 
 struct ncot_context *ncot_context_new();
+struct ncot_context* ncot_context_new_from_file(const char* filename);
 void ncot_context_init(struct ncot_context *context);
 void ncot_context_free(struct ncot_context **context);
 void ncot_context_nodes_free(struct ncot_context *context);

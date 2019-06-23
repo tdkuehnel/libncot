@@ -6,4 +6,9 @@
  library.  At the time we have a somewhat usable client/library that *
  should be fixed */
 
+#define NCOT_SUCCESS 0
+#define NCOT_ERROR  -1
+
+extern int ncoterror;
+
 #endif
