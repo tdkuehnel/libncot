@@ -48,7 +48,7 @@ ncot_context_parse_from_json(struct ncot_context *context) {
 		NCOT_DEBUG("ncot_context_parse_from_json: identity found\n");
 		context->identity = ncot_identity_new_from_json(jsonobj);
 	}
-	NCOT_LOG_INFO("ncot_context_parse_from_json: Ok. uuid: %s\n", string);
+	NCOT_LOG_VERBOSE("ncot_context_parse_from_json: Ok. uuid: %s\n", string);
 	return NCOT_SUCCESS;
 }
 
@@ -120,7 +120,7 @@ ncot_context_init_from_file(struct ncot_context *context, const char* filename)
 		NCOT_LOG_ERROR("ncot_context_init_from_file: Error parsing internal fields from json");
 		return NCOT_ERROR;
 	}
-	NCOT_LOG_INFO("ncot_context_init_from_json: Ok.\n");
+	NCOT_LOG_VERBOSE("ncot_context_init_from_json: Ok.\n");
 	return NCOT_SUCCESS;
 }
 
@@ -180,7 +180,7 @@ ncot_context_save_state(struct ncot_context *context)
 	RETURN_ERROR_IF_NULL(context->arguments, "ncot_context_save_state: context argument not correctly initialized.");
 	RETURN_ERROR_IF_NULL(context->arguments->config_file, "ncot_context_save_state: context argument not correctly initialized (arguments->config_file).");
 	RETURN_ERROR_IF_NULL(context->identity, "ncot_context_save_state: context argument not correctly initialized (identity).");
-	NCOT_LOG_INFO("ncot_context_save_state: saving state to %s\n", context->arguments->config_file);
+	NCOT_LOG_VERBOSE("ncot_context_save_state: saving state to %s\n", context->arguments->config_file);
 	fd = open(context->arguments->config_file, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
 	if (!fd > 0) {
 		NCOT_LOG_ERROR("ncot_context_save_state: error opening config state file %s for saving\n", context->arguments->config_file);
@@ -205,7 +205,7 @@ ncot_context_save_state(struct ncot_context *context)
 		NCOT_LOG_ERROR("ncot_context_save_state: error putting context->json: %s", json_util_get_last_err());
 		return NCOT_ERROR;
 	}
-	NCOT_LOG_INFO("ncot_context_save_state: saved to %s.\n", context->arguments->config_file);
+	NCOT_LOG_VERBOSE("ncot_context_save_state: saved to %s.\n", context->arguments->config_file);
 	close(fd);
 }
 

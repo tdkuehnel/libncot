@@ -140,7 +140,7 @@ main(int argc, char **argv)
 		return 1;
 	}
 	context->arguments = arguments;
-	ncot_init();
+	ncot_init(context->arguments->log_level);
 	ncot_log_set_logfile(context->arguments->logfile_name);
 #ifdef _WIN32
 	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client");

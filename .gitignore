@@ -62,3 +62,4 @@ src/cmdi
 tests/check_shell
 tests/context_output.json
 ncot_config.json
+ncot.log

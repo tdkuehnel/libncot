@@ -69,15 +69,15 @@ ncot_socket_pair(int *fd1, int *fd2)
 #endif
 
 void
-ncot_init()
+ncot_init(int log_level)
 {
-	ncot_log_init(NCOT_LOG_LEVEL_WARNING);
+	ncot_log_init(log_level * 8);
+
 	/* During tests we like to log to different files which is set
 	 * up later by ncot_log_set_logfile. This startup message
 	 * pollutes the main test log file. Alternatively we could
 	 * find a way to provide distinctive instance information to
 	 * show up to make the message useful.*/
-
 	/*NCOT_LOG_INFO("%s\n", PACKAGE_STRING);*/
 	gnutls_global_init();
 	gnutls_global_set_log_level(GNUTLS_LOG_LEVEL);

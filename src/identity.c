@@ -20,6 +20,7 @@ ncot_identity_new_from_json(struct json_object *jsonobj)
 	identity = calloc(1, sizeof(struct ncot_identity));
 	if (!identity) return identity;
 	uuid_create(&identity->uuid);
+	/* First the uuid */
 	ret = json_object_object_get_ex(jsonobj, "uuid", &jsonvalue);
 	if (! ret) {
 		NCOT_LOG_ERROR("ncot_identity_new_from_json:  no field name \"uuid\" in json\n");
@@ -31,6 +32,15 @@ ncot_identity_new_from_json(struct json_object *jsonobj)
 	if (ret != UUID_RC_OK) {
 		NCOT_LOG_ERROR("ncot_identity_new_from_json: error importing uuid from json\n");
 		ncot_identity_free(&identity);
+	}
+	/* Next is name */
+	ret = json_object_object_get_ex(jsonobj, "name", &jsonvalue);
+	if (! ret) {
+		NCOT_LOG_WARNING("ncot_identity_new_from_json:  no field name \"name\" in json\n");
+	} else {
+		string = json_object_get_string(jsonvalue);
+		strncpy(identity->name, string, NCOT_IDENTITY_NAME_LENGTH);
+		identity->name[NCOT_IDENTITY_NAME_LENGTH] = '\0';
 	}
 	return identity;
 }
@@ -49,15 +59,17 @@ void
 ncot_identity_save(struct ncot_identity *identity, struct json_object *parent)
 {
 	int ret;
-	char *uuidstring =  NULL;
+	char *string =  NULL;
 
-	ret = uuid_export(identity->uuid, UUID_FMT_STR, &uuidstring, NULL);
+	ret = uuid_export(identity->uuid, UUID_FMT_STR, &string, NULL);
 	if (ret != UUID_RC_OK) {
 		NCOT_LOG_ERROR("ncot_identity_save: unable to convert uuid, aborting save.\n");
 		return;
 	}
-	identity->json = json_object_new_string(uuidstring);
+	identity->json = json_object_new_string(string);
 	json_object_object_add_ex(parent, "uuid", identity->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
+	identity->json = json_object_new_string(identity->name);
+	json_object_object_add_ex(parent, "name", identity->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
 }
 
 void

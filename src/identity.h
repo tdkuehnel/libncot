@@ -25,13 +25,14 @@
  * excluded from the ring when the ring policy says NO SPAM.
 */
 
+#define NCOT_IDENTITY_NAME_LENGTH 256
 struct ncot_identity;
 struct ncot_identity {
 	/* We need to distinguish identities */
 	uuid_t *uuid;
 	/* For the beginning an identity has two simple properties */
 	/* Name of the identity */
-	char name[256];
+	char name[NCOT_IDENTITY_NAME_LENGTH];
 	/* Avatar, may be ASCII art to display on tty */
 	char avatar[2048];
 	/* We make this listable as we may need to cope with the

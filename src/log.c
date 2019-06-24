@@ -75,6 +75,14 @@ ncot_log_logfile( int level, const char *fmt, ... )
 				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_GREEN);
 				stringptr += sprintf(stringptr, "Info");
 				break;
+			case NCOT_LOG_LEVEL_VERBOSE:
+				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_GREEN);
+				stringptr += sprintf(stringptr, "Verb");
+				break;
+			default:
+				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_GREEN);
+				stringptr += sprintf(stringptr, " Def");
+				break;
 			}
 			stringptr += sprintf(stringptr, "%s", ANSI_COLOR_RESET);
 			if (logtimeofday) stringptr += sprintf(stringptr, timestring);
@@ -93,6 +101,12 @@ ncot_log_logfile( int level, const char *fmt, ... )
 				break;
 			case NCOT_LOG_LEVEL_INFO:
 				dprintf(fd, ANSI_COLOR_GREEN "Info");
+				break;
+			case NCOT_LOG_LEVEL_VERBOSE:
+				dprintf(fd, ANSI_COLOR_GREEN "Verb");
+				break;
+			default:
+				dprintf(fd, ANSI_COLOR_GREEN " Def");
 				break;
 			}
 			dprintf(fd, ANSI_COLOR_RESET);
@@ -161,6 +175,7 @@ ncot_log_logfile_buffer_flush()
 void
 ncot_log_printf( int level, const char *fmt, ... )
 {
+	/* Set DEBUG 1 and you have an infinite loop :) */
 	NCOT_DEBUG("called log with level: %d, current log_level: %d\n", level, ncot_log_level);
 	if ( level <= ncot_log_level ) {
 		va_list vl;
@@ -221,7 +236,7 @@ ncot_log_init(int level) {
 	log_ptr = &ncot_log_printf;
 	log_buffered_ptr = &ncot_log_printf_buffered;
 	log_buffer_flush_ptr = &ncot_log_printf_buffer_flush;
-	ncot_log_level = level * 8;
+	ncot_log_level = level;
 	logbufferpointer = logbuffer;
 	logtimeofday = 1;
 	gettimeofday(&stv, NULL);

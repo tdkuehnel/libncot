@@ -43,5 +43,6 @@ void ncot_shell_free(struct ncot_shell **pshell);
 int ncot_shell_handle_buffer(struct ncot_context *context);
 int ncot_shell_read_input(struct ncot_context *context);
 void ncot_shell_print_prompt(struct ncot_shell *shell);
+void ncot_shell_print_hexdump (struct ncot_shell *shell, void *addr, int len);
 
 #endif
