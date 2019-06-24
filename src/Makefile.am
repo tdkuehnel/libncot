@@ -1,6 +1,6 @@
 VERSION=0:0:0
 
-libncot_la_SOURCES = ncot.c ncot.h debug.h log.c log.h utlist.h context.c context.h arg.c arg.h connection.h connection.c node.h node.c packet.c packet.h select.c select.h init.c init.h shell.c shell.h
+libncot_la_SOURCES = ncot.c ncot.h debug.h log.c log.h utlist.h context.c context.h arg.c arg.h connection.h connection.c node.h node.c packet.c packet.h select.c select.h init.c init.h shell.c shell.h identity.c identity.h
 libncot_la_LDFLAGS = -version-info ${VERSION} -no-undefined
 
 lib_LTLIBRARIES = libncot.la

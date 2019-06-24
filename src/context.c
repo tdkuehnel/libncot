@@ -4,12 +4,14 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <json-c/json.h>
 
 #include "debug.h"
 #include "error.h"
 #include "context.h"
 #include "utlist.h"
 #include "node.h"
+#include "identity.h"
 
 struct ncot_context*
 ncot_context_new()
@@ -21,52 +23,86 @@ ncot_context_new()
 
 int
 ncot_context_parse_from_json(struct ncot_context *context) {
-	struct json_object *jsonuuid;
+	struct json_object *jsonobj;
 	const char *string;
 	int ret;
 	NCOT_ERROR_IF_NULL(context, "ncot_context_parse_from_json: invalid context argument");
 	NCOT_ERROR_IF_NULL(context->json, "ncot_context_parse_from_json: invalid context->json argument");
-	ret = json_object_object_get_ex(context->json, "uuid", &jsonuuid);
+	/* First read our context uuid */
+	ret = json_object_object_get_ex(context->json, "uuid", &jsonobj);
 	if (! ret) {
 		NCOT_LOG_ERROR("ncot_context_parse_from_json: no field name \"uuid\" in json");
 		return NCOT_ERROR;
 	}
 	uuid_create(&context->uuid);
-	string = json_object_get_string(jsonuuid);
+	string = json_object_get_string(jsonobj);
 	ret = uuid_import(context->uuid, UUID_FMT_STR, string, strlen(string));
 	if (ret != UUID_RC_OK) {
 		NCOT_LOG_ERROR("ncot_context_parse_from_json: error importing uuid from json");
 		return NCOT_ERROR;
 	}
 
+	/* Next an identity object */
+	ret = json_object_object_get_ex(context->json, "identity", &jsonobj);
+	if (ret) {
+		NCOT_DEBUG("ncot_context_parse_from_json: identity found\n");
+		context->identity = ncot_identity_new_from_json(jsonobj);
+	}
 	NCOT_LOG_INFO("ncot_context_parse_from_json: Ok. uuid: %s\n", string);
 	return NCOT_SUCCESS;
 }
 
-#define NCOT_READ_BUFLEN 128
+/*Basic initialization which is shared among the following two functions */
+void
+ncot_context_init_base(struct ncot_context *context)
+{
+	if (context) {
+		context->arguments = calloc(1, sizeof(struct ncot_arguments));
+		context->globalnodelist = NULL;
+		context->controlconnection = ncot_connection_new();
+		ncot_connection_init(context->controlconnection, NCOT_CONN_CONTROL);
+	} else {
+		NCOT_LOG_WARNING("Invalid context passed to ncot_context_init_base\n");
+	}
+}
 
-struct ncot_context*
-ncot_context_new_from_file(const char* filename)
+/* This is called when there is no config file available. We need to
+ * initialize as much as we can to have proper empty functionality */
+void
+ncot_context_init(struct ncot_context *context)
+{
+	if (context) {
+		/*    context->config = ncot_config_new(); */
+		ncot_context_init_base(context);
+		uuid_create(&context->uuid);
+		uuid_make(context->uuid, UUID_MAKE_V1);
+	} else {
+		NCOT_LOG_WARNING("Invalid context passed to ncot_context_init\n");
+	}
+}
+
+/* This is called when a config file is available. Make initialization
+ * depending on data found in config file */
+#define NCOT_READ_BUFLEN 128
+int
+ncot_context_init_from_file(struct ncot_context *context, const char* filename)
 {
 	int fd;
 	ssize_t r;
 	char buf[NCOT_READ_BUFLEN];
-	struct ncot_context *context;
 	struct json_tokener *tokener;
 	enum json_tokener_error jerr;
+	ncot_context_init_base(context);
 	fd = open(filename, O_RDONLY);
-	FD_ERROR(fd, "ncot_context_new_from_file: Error opening file");
-	context = ncot_context_new();
-	if (!context) {
-		NCOT_LOG_ERROR("ncot_context_new_from_file: Error allocating context object");
-		close(fd);
-		return NULL;
+	if (fd <= 0) {
+		NCOT_LOG_ERROR("ncot_context_init_from_file: Error opening file\n");
+		return NCOT_ERROR;
 	}
 	tokener = json_tokener_new();
 	if (!tokener) {
-		NCOT_LOG_ERROR("ncot_context_new_from_file: Error allocating json tokener object");
-		ncot_context_free(&context);
+		NCOT_LOG_ERROR("ncot_context_init_from_file: Error allocating json tokener object");
 		close(fd);
+		return NCOT_ERROR;
 	}
 	do {
 		r = read(fd, &buf, NCOT_READ_BUFLEN);
@@ -74,32 +110,16 @@ ncot_context_new_from_file(const char* filename)
 	} while ((jerr = json_tokener_get_error(tokener)) == json_tokener_continue);
 	close(fd);
 	if (jerr != json_tokener_success) {
-		NCOT_LOG_ERROR("ncot_context_new_from_file: json parse error: %s\n", json_tokener_error_desc(jerr));
+		NCOT_LOG_ERROR("ncot_context_init_from_file: json parse error: %s\n", json_tokener_error_desc(jerr));
 		json_tokener_free(tokener);
-		ncot_context_free(&context);
-		return NULL;
+		return NCOT_ERROR;
 	}
  	json_tokener_free(tokener);
  	if (ncot_context_parse_from_json(context) != NCOT_SUCCESS) {
-		NCOT_LOG_ERROR("ncot_context_new_from_file: Error parsing internal fields from json");
-		ncot_context_free(&context);
-		return NULL;
+		NCOT_LOG_ERROR("ncot_context_init_from_file: Error parsing internal fields from json");
+		return NCOT_ERROR;
 	}
-	return context;
-}
-
-void
-ncot_context_init(struct ncot_context *context)
-{
-	if (context) {
-		/*    context->config = ncot_config_new(); */
-		context->arguments = calloc(1, sizeof(struct ncot_arguments));
-		context->globalnodelist = NULL;
-		context->controlconnection = ncot_connection_new();
-		ncot_connection_init(context->controlconnection, NCOT_CONN_CONTROL);
-	} else {
-		NCOT_LOG_WARNING("Invalid context passed to ncot_context_init\n");
-	}
+	return NCOT_SUCCESS;
 }
 
 void
@@ -141,6 +161,39 @@ ncot_context_nodes_free(struct ncot_context *context)
 	}
 }
 
+int
+ncot_context_save_nodes(struct ncot_context *context, int fd)
+{
+}
+
+int
+ncot_context_save_state(struct ncot_context *context)
+{
+	int fd;
+	int ret;
+	NCOT_LOG_INFO("ncot_context_save_state: saving state\n");
+	RETURN_ERROR_IF_NULL(context, "ncot_context_save_state: invalid context argument.");
+	RETURN_ERROR_IF_NULL(context->arguments, "ncot_context_save_state: context argument not correctly initialized.");
+	RETURN_ERROR_IF_NULL(context->arguments->config_file, "ncot_context_save_state: context argument not correctly initialized (arguments->config_file).");
+	RETURN_ERROR_IF_NULL(context->identity, "ncot_context_save_state: context argument not correctly initialized (identity).");
+	fd = open(context->arguments->config_file, O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	if (!fd > 0) {
+		NCOT_LOG_ERROR("ncot_context_save_state: error opening config state file %s for saving\n", context->arguments->config_file);
+		return NCOT_ERROR;
+	}
+	NCOT_DEBUG("ncot_context_save_state: 1\n");
+	context->json = json_object_new_object();
+	ncot_identity_save(context->identity, context->json);
+	ncot_context_save_nodes(context, fd);
+	ret = json_object_to_fd(fd, context->json, JSON_C_TO_STRING_PRETTY);
+	if (ret == -1) {
+		NCOT_LOG_ERROR("ncot_context_save_state: error putting context->json: %s", json_util_get_last_err());
+		return NCOT_ERROR;
+	}
+	NCOT_LOG_INFO("ncot_context_save_state: saved to %s.\n", context->arguments->config_file);
+	close(fd);
+}
+
 #ifdef DEBUG
 #undef DEBUG
 #endif
@@ -152,6 +205,7 @@ ncot_context_free(struct ncot_context **pcontext) {
 		context = *pcontext;
 		if (context) {
 			context = *pcontext;
+			ncot_context_save_state(context);
 			NCOT_DEBUG("ncot_context_free: 1 freeing context at 0x%x\n", context);
 			/*      if (context->config) free(context->config); */
 			ncot_context_abort_connection_io(context);

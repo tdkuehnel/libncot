@@ -10,7 +10,7 @@
 
 /* Program documentation. */
 static char doc[] =
-	"ncot -- Network of Circle of Trust Client";
+	"ncot -- Network Circle of Trust Client";
 
 /* A description of the arguments we accept. */
 static char args_doc[] = "[OPTION...]";
@@ -32,7 +32,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 		{ "interactive",'i', POPT_ARG_NONE,   &arguments->interactive,  0,  "Enter interactive mode after startup", NULL },
 		{ "address",    'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
 		{ "port",       'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
-		{ "configfile", 'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ...", NULL},
+		{ "configfile", 'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ncot_config.json", NULL},
 		{ "logfile",    'g', POPT_ARG_STRING, &arguments->logfile_name, 0,  "Use logfile STRING instead of logging to stdout", NULL},
 		{ "pidfile",    'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
 		{ "loglevel",   'l', POPT_ARG_INT,    &arguments->log_level,    0,  "Set log level (0 .. 8), default 1", NULL},
@@ -42,7 +42,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 
 	/* fill in default values */
 	/* FIXME: take ncot.conf path from configure values */
-	arguments->config_file = "/etc/ncotd.conf";
+	arguments->config_file = "ncot_config.json";
 	arguments->log_level = NCOT_LOG_LEVEL_DEFAULT;
 	arguments->pidfile_name = "ncotd.pid";
 	arguments->logfile_name = "";

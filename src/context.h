@@ -69,7 +69,7 @@ struct ncot_context {
 };
 
 struct ncot_context *ncot_context_new();
-struct ncot_context* ncot_context_new_from_file(const char* filename);
+int ncot_context_init_from_file(struct ncot_context *context, const char* filename);
 void ncot_context_init(struct ncot_context *context);
 void ncot_context_free(struct ncot_context **context);
 void ncot_context_nodes_free(struct ncot_context *context);

@@ -1,10 +1,37 @@
+#include <json-c/json.h>
 #include "identity.h"
+#include "log.h"
 
 struct ncot_identity*
 ncot_identity_new()
 {
 	struct ncot_identity *identity;
 	identity = calloc(1, sizeof(struct ncot_identity));
+	return identity;
+}
+
+struct ncot_identity*
+ncot_identity_new_from_json(struct json_object *jsonobj)
+{
+	struct ncot_identity *identity;
+	struct json_object *jsonvalue;
+	const char *string;
+	int ret;
+	identity = calloc(1, sizeof(struct ncot_identity));
+	if (!identity) return identity;
+	uuid_create(&identity->uuid);
+	ret = json_object_object_get_ex(jsonobj, "uuid", &jsonvalue);
+	if (! ret) {
+		NCOT_LOG_ERROR("ncot_identity_new_from_json:  no field name \"uuid\" in json\n");
+		ncot_identity_free(&identity);
+		return identity;
+	}
+	string = json_object_get_string(jsonvalue);
+	ret = uuid_import(identity->uuid, UUID_FMT_STR, string, strlen(string));
+	if (ret != UUID_RC_OK) {
+		NCOT_LOG_ERROR("ncot_identity_new_from_json: error importing uuid from json\n");
+		ncot_identity_free(&identity);
+	}
 	return identity;
 }
 
@@ -16,6 +43,21 @@ ncot_identity_init(struct ncot_identity *identity) {
 	} else {
 		NCOT_LOG_WARNING("Invalid identity passed to ncot_identity_init\n");
 	}
+}
+
+void
+ncot_identity_save(struct ncot_identity *identity, struct json_object *parent)
+{
+	int ret;
+	char *uuidstring =  NULL;
+
+	ret = uuid_export(identity->uuid, UUID_FMT_STR, &uuidstring, NULL);
+	if (ret != UUID_RC_OK) {
+		NCOT_LOG_ERROR("ncot_identity_save: unable to convert uuid, aborting save.\n");
+		return;
+	}
+	identity->json = json_object_new_string(uuidstring);
+	json_object_object_add_ex(parent, "uuid", identity->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
 }
 
 void

@@ -36,7 +36,7 @@ struct ncot_identity {
 	char avatar[2048];
 	/* We make this listable as we may need to cope with the
 	 * public part of identities from peers */
-	struct ncot_identity next;
+	struct ncot_identity *next;
 	/* Somehow represent the public/private credentials involved
 	 * of an identity */
 	/* struct ncot_identity_credentials credentials; */
@@ -44,7 +44,8 @@ struct ncot_identity {
 };
 
 struct ncot_identity *ncot_identity_new();
+struct ncot_identity* ncot_identity_new_from_json(struct json_object *jsonobj);
 void ncot_identity_free(struct ncot_identity **pidentity);
 void ncot_identity_init(struct ncot_identity *identity);
-
+void ncot_identity_save(struct ncot_identity *identity, struct json_object *parent);
 #endif
