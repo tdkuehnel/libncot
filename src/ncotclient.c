@@ -111,7 +111,7 @@ int main(int argc, char **argv)
 				NCOT_LOG(NCOT_LOG_LEVEL_ERROR, "error during pselect: EBADF\n");
 				break;
 			case EINTR:
-				NCOT_LOG(NCOT_LOG_LEVEL_INFO, " signal during pselect: EINTR\n");
+				NCOT_LOG(NCOT_LOG_LEVEL_INFO, "signal during pselect: EINTR\n");
 				break;
 			case EINVAL:
 				NCOT_LOG(NCOT_LOG_LEVEL_ERROR, "error during pselect: EINVAL\n");

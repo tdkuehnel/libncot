@@ -112,6 +112,7 @@ main(int argc, char **argv)
 {
 	int r, highestfd;
 	fd_set rfds, wfds;
+	struct ncot_arguments *arguments;
 
 #ifdef _WIN32
 	signal(SIGINT, sig_handler);
@@ -133,11 +134,12 @@ main(int argc, char **argv)
 		sigaction (SIGTERM, &new_action, NULL);
 #endif
 	context = ncot_context_new();
-	ncot_context_init(context);
-	if (ncot_arg_parse(context->arguments, argc, argv)) {
+	arguments = calloc(1, sizeof(struct ncot_arguments));
+	if (ncot_arg_parse(arguments, argc, argv)) {
 		ncot_context_free(&context);
 		return 1;
 	}
+	context->arguments = arguments;
 	ncot_init();
 	ncot_log_set_logfile(context->arguments->logfile_name);
 #ifdef _WIN32
@@ -151,6 +153,8 @@ main(int argc, char **argv)
 				atoi(context->arguments->port));
 #endif
 	NCOT_LOG_INFO("%s our PID is %ld\n", PACKAGE_STRING, (long) getpid());
+	if (ncot_context_init_from_file(context, arguments->config_file) != NCOT_SUCCESS)
+		ncot_context_init(context);
 	if (context->arguments->interactive) {
 		/* Dangerous: we rely on context->shell. Solved, we
 		 * initialize on this first use if appropriate. */

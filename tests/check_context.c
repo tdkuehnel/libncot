@@ -75,6 +75,7 @@ START_TEST (test_context)
 	ck_assert(ret == UUID_RC_OK);
 	ck_assert_str_eq(NCOT_UUID_IDENTITY, uuidstring);
 
+	context->arguments = calloc(1, sizeof(struct ncot_arguments));
 	context->arguments->config_file = NCOT_JSON_OUTPUT;
 	ncot_context_free(&context);
 
