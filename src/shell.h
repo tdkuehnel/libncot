@@ -7,10 +7,18 @@
 
 #define DEFAULT_SHELLPROMPT ANSI_COLOR_GREEN"ncot"ANSI_COLOR_RED">"ANSI_COLOR_RESET
 #define NCOT_SHELL_BUFLEN 2048
+#define NCOT_SHELL_HISTORY_MAX_COMMANDS 128
 
 enum ncot_shell_type {
 	NCOT_SHELL_TYPE_TTY,
 	NCOT_SHELL_TYPE_REMOTE
+};
+
+struct ncot_command_line;
+struct ncot_command_line {
+	char* line;
+	struct ncot_command_line *next;
+	struct ncot_command_line *prev;
 };
 
 struct ncot_shell {
@@ -34,6 +42,9 @@ struct ncot_shell {
 
 	/* We provide a struct ncot_packet for convenience */
 	struct ncot_packet packet;
+	struct ncot_command_line *commandlines;
+	struct ncot_command_line *current;
+	int commands;
 };
 
 struct ncot_shell *ncot_shell_new();

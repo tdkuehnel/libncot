@@ -26,6 +26,7 @@
 */
 
 #define NCOT_IDENTITY_NAME_LENGTH 256
+#define NCOT_IDENTITY_AVATAR_LENGTH 2048
 struct ncot_identity;
 struct ncot_identity {
 	/* We need to distinguish identities */
@@ -34,7 +35,7 @@ struct ncot_identity {
 	/* Name of the identity */
 	char name[NCOT_IDENTITY_NAME_LENGTH];
 	/* Avatar, may be ASCII art to display on tty */
-	char avatar[2048];
+	char avatar[NCOT_IDENTITY_AVATAR_LENGTH];
 	/* We make this listable as we may need to cope with the
 	 * public part of identities from peers */
 	struct ncot_identity *next;

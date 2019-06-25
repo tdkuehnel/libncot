@@ -42,6 +42,15 @@ ncot_identity_new_from_json(struct json_object *jsonobj)
 		strncpy(identity->name, string, NCOT_IDENTITY_NAME_LENGTH);
 		identity->name[NCOT_IDENTITY_NAME_LENGTH] = '\0';
 	}
+	/* Avatar */
+	ret = json_object_object_get_ex(jsonobj, "avatar", &jsonvalue);
+	if (! ret) {
+		NCOT_LOG_WARNING("ncot_identity_new_from_json:  no field name \"avatar\" in json\n");
+	} else {
+		string = json_object_get_string(jsonvalue);
+		strncpy(identity->avatar, string, NCOT_IDENTITY_AVATAR_LENGTH);
+		identity->avatar[NCOT_IDENTITY_AVATAR_LENGTH] = '\0';
+	}
 	return identity;
 }
 
@@ -70,6 +79,8 @@ ncot_identity_save(struct ncot_identity *identity, struct json_object *parent)
 	json_object_object_add_ex(parent, "uuid", identity->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
 	identity->json = json_object_new_string(identity->name);
 	json_object_object_add_ex(parent, "name", identity->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
+	identity->json = json_object_new_string(identity->avatar);
+	json_object_object_add_ex(parent, "avatar", identity->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
 }
 
 void

@@ -3,6 +3,8 @@
 #include <unistd.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/stat.h>
+#include <fcntl.h>
 #ifdef _WIN32
 #include <winsock2.h>
 #include <windef.h>
@@ -11,6 +13,7 @@
 #include <sys/socket.h>
 #endif
 
+#include "utlist.h"
 #include "shell.h"
 #include "context.h"
 #include "identity.h"
@@ -99,6 +102,49 @@ void ncot_shell_identity_handle_name(struct ncot_context *context)
 	}
 }
 
+void ncot_shell_identity_handle_avatar(struct ncot_context *context)
+{
+	struct ncot_shell *shell;
+	const char *string = NULL;
+	char *token;
+	int valid = 0;
+	int ret;
+	int fd;
+	int i;
+	shell = context->shell;
+	token = strtok(NULL, " ");
+	ret = uuid_export(context->identity->uuid, UUID_FMT_STR, &string, NULL);
+	if (token) {
+		fd = open(token, O_RDONLY);
+		if (fd <= 0) {
+			DPRINTF(context->shell->writefd, "Cannot open %s to read avatar from\n", token);
+			return;
+		}
+		ret = read(fd, context->identity->avatar, NCOT_IDENTITY_AVATAR_LENGTH - 1);
+		if (ret >= 0) {
+			context->identity->avatar[ret] = '\0';
+			/* Remove unprintable ascii characters */
+			for (i=0; i < ret; i++) {
+				if (context->identity->avatar[i] != 0x0a)
+					if ((context->identity->avatar[i] < 0x20) || (context->identity->avatar[i] > 0x7e))
+						context->identity->avatar[i] = '.';
+			}
+			DPRINTF(context->shell->writefd, "Identity %s:\n%s\n", string, context->identity->avatar);
+		} else {
+			DPRINTF(context->shell->writefd, "Error reading avatar from %s\n", token);
+		}
+		close(fd);
+		return;
+	} else {
+		/* Default is showing the avatar */
+		if (context->identity->avatar[0] != '\0') {
+			DPRINTF(context->shell->writefd, "Identity %s:\n%s\n", string, context->identity->avatar);
+		} else {
+			DPRINTF(context->shell->writefd, "Identity %s: Avatar is <empty>\n", string);
+		}
+	}
+}
+
 void
 ncot_shell_handle_identity(struct ncot_context *context, char *command, char *base)
 {
@@ -122,6 +168,10 @@ ncot_shell_handle_identity(struct ncot_context *context, char *command, char *ba
 		}
 		if (!strcmp(token, "name")) {
 			ncot_shell_identity_handle_name(context);
+			valid = 1;
+		}
+		if (!strcmp(token, "avatar")) {
+			ncot_shell_identity_handle_avatar(context);
 			valid = 1;
 		}
 		if (!valid)
@@ -204,6 +254,29 @@ ncot_shell_print_help(struct ncot_context *context, char *command, char *base)
 	DPRINTF(shell->writefd, "          help\n");
 }
 
+/* psuh a commandline into the command ringbuffer */
+void
+ncot_shell_push_command(struct ncot_context *context, char *command)
+{
+	char *buffer;
+	struct ncot_command_line *commandline;
+	if (context->shell->commands < NCOT_SHELL_HISTORY_MAX_COMMANDS) {
+		commandline = malloc(sizeof(struct ncot_command_line));
+		if (!commandline) return;
+		commandline->line = malloc(strlen(command) + 1);
+		if (!buffer) return;
+		strncpy(commandline->line, command, strlen(command));
+		CDL_PREPEND(context->shell->commandlines, commandline);
+		context->shell->commands++;
+	} else {
+		commandline = context->shell->commandlines->prev;
+		free(commandline->line);
+		commandline->line = malloc(strlen(command));
+		strncpy(commandline->line, command, strlen(command));
+		context->shell->commandlines = commandline;
+	}
+}
+
 int
 ncot_shell_handle_command(struct ncot_context *context, char *command)
 {
@@ -277,6 +350,7 @@ ncot_shell_handle_buffer(struct ncot_context *context)
 	memmove(shell->buffer, p + 1, datarestlen);
 	shell->pbuffer = shell->buffer + datarestlen;
 	*shell->pbuffer = '\0';
+	ncot_shell_push_command(context, command);
 	res = ncot_shell_handle_command(context, command);
 /*	DPRINTF(shell->writefd, "      p: 0x%0x\n", p);
 	DPRINTF(shell->writefd, "     p0: 0x%0x\n", p0);
