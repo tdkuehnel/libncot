@@ -148,13 +148,15 @@ main(int argc, char **argv)
 	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client/daemon");
 	if (context->arguments->daemonize) ncot_daemonize(context);
 	if (context->arguments->daemonize) NCOT_LOG_INFO("%s Looks like we are running as a deamon, good.\n", PACKAGE_STRING);
-	if (context->arguments->daemonize)
-		ncot_connection_listen(context, context->controlconnection,
-				atoi(context->arguments->port));
 #endif
 	NCOT_LOG_INFO("%s our PID is %ld\n", PACKAGE_STRING, (long) getpid());
 	if (ncot_context_init_from_file(context, arguments->config_file) != NCOT_SUCCESS)
 		ncot_context_init(context);
+#ifndef _WIN32
+	if (context->arguments->daemonize)
+		ncot_connection_listen(context, context->controlconnection,
+				atoi(context->arguments->port));
+#endif
 	if (context->arguments->interactive) {
 		/* Dangerous: we rely on context->shell. Solved, we
 		 * initialize on this first use if appropriate. */

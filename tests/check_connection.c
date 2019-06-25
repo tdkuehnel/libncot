@@ -119,7 +119,7 @@ START_TEST (test_connection_daemon)
 	fd_set rfds;
 	fd_set wfds;
 	struct timeval  tv1, tv2;
-	ncot_init();
+	ncot_init(4);
 	ncot_log_set_logfile("test_connection_daemon.log");
 	NCOT_LOG_INFO("TEST_CONNECTION_DAEMON START\n");
 	context = ncot_context_new();

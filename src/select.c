@@ -101,6 +101,10 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	return res;
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#define DEBUG 0
+#endif
 int
 ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 {
@@ -110,37 +114,48 @@ ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 	 *
 	 * A connected connection is generally interested in incoming
 	 * traffic. */
+	NCOT_DEBUG("ncot_set_fds: 1\n");
 	connection = context->connections_connected;
+	NCOT_DEBUG("ncot_set_fds: 2\n");
 	while (connection) {
 		FD_SET(connection->sd, rfds);
 		if (connection->sd > maxfd) maxfd = connection->sd;
 		connection = connection->next;
 	}
+	NCOT_DEBUG("ncot_set_fds: 3\n");
 	/* Then the listening ones.
 	 *
 	 * Listening connections are only interested in incoming
 	 * traffic.*/
 	connection = context->connections_listen;
+	NCOT_DEBUG("ncot_set_fds: 4\n");
 	while (connection) {
 		FD_SET(connection->sd, rfds);
 		if (connection->sd > maxfd) maxfd = connection->sd;
 		connection = connection->next;
 	}
+	NCOT_DEBUG("ncot_set_fds: 5\n");
 	/* last the writing ones
 	*
 	* Writing connections are interested when there is some room
 	* in the outgoing bandwidth */
+	NCOT_DEBUG("ncot_set_fds: 6\n");
 	connection = context->connections_writing;
+	NCOT_DEBUG("ncot_set_fds: 7\n");
 	while (connection) {
 		FD_SET(connection->sd, wfds);
 		if (connection->sd > maxfd) maxfd = connection->sd;
 		connection = connection->next;
 	}
 	/* In interactive mode we include stdin */
-	if (context->arguments->interactive) {
-		FD_SET(STDIN_FILENO, rfds);
-		if (STDIN_FILENO > maxfd)
-			maxfd = STDIN_FILENO;
+	NCOT_DEBUG("ncot_set_fds: 8\n");
+	if (context->arguments) {
+		if (context->arguments->interactive) {
+			FD_SET(STDIN_FILENO, rfds);
+			if (STDIN_FILENO > maxfd)
+				maxfd = STDIN_FILENO;
+		}
 	}
+	NCOT_DEBUG("ncot_set_fds: 9\n");
 	return maxfd;
 }
