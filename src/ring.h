@@ -32,10 +32,10 @@ enum ncot_encryption_setting {
 	 * around trough the intact ring. */
 	NCOT_ENCRYPTION_BASIC
 
-}
+};
 
-struct ncot_ring {
+struct ncot_ring_context {
 	enum ncot_encryption_setting encryption;
-}
+};
 
 #endif

@@ -118,13 +118,16 @@ struct ncot_node {
 	struct ncot_connection *connections;
 	struct uuid_st *uuid;
 	struct ncot_node *next;
+	struct ncot_node *prev;
 	struct json_object *json;
 };
 
+void ncot_node_save(struct ncot_node *node, struct json_object *parent);
 struct ncot_node *ncot_node_new();
 void ncot_node_free(struct ncot_node **pnode);
 void ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *connection);
 void ncot_node_init(struct ncot_node *node);
+struct ncot_node* ncot_nodes_new_from_json(struct json_object *jsonobj);
 
 #endif
 

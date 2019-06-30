@@ -99,21 +99,29 @@ enum ncot_connection_status {
    the GnuTLS package. */
 struct ncot_connection;
 struct ncot_connection {
+	/* Pointer for connection lists handling */
 	struct ncot_connection *prev;
 	struct ncot_connection *next;
+	/* This is our socket fd*/
 	int sd;
+	/* A connections originates either from listening as server or
+	 * connectiong as a client. The peer address goes into the
+	 * other unsused structure respectively. */
 	struct sockaddr_in sa_server;
 	struct sockaddr_in sa_client;
 	struct sockaddr client;
 	socklen_t client_len;
-	char topbuf[512];
+	/* Our buffers for packet handling */
 	char buffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
 	char readbuffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
 	char *readpointer;
 	/* Simple packet queue as utlist */
 	struct ncot_packet *packetlist;
 	struct ncot_packet *readpacketlist;
+	/* Max amount to send in on try. Packages may be split up
+	 * which ma be reflected in smaller chunksize. */
 	int chunksize;
+	/* GnuTLS stuff */
 	gnutls_session_t session;
 	gnutls_anon_server_credentials_t servercred;
 	gnutls_anon_client_credentials_t clientcred;
@@ -122,15 +130,21 @@ struct ncot_connection {
 	int pskclientcredentialsallocated;
 	int pskservercredentialsallocated;
 	gnutls_datum_t key;
+	/* Our type */
 	enum ncot_connection_type type;
+	/* status */
 	enum ncot_connection_status status;
+	/* setsockopt argument. (Does it need to be here?) */
 	int optval;
 	int authenticated;
+	/* json object needed for storing/loading from config file */
 	struct json_object *json;
 };
 
 struct ncot_connection *ncot_connection_new();
+struct ncot_connection* ncot_connection_new_from_json(struct json_object *jsonobj);
 void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
+void ncot_connection_save(struct ncot_connection *connection, struct json_object *parent);
 int ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port);
 int ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address);
 void ncot_connection_close(struct ncot_connection *connection);

@@ -21,9 +21,34 @@
 #include "utlist.h"
 
 
+struct ncot_connection*
+ncot_connection_new_from_json(struct json_object *jsonobj)
+{
+}
+
+/* Saving a connection makes sense only when it has information about
+ * a peer. Do we really need to store own ip-address, port number ?
+ * Don't think so at the moment, but who knows.*/
+void
+ncot_connection_save(struct ncot_connection *connection, struct json_object *parent)
+{
+	int ret;
+	char *string =  NULL;
+	struct json_object *json;
+	struct sockaddr_in *sockaddr;
+
+	sockaddr = (struct sockaddr_in *)&connection->client;
+	json = json_object_new_string(inet_ntoa(sockaddr->sin_addr));
+	json_object_object_add_ex(parent, "Host", json, JSON_C_OBJECT_KEY_IS_CONSTANT);
+
+	json = json_object_new_int(ntohs(sockaddr->sin_port));
+	json_object_object_add_ex(parent, "Port", json, JSON_C_OBJECT_KEY_IS_CONSTANT);
+
+}
+
 #ifdef DEBUG
 #undef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 #endif
 /* This is a function that, yes, copies a message, queues it and takes
  * the necessary steps to send it to the peer */
@@ -147,15 +172,29 @@ ncot_connection_accept(struct ncot_context *context, struct ncot_connection *con
 	if (connection->status != NCOT_CONN_LISTEN) RETURN_FAIL("ncot_connection_accept: connection not in listening state");
 	int nsd;
 	int err;
+	connection->client_len = sizeof(struct sockaddr);
 	nsd = accept(connection->sd, &connection->client, &connection->client_len);
 	SOCKET_NERR(nsd, "ncot_connection_accept: accept()");
 	err = close(connection->sd);
 	SOCKET_NERR(err, "ncot_connection_accept: close(connection->sd)");
 	connection->sd = nsd;
+	struct sockaddr_in *addr_in = (struct sockaddr_in *)&connection->client;
+	switch(connection->client.sa_family) {
+	case AF_INET: {
+		NCOT_LOG_INFO("peer ip4 address: %s\n", inet_ntoa(addr_in->sin_addr));
+		break;
+	}
+	case AF_INET6: {
+		NCOT_LOG_INFO("peer ip6 address: %s\n", inet_ntoa(addr_in->sin_addr));
+		break;
+	}
+	default:
+		NCOT_LOG_INFO("peer address: %s\n", inet_ntoa(addr_in->sin_addr));
+	}
 	connection->status = NCOT_CONN_CONNECTED;
 	ncot_context_dequeue_connection_listen(context, connection);
 	ncot_context_enqueue_connection_connected(context, connection);
-	NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
+	NCOT_LOG_VERBOSE("ncot_connection_accept: connection accepted\n");
 	return 0;
 }
 
@@ -385,7 +424,7 @@ ncot_connection_authenticate_server(struct ncot_connection *connection)
 	if (gnutls_error_is_fatal(res)) {
 		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
 	}
-	NCOT_DEBUG("Gnutls handshake complete\n");
+	NCOT_DEBUG("GnuTLS handshake complete\n");
 	/*gnutls_transport_set_int(connection->session, connection->sd);*/
 	connection->authenticated = 1;
 	return 0;
@@ -399,6 +438,7 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 	struct addrinfo hints;
 	struct addrinfo *results;
 	struct addrinfo *result;
+	struct sockaddr_in *sockaddr;
 	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_connect: Invalid argument: connection");
 	if (connection->status == NCOT_CONN_CONNECTED) ERROR_MESSAGE_RETURN("ncot_connection_connect - ERROR: connection still connected, cant connect again\n");
 	if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
@@ -408,11 +448,11 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 #ifdef _WIN32
 		hints.ai_flags = AI_NUMERICHOST; /* for simplicity of this proof of concept */
 #else
-		hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV ; /* for simplicity of this proof of concept */
+		hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_CANONNAME ; /* for simplicity of this proof of concept */
 #endif
 		res = getaddrinfo(address, port, &hints, &results);
 		if (res != 0) {
-			NCOT_LOG_ERROR("ncot_connection_connect: error in getaddrinfo - &s\n", gai_strerror(res));
+			NCOT_LOG_ERROR("ncot_connection_connect: error in getaddrinfo - %s\n", gai_strerror(res));
 			return -1;
 		}
 		NCOT_DEBUG("ncot_connection_connect: connecting ...\n");
@@ -425,7 +465,10 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 			close(connection->sd);
 		}
 		freeaddrinfo(results);
-		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)")
+		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)");
+		sockaddr = (struct sockaddr_in *)&connection->client;
+		res = inet_aton(address, &sockaddr->sin_addr);
+		sockaddr->sin_port = htons(atoi(port));
 		NCOT_DEBUG("ncot_connection_connect: connect successful (after getaddrinfo iteration) %i\n", err);
 		connection->status = NCOT_CONN_CONNECTED;
 		ncot_context_enqueue_connection_connected(context, connection);

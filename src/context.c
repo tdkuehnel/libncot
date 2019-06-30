@@ -48,6 +48,14 @@ ncot_context_parse_from_json(struct ncot_context *context) {
 		NCOT_DEBUG("ncot_context_parse_from_json: identity found\n");
 		context->identity = ncot_identity_new_from_json(jsonobj);
 	}
+
+	/* Load nodes if any */
+	ret = json_object_object_get_ex(context->json, "nodes", &jsonobj);
+	if (ret) {
+		NCOT_DEBUG("ncot_context_parse_from_json: nodes found\n");
+		context->globalnodelist = ncot_nodes_new_from_json(jsonobj);
+	}
+
 	NCOT_LOG_VERBOSE("ncot_context_parse_from_json: Ok. uuid: %s\n", string);
 	return NCOT_SUCCESS;
 }
@@ -63,6 +71,7 @@ ncot_context_init_base(struct ncot_context *context)
 	} else {
 		NCOT_LOG_WARNING("Invalid context passed to ncot_context_init_base\n");
 	}
+	NCOT_LOG_INFO("New ncot context initialized\n");
 }
 
 /* This is called when there is no config file available. We need to
@@ -168,13 +177,19 @@ ncot_context_save_nodes(struct ncot_context *context, int fd)
 {
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG 1
 int
 ncot_context_save_state(struct ncot_context *context)
 {
 	int fd;
 	int ret;
 	struct json_object *jsonobj;
+	struct json_object *jsonarray;
 	char *uuidstring =  NULL;
+	struct ncot_node *node;
 
 	RETURN_ERROR_IF_NULL(context, "ncot_context_save_state: invalid context argument.");
 	RETURN_ERROR_IF_NULL(context->arguments, "ncot_context_save_state: context argument not correctly initialized.");
@@ -199,7 +214,23 @@ ncot_context_save_state(struct ncot_context *context)
 	jsonobj = json_object_new_object();
 	json_object_object_add_ex(context->json, "identity", jsonobj, JSON_C_OBJECT_KEY_IS_CONSTANT);
 	ncot_identity_save(context->identity, jsonobj);
-	ncot_context_save_nodes(context, fd);
+	/* Store control connection */
+	jsonobj = json_object_new_object();
+	json_object_object_add_ex(context->json, "controlconnection", jsonobj, JSON_C_OBJECT_KEY_IS_CONSTANT);
+	ncot_connection_save(context->controlconnection, jsonobj);
+
+	/* Store our nodes */
+	jsonarray = json_object_new_array();
+	node = context->globalnodelist;
+	while (node) {
+		jsonobj = json_object_new_object();
+		ncot_node_save(node, jsonobj);
+		json_object_array_add(jsonarray, jsonobj);
+		node = node->next;
+		NCOT_LOG_VERBOSE("ncot_context_save_state: saved a node\n");
+	};
+	json_object_object_add_ex(context->json, "nodes", jsonarray, JSON_C_OBJECT_KEY_IS_CONSTANT);
+
 	ret = json_object_to_fd(fd, context->json, JSON_C_TO_STRING_PRETTY);
 	if (ret == -1) {
 		NCOT_LOG_ERROR("ncot_context_save_state: error putting context->json: %s", json_util_get_last_err());
@@ -220,6 +251,7 @@ ncot_context_free(struct ncot_context **pcontext) {
 		context = *pcontext;
 		if (context) {
 			context = *pcontext;
+ 			NCOT_DEBUG("ncot_context_free: 0 freeing context at 0x%x\n", context);
 			ncot_context_save_state(context);
 			NCOT_DEBUG("ncot_context_free: 1 freeing context at 0x%x\n", context);
 			/*      if (context->config) free(context->config); */

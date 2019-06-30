@@ -40,8 +40,8 @@ void teardown()
 #define NCOT_JSON_BADFILE "contextbad.json"
 #define NCOT_JSON_OUTPUT "context_output.json"
 #define NCOT_UUID0 "725f0b14-95f2-11e9-8e62-0015f2f34329"
-#define NCOT_UUID1 "977de3c6-939e-11e9-ba7a-0015f2f34329"
-#define NCOT_UUID2 "bbb7c2ac-939e-11e9-afe9-0015f2f34329"
+#define NCOT_UUID_NODE1 "977de3c6-939e-11e9-ba7a-0015f2f34329"
+#define NCOT_UUID_NODE2 "bbb7c2ac-939e-11e9-afe9-0015f2f34329"
 #define NCOT_UUID_IDENTITY "3d0fc356-9654-11e9-aa10-0015f2f34329"
 
 START_TEST (test_context)
@@ -50,15 +50,18 @@ START_TEST (test_context)
 	int ret;
 	char *uuidstring = NULL;
 	size_t stringlen = UUID_LEN_STR;
-	ncot_init();
+	struct ncot_node *node;
+	ncot_init(5);
 	ncot_log_set_logfile("test_context.log");
 
+	/* First test for bad config file */
 	context = ncot_context_new();
 	ck_assert(context != NULL);
 	ret = ncot_context_init_from_file(context, NCOT_JSON_BADFILE);
 	ck_assert(ret != NCOT_SUCCESS);
 	ncot_context_free(&context);
 
+	/* Now a good onw */
 	context = ncot_context_new();
 	ck_assert(context != NULL);
 	ret = ncot_context_init_from_file(context, NCOT_JSON_GOODFILE);
@@ -75,6 +78,21 @@ START_TEST (test_context)
 	ck_assert(ret == UUID_RC_OK);
 	ck_assert_str_eq(NCOT_UUID_IDENTITY, uuidstring);
 
+	node = context->globalnodelist;
+	ck_assert(node != NULL);
+	free(uuidstring);
+	uuidstring=NULL;
+	ret = uuid_export(node->uuid, UUID_FMT_STR, &uuidstring, NULL);
+	ck_assert(ret == UUID_RC_OK);
+	ck_assert_str_eq(NCOT_UUID_NODE1, uuidstring);
+	free(uuidstring);
+	uuidstring=NULL;
+	node = node->next;
+	ret = uuid_export(node->uuid, UUID_FMT_STR, &uuidstring, NULL);
+	ck_assert(ret == UUID_RC_OK);
+	ck_assert_str_eq(NCOT_UUID_NODE2, uuidstring);
+
+	/* Set an output file for automatic context saving */
 	context->arguments = calloc(1, sizeof(struct ncot_arguments));
 	context->arguments->config_file = NCOT_JSON_OUTPUT;
 	ncot_context_free(&context);

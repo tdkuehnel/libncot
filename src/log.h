@@ -42,10 +42,12 @@ extern ncot_log_flush_pointer log_buffer_flush_ptr;
 #define NCOT_LOG_INFO(fmt, ...) NCOT_LOG(NCOT_LOG_LEVEL_INFO, fmt, ## __VA_ARGS__);
 #define NCOT_LOG_ERROR(fmt, ...) NCOT_LOG(NCOT_LOG_LEVEL_ERROR, fmt, ## __VA_ARGS__);
 #define NCOT_LOG_WARNING(fmt, ...) NCOT_LOG(NCOT_LOG_LEVEL_WARNING, fmt, ## __VA_ARGS__);
+#define NCOT_LOG_WARNING_IF_ERROR(err, fmt, ...) if(err==-1) {NCOT_LOG_WARNING(fmt, ## __VA_ARGS__)}
 
 #define NCOT_LOG_INFO_BUFFERED(fmt, ...) NCOT_LOG_BUFFERED(NCOT_LOG_LEVEL_INFO, fmt, ## __VA_ARGS__);
 /*#define NCOT_LOG_INFO_BUFFERED(fmt, ...) if (log_buffered_ptr != NULL) { (*log_buffered_ptr)(NCOT_LOG_LEVEL_INFO, fmt,  ## __VA_ARGS__); }*/
 #define NCOT_LOG_INFO_BUFFER_FLUSH() if (log_buffered_ptr != NULL) { (*log_buffer_flush_ptr)(); }
+
 
 void ncot_log_init(int level);
 int ncot_log_set_logfile(const char *filename);
