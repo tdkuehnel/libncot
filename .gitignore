@@ -64,3 +64,9 @@ tests/context_output.json
 ncot_config.json
 ncot.log
 avatar.txt
+docs/latex
+docs/html
+docs/doxyfile.stamp
+docs/doxyfile.bak
+docs/Doxyfile.bak
+docs/Doxyfile

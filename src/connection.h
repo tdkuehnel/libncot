@@ -15,13 +15,15 @@
 #include "context.h"
 #include "packet.h"
 
-/* A connection is a securely encrypted TCP connection. As the whole
-   thing is to provide a working proof of concept, we need encrypted
-   connections right from the beginning. There were thoughts of
-   implementing the principle of rings and nodes with unsecure tcp
-   connections to get a running sample more quick, but the decision
-   was made to implement with secure connections (and all the involved
-   overhead) just from the beginning.
+/** \struct ncot_connection
+   A connection is a securely encrypted TCP
+   connection. As the whole thing is to provide a working proof of
+   concept, we need encrypted connections right from the
+   beginning. There were thoughts of implementing the principle of
+   rings and nodes with unsecure tcp connections to get a running
+   sample more quick, but the decision was made to implement with
+   secure connections (and all the involved overhead) just from the
+   beginning.
 
    We start with GnuTLS as the crypto library. It is simple to use and
    provides TOFU (trust on first use) secure connection establishment
@@ -50,19 +52,19 @@
    the server in terms of the GnuTLS library implementation.
 */
 
-/* For the proof on concept working sample, and until we have a UI for
+/** For the proof on concept working sample, and until we have a UI for
  * its input, we use this hard coded PSK */
 #define SECRET_KEY "THIS IS THE PRE-SHARED SECRET KEY"
 
 /* We try to stick to the linux kernel coding style */
 
-/* Maximum pending listen queue length */
+/** Maximum pending listen queue length */
 #define LISTEN_BACKLOG 12
 
-/* Default buffsize of the connection buffer for read/write data */
+/** Default buffsize of the connection buffer for read/write data */
 #define NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH 1024
 
-/* This is for quick distinction between the three possible connection
+/** This is for quick distinction between the three possible connection
    types */
 enum ncot_connection_type {
 
@@ -82,7 +84,7 @@ enum ncot_connection_type {
 	NCOT_CONN_INITIATE
 };
 
-/* We will see if we need this at all. Is for quick determination whats
+/** We will see if we need this at all. Is for quick determination whats
    up with the conn */
 enum ncot_connection_status {
 	NCOT_CONN_AVAILABLE,
@@ -92,36 +94,36 @@ enum ncot_connection_status {
 	NCOT_CONN_INIT
 };
 
-/* The default chunksize we start of transmitting with */
+/** The default chunksize we start of transmitting with */
 #define NCOT_DEFAULT_CHUNKSIZE 2048
 
-/* The conn struct itself. Content taken from one of the examples of
-   the GnuTLS package. */
 struct ncot_connection;
+/** The conn struct itself. Content taken from one of the examples of
+    the GnuTLS package. */
 struct ncot_connection {
-	/* Pointer for connection lists handling */
+	/** Pointer for connection lists handling */
 	struct ncot_connection *prev;
 	struct ncot_connection *next;
-	/* This is our socket fd*/
+	/** This is our socket fd*/
 	int sd;
-	/* A connections originates either from listening as server or
-	 * connectiong as a client. The peer address goes into the
+	/** A connections originates either from listening as server
+	 * or connectiong as a client. The peer address goes into the
 	 * other unsused structure respectively. */
 	struct sockaddr_in sa_server;
 	struct sockaddr_in sa_client;
 	struct sockaddr client;
 	socklen_t client_len;
-	/* Our buffers for packet handling */
+	/** Our buffers for packet handling */
 	char buffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
 	char readbuffer[NCOT_CONNECTION_BUFFER_DEFAULT_LENGTH];
 	char *readpointer;
-	/* Simple packet queue as utlist */
+	/** Simple packet queue as utlist */
 	struct ncot_packet *packetlist;
 	struct ncot_packet *readpacketlist;
-	/* Max amount to send in on try. Packages may be split up
+	/** Max amount to send in on try. Packages may be split up
 	 * which ma be reflected in smaller chunksize. */
 	int chunksize;
-	/* GnuTLS stuff */
+	/** GnuTLS stuff */
 	gnutls_session_t session;
 	gnutls_anon_server_credentials_t servercred;
 	gnutls_anon_client_credentials_t clientcred;
@@ -130,14 +132,14 @@ struct ncot_connection {
 	int pskclientcredentialsallocated;
 	int pskservercredentialsallocated;
 	gnutls_datum_t key;
-	/* Our type */
+	/** Our type */
 	enum ncot_connection_type type;
-	/* status */
+	/** status */
 	enum ncot_connection_status status;
-	/* setsockopt argument. (Does it need to be here?) */
+	/** setsockopt argument. (Does it need to be here?) */
 	int optval;
 	int authenticated;
-	/* json object needed for storing/loading from config file */
+	/** json object needed for storing/loading from config file */
 	struct json_object *json;
 };
 

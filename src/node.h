@@ -6,7 +6,8 @@
 
 #include "connection.h"
 
-/* A node is a possible participant in a circle of other nodes. Every
+struct ncot_node;
+/*!A node is a possible participant in a circle of other nodes. Every
    node has three possible encrypted connections, two connections for
    each direction of the ring it possibly participates in, and one for
    incoming participating requests from other, untrusted nodes. A node
@@ -112,8 +113,6 @@
    place where any interconnection communication between rings
    occurs.
 */
-
-struct ncot_node;
 struct ncot_node {
 	struct ncot_connection *connections;
 	struct uuid_st *uuid;
@@ -122,11 +121,20 @@ struct ncot_node {
 	struct json_object *json;
 };
 
+/**Serialize a node into a json representation.*/
 void ncot_node_save(struct ncot_node *node, struct json_object *parent);
+/** Create a new, empty node*/
 struct ncot_node *ncot_node_new();
+/** Free the node pointed to by pnode, and set its pointer to
+ * NULL. Note the extra indirection. */
 void ncot_node_free(struct ncot_node **pnode);
+/** This is still unused at the moment. */
 void ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *connection);
+/** Init the provided node structure. At the moment only generates a
+ * new uuid. */
 void ncot_node_init(struct ncot_node *node);
+/** Create a new node and read some node data and connection
+ * information from the provided json object */
 struct ncot_node* ncot_nodes_new_from_json(struct json_object *jsonobj);
 
 #endif
