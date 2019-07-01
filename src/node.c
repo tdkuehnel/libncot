@@ -16,7 +16,9 @@ ncot_node_save(struct ncot_node *node, struct json_object *parent)
 	char *string =  NULL;
 	struct json_object *json;
 	struct sockaddr_in *sockaddr;
-
+	struct json_object *jsonobj;
+	struct json_object *jsonarray;
+	struct ncot_connection *connection;
 	ret = uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
 	if (ret != UUID_RC_OK) {
 		NCOT_LOG_ERROR("ncot_node_save: unable to convert uuid, aborting save.\n");
@@ -25,6 +27,17 @@ ncot_node_save(struct ncot_node *node, struct json_object *parent)
 	node->json = json_object_new_string(string);
 	json_object_object_add_ex(parent, "uuid", node->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
 
+	jsonarray = json_object_new_array();
+	connection = node->connections;
+	while (connection) {
+		jsonobj = json_object_new_object();
+		ncot_connection_save(connection, jsonobj);
+		json_object_array_add(jsonarray, jsonobj);
+		connection = connection->next;
+		NCOT_LOG_VERBOSE("ncot_node_save: saved a connections\n");
+	}
+	json_object_object_add_ex(parent, "connections", jsonarray, JSON_C_OBJECT_KEY_IS_CONSTANT);
+	NCOT_LOG_VERBOSE("ncot_node_save: node saved\n");
 }
 
 /* Load nodes from json object, concat as a list and return list
