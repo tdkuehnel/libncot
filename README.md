@@ -3,7 +3,7 @@ libncot	                     {#mainpage}
 
 Network of Trust
 ----------------
-For information about nodes and rings of trust refer for example to the documentation of the struct ncot_node.
+For information about nodes and rings of trust refer for example to the documentation of the struct ncot_node or refer directly to src/node.h.
 
 libncot aims to help you to regain control over your data which may be scattered all over the Internet in untrusted locations. Huge centralized structures like social media sites, content aggregatores, search engines, cloud services only provide you with something you can do easily by yourself.
 
