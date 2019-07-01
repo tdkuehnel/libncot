@@ -12,7 +12,8 @@ without warranty of any kind.
 Basic Installation
 ==================
 
-   You need to run autoreconf -i beforehand.
+   You need to run autoreconf -i beforehand. Until we have a working
+proof of concept sample we do not provide tarballs.
 
    Briefly, the shell command `./configure && make && make install'
 should configure, build, and install this package.  The following
