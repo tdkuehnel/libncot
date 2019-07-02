@@ -2,7 +2,7 @@ TESTS = check_helper check_packet check_node check_connection check_ncot check_s
 check_PROGRAMS = check_helper check_ncot check_node check_connection check_packet check_shell check_context server client
 #check_PROGRAMS = check_context server client
 
-test_sources = ../src/ncot.h ../src/log.c ../src/connection.c ../src/context.c ../src/node.c ../src/packet.c ../src/  ../src/arg.c ../src/init.c ../src/select.c ../src/shell.c ../src/identity.c
+test_sources = ../src/ncot.h ../src/log.c ../src/connection.c ../src/context.c ../src/node.c ../src/packet.c ../src/  ../src/arg.c ../src/init.c ../src/select.c ../src/shell.c ../src/identity.c ../src/shell_context.c ../src/shell_connection.c ../src/shell_identity.c ../src/shell_node.c
 
 check_helper_SOURCES = check_helper.c ${test_sources}
 check_helper_CFLAGS = @CHECK_CFLAGS@

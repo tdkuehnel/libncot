@@ -8,6 +8,15 @@
 #define DEFAULT_SHELLPROMPT ANSI_COLOR_GREEN"ncot"ANSI_COLOR_RED">"ANSI_COLOR_RESET
 #define NCOT_SHELL_BUFLEN 2048
 #define NCOT_SHELL_HISTORY_MAX_COMMANDS 128
+#define NCOT_MAX_COMMAND_LEN 1024
+
+#ifdef _WIN32
+extern char* stringptr;
+extern int ret;
+#define DPRINTF(fd, fmt, ...) {ret = sprintf(stringptr, fmt, ## __VA_ARGS__);if (ret > 0) write(fd, &string, ret);}
+#else
+#define DPRINTF(fd, fmt, ...) {dprintf(fd, fmt, ## __VA_ARGS__);}
+#endif
 
 enum ncot_shell_type {
 	NCOT_SHELL_TYPE_TTY,
@@ -54,6 +63,17 @@ void ncot_shell_free(struct ncot_shell **pshell);
 int ncot_shell_handle_buffer(struct ncot_context *context);
 int ncot_shell_read_input(struct ncot_context *context);
 void ncot_shell_print_prompt(struct ncot_shell *shell);
+void ncot_shell_print_help(struct ncot_context *context, char *command, char *base);
 void ncot_shell_print_hexdump (struct ncot_shell *shell, void *addr, int len);
+
+void ncot_shell_push_command(struct ncot_context *context, char *command);
+
+void ncot_shell_handle_context(struct ncot_context *context, char *command, char *base);
+void ncot_shell_handle_connection(struct ncot_context *context, char *command, char *base);
+void ncot_shell_handle_identity(struct ncot_context *context, char *command, char *base);
+void ncot_shell_handle_node(struct ncot_context *context, char *command, char *base);
+
+void ncot_shell_identity_list(struct ncot_context *context);
+void ncot_shell_nodes_list(struct ncot_context *context);
 
 #endif

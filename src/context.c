@@ -71,7 +71,7 @@ ncot_context_init_base(struct ncot_context *context)
 	} else {
 		NCOT_LOG_WARNING("Invalid context passed to ncot_context_init_base\n");
 	}
-	NCOT_LOG_INFO("New ncot context initialized\n");
+	NCOT_LOG_VERBOSE("context basic initialization\n");
 }
 
 /* This is called when there is no config file available. We need to
@@ -129,7 +129,7 @@ ncot_context_init_from_file(struct ncot_context *context, const char* filename)
 		NCOT_LOG_ERROR("ncot_context_init_from_file: Error parsing internal fields from json");
 		return NCOT_ERROR;
 	}
-	NCOT_LOG_VERBOSE("ncot_context_init_from_json: Ok.\n");
+	NCOT_LOG_INFO("context loaded from file: %s.\n", filename);
 	return NCOT_SUCCESS;
 }
 
