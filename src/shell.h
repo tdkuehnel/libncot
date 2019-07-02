@@ -3,6 +3,7 @@
 
 #include "packet.h"
 #include "context.h"
+
 #include "log.h"
 
 #define DEFAULT_SHELLPROMPT ANSI_COLOR_GREEN"ncot"ANSI_COLOR_RED">"ANSI_COLOR_RESET

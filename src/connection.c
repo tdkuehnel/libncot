@@ -26,6 +26,25 @@ ncot_connection_new_from_json(struct json_object *jsonobj)
 {
 }
 
+struct ncot_connection*
+ncot_connections_new_from_json(struct json_object *jsonobj)
+{
+	struct ncot_connection *connection;
+	struct ncot_connection *connectionlist = NULL;
+	struct json_object *jsonnode;
+	int numconnections;
+	int i;
+	numconnections = json_object_array_length(jsonobj);
+	for (i=0; i<numconnections; i++) {
+		jsonnode = json_object_array_get_idx(jsonobj, i);
+		connection = ncot_connection_new();
+		ncot_connection_init(connection, NCOT_CONN_NODE);
+		DL_APPEND(connectionlist, connection);
+	}
+	return connectionlist;
+
+}
+
 /* Saving a connection makes sense only when it has information about
  * a peer. Do we really need to store own ip-address, port number ?
  * Don't think so at the moment, but who knows.*/

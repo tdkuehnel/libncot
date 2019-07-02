@@ -121,6 +121,10 @@ struct ncot_node {
 	struct json_object *json;
 };
 
+/** Having only three connections per node is an important design
+ * priciple of the whole ncot approach. */
+#define NCOT_NODE_CONNECTION_COUNT 3
+
 /**Serialize a node into a json representation.*/
 void ncot_node_save(struct ncot_node *node, struct json_object *parent);
 /** Create a new, empty node*/

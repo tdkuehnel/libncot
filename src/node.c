@@ -49,6 +49,7 @@ ncot_nodes_new_from_json(struct json_object *jsonobj)
 	struct ncot_node *nodelist = NULL;
 	struct json_object *jsonnode;
 	struct json_object *jsonvalue;
+	struct json_object *jsonarray;
 	const char *string;
 	int ret;
 	int numnodes;
@@ -71,6 +72,14 @@ ncot_nodes_new_from_json(struct json_object *jsonobj)
 			ncot_node_free(&node);
 			continue;
 		}
+		ret = json_object_object_get_ex(jsonnode, "connections", &jsonarray);
+		if (ret) {
+			NCOT_DEBUG("ncot_nodes_new_from_json: connections found\n");
+			node->connections = ncot_connections_new_from_json(jsonarray);
+		} else {
+			NCOT_LOG_WARNING("ncot_nodes_new_from_json: no connection information found. Initialize with empty ones.\n");
+			/* TODO: create proper empty connections for this node */
+		}
 		DL_APPEND(nodelist, node);
 		node = NULL;
 	}
@@ -85,11 +94,30 @@ ncot_node_new()
 	return node;
 }
 
+
+/** A node may get passed with pre init fields here, so only fill in
+ * the missing data */
 void
 ncot_node_init(struct ncot_node *node) {
+	struct ncot_connection *connection;
+	int i;
 	if (node) {
-		uuid_create(&node->uuid);
-		uuid_make(node->uuid, UUID_MAKE_V1);
+		if (!node->uuid) {
+			uuid_create(&node->uuid);
+			uuid_make(node->uuid, UUID_MAKE_V1);
+		}
+		if (!node->connections) {
+			/* Create some dangling connections */
+			for (i=0; i<NCOT_NODE_CONNECTION_COUNT; i++) {
+				connection = ncot_connection_new();
+				if (!connection) {
+					NCOT_LOG_WARNING("out of mem during connection creation.\n");
+					break;
+				}
+				ncot_connection_init(connection, NCOT_CONN_NODE);
+				DL_APPEND(node->connections, connection);
+			}
+		}
 	} else {
 		NCOT_LOG_WARNING("Invalid node passed to ncot_node_init\n");
 	}

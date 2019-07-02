@@ -32,8 +32,7 @@ void ncot_shell_identity_list(struct ncot_context *context)
 		DPRINTF(context->shell->writefd, "unable to read uuid\n");
 		return;
 	}
-	DPRINTF(context->shell->writefd, "Identity with uuid: %s\n", string);
-
+	DPRINTF(context->shell->writefd, "Identity with uuid: %s\n%s\n%s\n", string, context->identity->name, context->identity->avatar);
 }
 
 void ncot_shell_identity_create(struct ncot_context *context)

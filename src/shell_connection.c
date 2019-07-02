@@ -19,6 +19,49 @@
 #include "error.h"
 
 void
+ncot_shell_connection_list(struct ncot_context *context, struct ncot_connection *connection)
+{
+	char *type;
+	char *status;
+	switch (connection->type) {
+	case NCOT_CONN_CONTROL:
+		type = "CONTROL";
+		break;
+	case NCOT_CONN_NODE:
+		type = "NODE";
+		break;
+	case NCOT_CONN_INCOMING:
+		type = "INCOMING";
+		break;
+	case NCOT_CONN_INITIATE:
+		type = "INITIATE";
+		break;
+	default:
+		type = "<unknwon>";
+	}
+	switch (connection->status) {
+	case NCOT_CONN_AVAILABLE:
+		status = "AVAILABLE";
+		break;
+	case NCOT_CONN_CONNECTED:
+		status = "CONNECTED";
+		break;
+	case NCOT_CONN_LISTEN:
+		status = "LISTEN";
+		break;
+	case NCOT_CONN_BOUND:
+		status = "BOUND";
+		break;
+	case NCOT_CONN_INIT:
+		status = "INIT";
+		break;
+	default:
+		status = "<unknown>";
+	}
+	DPRINTF(context->shell->writefd, "connection at 0x%0x: %s %s\n", connection, type, status);
+}
+
+void
 ncot_shell_handle_connection(struct ncot_context *context, char *command, char *base)
 {
 	struct ncot_shell *shell;

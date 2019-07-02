@@ -14,6 +14,7 @@
 #endif
 
 #include "shell.h"
+#include "shell_connection.h"
 #include "node.h"
 #include "utlist.h"
 
@@ -37,9 +38,15 @@ void ncot_shell_node_create(struct ncot_context *context)
 void ncot_shell_node_list(struct ncot_context *context, struct ncot_node *node)
 {
 	const char *string = NULL;
+	struct ncot_connection *connection;
 	uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
 	DPRINTF(context->shell->writefd, "Node with uuid: %s\n", string);
-	
+	connection = node->connections;
+	if (!connection) DPRINTF(context->shell->writefd, "<no connections>\n");
+	while (connection) {
+		ncot_shell_connection_list(context, connection);
+		connection = connection->next;
+	}
 }
 
 void ncot_shell_nodes_list(struct ncot_context *context)
@@ -83,6 +90,46 @@ void ncot_shell_nodes_list(struct ncot_context *context)
 }
 
 void
+ncot_shell_node_handle_delete(struct ncot_context *context)
+{
+	struct ncot_shell *shell;
+	struct ncot_node *node;
+	const char *string;
+	char *token;
+	int found = 0;
+
+	shell = context->shell;
+	node = context->globalnodelist;
+	token = strtok(NULL, " ");
+	if (!node) {
+		DPRINTF(context->shell->writefd, "no nodes in global nodelist\n");
+		return;
+	}
+	if (token) {
+		/* Try to find a matching node */
+		while (node && !found) {
+			string = NULL;
+			uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
+			if (strncmp(token, string, strlen(token)) == 0) {
+				found = 1;
+				break;
+			}
+			node = node->next;
+		}
+		if (!found) {
+			DPRINTF(shell->writefd, "unknown node %s... \n", token);
+		} else {
+			DL_DELETE(context->globalnodelist, node);
+			ncot_node_free(&node);
+			DPRINTF(shell->writefd, "node %s deleted\n", string);
+		}
+	} else {
+		/* Without a token display some info */
+		DPRINTF(context->shell->writefd, "no node to delete specified\n");
+	}
+}
+
+void
 ncot_shell_handle_node(struct ncot_context *context, char *command, char *base)
 {
 	struct ncot_shell *shell;
@@ -96,11 +143,11 @@ ncot_shell_handle_node(struct ncot_context *context, char *command, char *base)
 			valid = 1;
 		}
 		if (!strcmp(token, "list")) {
-			valid = 1;
 			ncot_shell_nodes_list(context);
+			valid = 1;
 		}
 		if (!strcmp(token, "delete")) {
-			DPRINTF(shell->writefd, "delete node\n");
+			ncot_shell_node_handle_delete(context);
 			valid = 1;
 		}
 		if (!valid)

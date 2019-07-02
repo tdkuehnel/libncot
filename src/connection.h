@@ -145,6 +145,7 @@ struct ncot_connection {
 
 struct ncot_connection *ncot_connection_new();
 struct ncot_connection* ncot_connection_new_from_json(struct json_object *jsonobj);
+struct ncot_connection* ncot_connections_new_from_json(struct json_object *jsonobj);
 void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
 void ncot_connection_save(struct ncot_connection *connection, struct json_object *parent);
 int ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port);
