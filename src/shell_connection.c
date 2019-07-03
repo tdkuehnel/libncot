@@ -58,7 +58,7 @@ ncot_shell_connection_list(struct ncot_context *context, struct ncot_connection 
 	default:
 		status = "<unknown>";
 	}
-	DPRINTF(context->shell->writefd, "connection at 0x%0x: %s %s\n", connection, type, status);
+	DPRINTF(context->shell->writefd, "connection at 0x%0x: type: %s status: %s\n", connection, type, status);
 }
 
 void

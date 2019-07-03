@@ -51,6 +51,7 @@ extern ncot_log_flush_pointer log_buffer_flush_ptr;
 
 void ncot_log_init(int level);
 int ncot_log_set_logfile(const char *filename);
+void ncot_log_set_loglevel(int loglevel);
 void ncot_log_done();
 
 /* Our different log functions */

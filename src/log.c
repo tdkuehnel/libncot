@@ -201,6 +201,12 @@ ncot_log_printf_buffer_flush()
 {
 }
 
+void
+ncot_log_set_loglevel(int loglevel)
+{
+	ncot_log_level = loglevel;
+}
+
 int
 ncot_log_set_logfile(const char *filename)
 {
@@ -216,7 +222,7 @@ ncot_log_set_logfile(const char *filename)
 	if (strlen(filename) != 0) {
 		fd = creat(filename, S_IRWXU);
 		if (fd < 0) {
-			NCOT_LOG_ERROR( "invalid logfilename: %s, %s\n", filename, strerror(errno));
+			NCOT_LOG_ERROR( "ncot_log_set_logfile: invalid logfilename %s, %s\n", filename, strerror(errno));
 			return -1;
 		}
 		close(fd);
@@ -225,7 +231,7 @@ ncot_log_set_logfile(const char *filename)
 		log_buffered_ptr = &ncot_log_logfile_buffered;
 		log_buffer_flush_ptr = &ncot_log_logfile_buffer_flush;
 	} else {
-		NCOT_LOG_ERROR( "invalid empty logfilename.\n");
+		NCOT_LOG_ERROR( "ncot_log_set_logfile: invalid empty logfilename.\n");
 		return -1;
 	}
 	return 0;

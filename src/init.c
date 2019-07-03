@@ -69,9 +69,9 @@ ncot_socket_pair(int *fd1, int *fd2)
 #endif
 
 void
-ncot_init(int log_level)
+ncot_init()
 {
-	ncot_log_init(log_level * 8);
+	ncot_log_init(NCOT_LOG_LEVEL_DEFAULT);
 
 	/* During tests we like to log to different files which is set
 	 * up later by ncot_log_set_logfile. This startup message

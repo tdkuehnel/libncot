@@ -43,7 +43,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	/* fill in default values */
 	/* FIXME: take ncot.conf path from configure values */
 	arguments->config_file = "ncot_config.json";
-	arguments->log_level = 4; /* NCOT_LOG_LEVEL_DEFAULT */
+	arguments->log_level = NCOT_LOG_LEVEL_DEFAULT; /* NCOT_LOG_LEVEL_DEFAULT */
 	arguments->pidfile_name = "ncotd.pid";
 	arguments->logfile_name = "";
 	arguments->address_ip4 = "127.0.0.1";
@@ -105,7 +105,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	poptFreeContext(optCon);
 
 	NCOT_DEBUG ("OUTPUT_FILE = %s\n"
-		"VERBOSE = %s\nSILENT = %s\nLOG_LEVEL = %d LOG_FILE = %s\n\n",
+		"VERBOSE = %s\nSILENT = %s\nLOG_LEVEL = %d\nLOG_FILE = %s\n\n",
 		arguments->config_file,
 		arguments->verbose ? "yes" : "no",
 		arguments->silent ? "yes" : "no",

@@ -133,6 +133,7 @@ main(int argc, char **argv)
 	if (old_action.sa_handler != SIG_IGN)
 		sigaction (SIGTERM, &new_action, NULL);
 #endif
+	ncot_init();
 	context = ncot_context_new();
 	arguments = calloc(1, sizeof(struct ncot_arguments));
 	if (ncot_arg_parse(arguments, argc, argv)) {
@@ -140,8 +141,9 @@ main(int argc, char **argv)
 		return 1;
 	}
 	context->arguments = arguments;
-	ncot_init(context->arguments->log_level);
-	ncot_log_set_logfile(context->arguments->logfile_name);
+	if (context->arguments->logfile_name[0] != '\0')
+		ncot_log_set_logfile(context->arguments->logfile_name);
+	ncot_log_set_loglevel(context->arguments->log_level);
 #ifdef _WIN32
 	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client");
 #else

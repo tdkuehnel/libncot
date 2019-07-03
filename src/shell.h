@@ -6,7 +6,18 @@
 
 #include "log.h"
 
-#define DEFAULT_SHELLPROMPT ANSI_COLOR_GREEN"ncot"ANSI_COLOR_RED">"ANSI_COLOR_RESET
+#ifdef _WIN32
+#define DEFAULT_SHELLPROMPT_START "ncot"
+#define DEFAULT_SHELLPROMPT_INTERACTIVE_START "ncot:"
+#define DEFAULT_SHELLPROMPT_INTERACTIVE ":"
+#define DEFAULT_SHELLPROMPT_END ">"
+#else
+#define DEFAULT_SHELLPROMPT_START ANSI_COLOR_GREEN"ncot"ANSI_COLOR_RESET
+#define DEFAULT_SHELLPROMPT_INTERACTIVE_START ANSI_COLOR_GREEN"ncot:"ANSI_COLOR_RESET
+#define DEFAULT_SHELLPROMPT_INTERACTIVE ANSI_COLOR_GREEN":"ANSI_COLOR_RESET
+#define DEFAULT_SHELLPROMPT_END ANSI_COLOR_RED">"ANSI_COLOR_RESET
+#endif
+
 #define NCOT_SHELL_BUFLEN 2048
 #define NCOT_SHELL_HISTORY_MAX_COMMANDS 128
 #define NCOT_MAX_COMMAND_LEN 1024
@@ -45,6 +56,8 @@ struct ncot_shell {
 
 	/* shell prompt string */
 	char *prompt;
+	char *promptend;
+	char *promptinteractive;
 
 	/* shell input buffer */
 	char buffer[NCOT_SHELL_BUFLEN];
@@ -52,9 +65,26 @@ struct ncot_shell {
 
 	/* We provide a struct ncot_packet for convenience */
 	struct ncot_packet packet;
-	struct ncot_command_line *commandlines;
-	struct ncot_command_line *current;
-	int commands;
+	/* This is for our (not yet implemented) history functionality */
+	struct ncot_command_line *commandlines; /* Circular list of history commandlines */
+	struct ncot_command_line *current; /* Current selected one */
+	int commands; /* Convinience counter for len of history circular ringbuffer*/
+
+        /* If nonzero we are currently awaiting read in user interaction */
+	int incommand;
+
+	/* Where to process further action */
+	void (*proceed_command)(struct ncot_context *context, char *command);
+
+	/* Interactive data */
+	void *data;
+	void *subdata;
+	
+	/* Currently to display user interaction text */
+	char interactivetext[NCOT_SHELL_BUFLEN];
+
+        /* We hold a current node sometimes */
+	struct ncot_node *currentnode;
 };
 
 struct ncot_shell *ncot_shell_new();
@@ -73,8 +103,10 @@ void ncot_shell_handle_context(struct ncot_context *context, char *command, char
 void ncot_shell_handle_connection(struct ncot_context *context, char *command, char *base);
 void ncot_shell_handle_identity(struct ncot_context *context, char *command, char *base);
 void ncot_shell_handle_node(struct ncot_context *context, char *command, char *base);
+void ncot_shell_handle_hexdump(struct ncot_context *context, char *command, char *base);
 
 void ncot_shell_identity_list(struct ncot_context *context);
 void ncot_shell_nodes_list(struct ncot_context *context);
 
+void ncot_shell_handle_interaction(struct ncot_shell *shell, char *text, void (*proceed_command)(struct ncot_context *context, char *command), void *data);
 #endif

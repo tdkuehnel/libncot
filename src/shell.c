@@ -27,18 +27,31 @@ int ret;
 #endif
 
 void
-ncot_shell_handle_hexdump(struct ncot_context *context, char *command, char *base)
+ncot_shell_handle_interaction(struct ncot_shell *shell, char *text, void (*proceed_command)(struct ncot_context *context, char *command), void *data)
+{
+	shell->proceed_command = proceed_command;
+	shell->incommand = 1;
+	if (data) shell->data = data; /* Only needed to set once on first call during a sequence */
+	strncpy(shell->interactivetext, text, strlen(text));
+	return;
+}
+
+void
+ncot_shell_handle_info(struct ncot_context *context, char *command, char *base)
 {
 	struct ncot_shell *shell;
-	char *token;
-	int valid = 0;
+	const char *string = NULL;
+	char *name = "<no identity>";
+	char *node = "<empty>";
 	shell = context->shell;
-	token = strtok(NULL, " ");
-	if (token) {
-		ncot_shell_print_hexdump(shell, token, strlen(token));
-	} else {
-		DPRINTF(shell->writefd, "nothing specified\n");
+	if (context->identity)
+		name = context->identity->name;
+	if (shell->currentnode) {
+		uuid_export(shell->currentnode->uuid, UUID_FMT_STR, &string, NULL);
+		node = (char*)string;
 	}
+
+	DPRINTF(shell->writefd, "Info: name: %s - current node: %s\n", name, node);
 }
 
 void
@@ -51,6 +64,7 @@ ncot_shell_print_help(struct ncot_context *context, char *command, char *base)
 	DPRINTF(shell->writefd, "          connection\n");
 	DPRINTF(shell->writefd, "          context\n");
 	DPRINTF(shell->writefd, "          quit\n");
+	DPRINTF(shell->writefd, "          info\n");
 	DPRINTF(shell->writefd, "          help\n");
 }
 
@@ -77,6 +91,8 @@ ncot_shell_push_command(struct ncot_context *context, char *command)
 	}
 }
 
+/** We have a complete command line read in. Let's handle it. Can be
+ * interactive requested user input, too. */
 int
 ncot_shell_handle_command(struct ncot_context *context, char *command)
 {
@@ -86,6 +102,10 @@ ncot_shell_handle_command(struct ncot_context *context, char *command)
 	int ret = 0;
 	shell = context->shell;
 	token = strtok(command, " ");
+	if (shell->incommand && shell->proceed_command) {
+		shell->proceed_command(context, command);
+		return ret;
+	}
 	/*DPRINTF(shell->writefd, "token: %s\n", token);*/
 	if (token) {
 		if (!strcmp(token, "identity")) {
@@ -94,6 +114,10 @@ ncot_shell_handle_command(struct ncot_context *context, char *command)
 		}
 		if (!strcmp(token, "node")) {
 			ncot_shell_handle_node(context, command, token);
+			valid = 1;
+		}
+		if (!strcmp(token, "info")) {
+			ncot_shell_handle_info(context, command, token);
 			valid = 1;
 		}
 		if (!strcmp(token, "connection")) {
@@ -122,6 +146,10 @@ ncot_shell_handle_command(struct ncot_context *context, char *command)
 	return ret;
 }
 
+/** Handle the bytes read into the input buffer. When there is a whole
+ * command read (up to and including the newline character), process
+ * the command. The new input can be read in parameters asked from the
+ * user to type in in interactive commands, too. */
 int
 ncot_shell_handle_buffer(struct ncot_context *context)
 {
@@ -169,6 +197,10 @@ ncot_shell_handle_buffer(struct ncot_context *context)
 	return res;
 }
 
+
+/** Depending on the shell type read in up to NCOT_SHELL_BUFLEN
+ * bytes. Don't care when there are more bytes left to read, as we get
+ * called again by our select loop */
 int
 ncot_shell_read_input(struct ncot_context *context)
 {
@@ -197,7 +229,11 @@ ncot_shell_read_input(struct ncot_context *context)
 void
 ncot_shell_print_prompt(struct ncot_shell *shell)
 {
-	DPRINTF(shell->writefd, "%s", shell->prompt);
+	if (shell->incommand) {
+		DPRINTF(shell->writefd, "%s%s %s", shell->promptinteractive, shell->promptend, shell->interactivetext);
+	} else {
+		DPRINTF(shell->writefd, "%s%s", shell->prompt, shell->promptend);
+	}
 }
 
 struct ncot_shell*
@@ -212,7 +248,9 @@ void
 ncot_shell_init(struct ncot_shell *shell)
 {
 	if (shell) {
-		shell->prompt = DEFAULT_SHELLPROMPT;
+		shell->prompt = DEFAULT_SHELLPROMPT_START;
+		shell->promptinteractive = DEFAULT_SHELLPROMPT_INTERACTIVE;
+		shell->promptend = DEFAULT_SHELLPROMPT_END;
 		shell->readfd = STDIN_FILENO;
 		shell->writefd = STDOUT_FILENO;
 		shell->pbuffer = shell->buffer;
@@ -282,3 +320,19 @@ ncot_shell_print_hexdump (struct ncot_shell *shell, void *addr, int len)
 	// And print the final ASCII bit.
 	DPRINTF(fd, "  %s\n", buff);
 }
+
+void
+ncot_shell_handle_hexdump(struct ncot_context *context, char *command, char *base)
+{
+	struct ncot_shell *shell;
+	char *token;
+	int valid = 0;
+	shell = context->shell;
+	token = strtok(NULL, " ");
+	if (token) {
+		ncot_shell_print_hexdump(shell, token, strlen(token));
+	} else {
+		DPRINTF(shell->writefd, "nothing specified\n");
+	}
+}
+

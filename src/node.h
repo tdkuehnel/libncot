@@ -140,6 +140,7 @@ void ncot_node_init(struct ncot_node *node);
 /** Create a new node and read some node data and connection
  * information from the provided json object */
 struct ncot_node* ncot_nodes_new_from_json(struct json_object *jsonobj);
-
+/** Determine if a node is connected to any peer */
+int ncot_node_is_connected(struct ncot_node *node);
 #endif
 

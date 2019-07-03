@@ -4,11 +4,32 @@
 #include "log.h"
 #include "utlist.h"
 #include "debug.h"
+#include "error.h"
 
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 1
+#define DEBUG 0
+
+int
+ncot_node_is_connected(struct ncot_node *node)
+{
+	struct ncot_connection *connection;
+	int found = 0;
+	RETURN_FAIL_IF_NULL(node, "ncot_node_is_connected: invalid node parameter\n");
+	if (!node->connections) {
+		NCOT_LOG_WARNING("ncot_node_is_connected: node without connections encountered\n");
+		return NCOT_ERROR;
+	}
+	connection = node->connections;
+	while (connection) {
+		if (connection->status == NCOT_CONN_CONNECTED)
+			found = 1;
+		connection = connection->next;
+	}
+	return found;
+}
+
 void
 ncot_node_save(struct ncot_node *node, struct json_object *parent)
 {
