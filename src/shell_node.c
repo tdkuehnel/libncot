@@ -108,7 +108,12 @@ ncot_shell_node_handle_connect_3(struct ncot_context *context, char *command)
 	/* See if we can use the data read from the user. For now we
 	 * read in our port, too */
 	if (command[0] == '\0') {
+		shell->incommand = 0;
+		shell->proceed_command = NULL;
+		shell->data = NULL;
+		shell->interactivetext[0] = '\0';
 		free(shell->subdata);
+		DPRINTF(shell->writefd, "command aborted.\n");
 		return;
 	}
 	ret = ncot_connection_connect(context, (struct ncot_connection*)shell->data, command, (char*)shell->subdata);
@@ -126,10 +131,17 @@ ncot_shell_node_handle_connect_2(struct ncot_context *context, char *command)
 	shell = context->shell;
 	/* See if we can use the data read from the user. For now we
 	 * read in our port, too */
-	if (command[0] == '\0') return;
+	if (command[0] == '\0') {
+		shell->incommand = 0;
+		shell->proceed_command = NULL;
+		shell->data = NULL;
+		shell->interactivetext[0] = '\0';
+		DPRINTF(shell->writefd, "command aborted.\n");
+		return;
+	}
 	shell->subdata = malloc(strlen(command) + 1);
 	strncpy(shell->subdata, command, strlen(command) + 1);
-	ncot_shell_handle_interaction(shell, "Enter Port to connect to:", ncot_shell_node_handle_connect_3, NULL);
+	ncot_shell_handle_interaction(shell, "Enter Port to connect to", ncot_shell_node_handle_connect_3, NULL);
 }
 
 void
@@ -189,7 +201,7 @@ ncot_shell_node_handle_connect(struct ncot_context *context)
 		connection = connection->next;
 	}
 	if (found) {
-		ncot_shell_handle_interaction(shell, "Enter IP Address to connect to:", ncot_shell_node_handle_connect_2, (void*)connection);
+		ncot_shell_handle_interaction(shell, "Enter IP Address to connect to", ncot_shell_node_handle_connect_2, (void*)connection);
 	} else {
 		DPRINTF(context->shell->writefd, "No free connection available, cannot connect.\n", string);
 	}

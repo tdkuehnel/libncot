@@ -180,7 +180,7 @@ ncot_context_save_nodes(struct ncot_context *context, int fd)
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 1
+#define DEBUG 0
 int
 ncot_context_save_state(struct ncot_context *context)
 {

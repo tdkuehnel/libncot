@@ -19,7 +19,7 @@
 #include "select.h"
 #include "context.h"
 #include "shell.h"
-#define DEBUG 1
+#define DEBUG 0
 #include "debug.h"
 #include "log.h"
 #include "error.h"
@@ -265,13 +265,14 @@ main(int argc, char **argv)
 		if (stat(context->arguments->pidfile_name, &pidfilestat) == 0) unlink(context->arguments->pidfile_name);
 	}
 
+#if DEBUG==1
 	if (context->arguments->interactive) {
 		char *s = "shell->buffer";
 		ncot_log_hex(s, &context->shell->buffer, (int)(context->shell->pbuffer - context->shell->buffer));
 	}
-
+#endif
 	ncot_context_free(&context);
-	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "done\n");
+	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%s done\n", PACKAGE_STRING);
 	ncot_done();
 
 	return 0;

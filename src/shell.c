@@ -32,7 +32,7 @@ ncot_shell_handle_interaction(struct ncot_shell *shell, char *text, void (*proce
 	shell->proceed_command = proceed_command;
 	shell->incommand = 1;
 	if (data) shell->data = data; /* Only needed to set once on first call during a sequence */
-	strncpy(shell->interactivetext, text, strlen(text));
+	strncpy(shell->interactivetext, text, strlen(text) + 1 );
 	return;
 }
 
@@ -230,7 +230,7 @@ void
 ncot_shell_print_prompt(struct ncot_shell *shell)
 {
 	if (shell->incommand) {
-		DPRINTF(shell->writefd, "%s%s %s", shell->promptinteractive, shell->promptend, shell->interactivetext);
+		DPRINTF(shell->writefd, ANSI_COLOR_GREEN"%s%s%s", shell->interactivetext, shell->promptinteractive, shell->promptend);
 	} else {
 		DPRINTF(shell->writefd, "%s%s", shell->prompt, shell->promptend);
 	}
