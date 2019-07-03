@@ -36,7 +36,9 @@ START_TEST (test_find_node_by_connection)
 	struct ncot_connection *conn1;
 	struct ncot_connection *conn2;
 	struct ncot_connection *conn3;
-
+	struct ncot_connection_list *list1;
+	struct ncot_connection_list *list2;
+	struct ncot_connection_list *list3;
 	ncot_init();
 	context = ncot_context_new();
 	node1 = ncot_node_new();
@@ -48,8 +50,14 @@ START_TEST (test_find_node_by_connection)
 	conn1 = ncot_connection_new();
 	conn2 = ncot_connection_new();
 	conn3 = ncot_connection_new();
-	LL_APPEND(node1->connections, conn1);
-	LL_APPEND(node2->connections, conn2);
+	list1 = ncot_connection_list_new();
+	list1->connection = conn1;
+	list2 = ncot_connection_list_new();
+	list2->connection = conn2;
+	list3 = ncot_connection_list_new();
+	list3->connection = conn3;
+	LL_APPEND(node1->connections, list1);
+	LL_APPEND(node2->connections, list2);
 
 	resultnode = ncot_context_get_node_by_connection(context, conn1);
 	ck_assert(resultnode == node1);

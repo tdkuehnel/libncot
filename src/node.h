@@ -114,7 +114,7 @@ struct ncot_node;
    occurs.
 */
 struct ncot_node {
-	struct ncot_connection *connections;
+	struct ncot_connection_list *connections;
 	struct uuid_st *uuid;
 	struct ncot_node *next;
 	struct ncot_node *prev;

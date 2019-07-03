@@ -143,11 +143,10 @@ ncot_daemonize(struct ncot_context *context)
 			}
 		}
 	}
-
-	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "before buffer");
+/*	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "before buffer");
 	NCOT_LOG_INFO_BUFFERED("now forking ..\n");
 	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "before buffer flush");
-	NCOT_LOG_INFO_BUFFER_FLUSH();
+	NCOT_LOG_INFO_BUFFER_FLUSH();*/
 	i = fork();
 	if (i < 0) {
 		NCOT_LOG_INFO("unable to fork, exiting %d\n");

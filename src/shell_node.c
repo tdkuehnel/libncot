@@ -42,13 +42,14 @@ void ncot_shell_node_list(struct ncot_context *context, struct ncot_node *node)
 {
 	const char *string = NULL;
 	struct ncot_connection *connection;
+	struct ncot_connection_list *connectionlist;
 	uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
 	DPRINTF(context->shell->writefd, "Node with uuid: %s\n", string);
-	connection = node->connections;
-	if (!connection) DPRINTF(context->shell->writefd, "<no connections>\n");
-	while (connection) {
-		ncot_shell_connection_list(context, connection);
-		connection = connection->next;
+	connectionlist = node->connections;
+	if (!connectionlist) DPRINTF(context->shell->writefd, "<no connections>\n");
+	while (connectionlist) {
+		ncot_shell_connection_list(context, connectionlist->connection);
+		connectionlist = connectionlist->next;
 	}
 	if (ncot_node_is_connected(node))
 		DPRINTF(context->shell->writefd, "Node is connected.\n")
@@ -150,7 +151,7 @@ ncot_shell_node_handle_connect(struct ncot_context *context)
 	/* TODO: wrong code */
 	struct ncot_shell *shell;
 	struct ncot_node *node;
-	struct ncot_connection *connection;
+	struct ncot_connection_list *connectionlist;
 	const char *string;
 	char *token;
 	int found = 0;
@@ -187,21 +188,21 @@ ncot_shell_node_handle_connect(struct ncot_context *context)
 	}
 	/* Let's find out if we have a dangling connection which we
 	 * can use for the connect operation */
-	connection = node->connections;
-	if (!connection) {
+	connectionlist = node->connections;
+	if (!connectionlist) {
 		DPRINTF(context->shell->writefd, "ERROR: node %s has no connections, cannot connect.\n", string);
 		return;
 	}
 	found = 0;
-	while (connection) {
-		if (connection->type == NCOT_CONN_NODE && connection->status == NCOT_CONN_INIT) {
+	while (connectionlist) {
+		if (connectionlist->connection->type == NCOT_CONN_NODE && connectionlist->connection->status == NCOT_CONN_INIT) {
 			found = 1;
 			break;
 		}
-		connection = connection->next;
+		connectionlist = connectionlist->next;
 	}
 	if (found) {
-		ncot_shell_handle_interaction(shell, "Enter IP Address to connect to", ncot_shell_node_handle_connect_2, (void*)connection);
+		ncot_shell_handle_interaction(shell, "Enter IP Address to connect to", ncot_shell_node_handle_connect_2, (void*)connectionlist->connection);
 	} else {
 		DPRINTF(context->shell->writefd, "No free connection available, cannot connect.\n", string);
 	}

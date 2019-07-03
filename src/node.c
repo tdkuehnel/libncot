@@ -14,18 +14,18 @@
 int
 ncot_node_is_connected(struct ncot_node *node)
 {
-	struct ncot_connection *connection;
+	struct ncot_connection_list *connectionlist;
 	int found = 0;
 	RETURN_FAIL_IF_NULL(node, "ncot_node_is_connected: invalid node parameter\n");
 	if (!node->connections) {
 		NCOT_LOG_WARNING("ncot_node_is_connected: node without connections encountered\n");
 		return NCOT_ERROR;
 	}
-	connection = node->connections;
-	while (connection) {
-		if (connection->status == NCOT_CONN_CONNECTED)
+	connectionlist = node->connections;
+	while (connectionlist) {
+		if (connectionlist->connection->status == NCOT_CONN_CONNECTED)
 			found = 1;
-		connection = connection->next;
+		connectionlist = connectionlist->next;
 	}
 	return found;
 }
@@ -39,7 +39,7 @@ ncot_node_save(struct ncot_node *node, struct json_object *parent)
 	struct sockaddr_in *sockaddr;
 	struct json_object *jsonobj;
 	struct json_object *jsonarray;
-	struct ncot_connection *connection;
+	struct ncot_connection_list *connection;
 	ret = uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
 	if (ret != UUID_RC_OK) {
 		NCOT_LOG_ERROR("ncot_node_save: unable to convert uuid, aborting save.\n");
@@ -52,7 +52,7 @@ ncot_node_save(struct ncot_node *node, struct json_object *parent)
 	connection = node->connections;
 	while (connection) {
 		jsonobj = json_object_new_object();
-		ncot_connection_save(connection, jsonobj);
+		ncot_connection_save(connection->connection, jsonobj);
 		json_object_array_add(jsonarray, jsonobj);
 		connection = connection->next;
 		NCOT_LOG_VERBOSE("ncot_node_save: saved a connections\n");
@@ -120,7 +120,7 @@ ncot_node_new()
  * the missing data */
 void
 ncot_node_init(struct ncot_node *node) {
-	struct ncot_connection *connection;
+	struct ncot_connection_list *connectionlist;
 	int i;
 	if (node) {
 		if (!node->uuid) {
@@ -130,13 +130,19 @@ ncot_node_init(struct ncot_node *node) {
 		if (!node->connections) {
 			/* Create some dangling connections */
 			for (i=0; i<NCOT_NODE_CONNECTION_COUNT; i++) {
-				connection = ncot_connection_new();
-				if (!connection) {
-					NCOT_LOG_WARNING("out of mem during connection creation.\n");
+				connectionlist = ncot_connection_list_new();
+				if (!connectionlist) {
+					NCOT_LOG_WARNING("ncot_node_init: out of mem.\n");
 					break;
 				}
-				ncot_connection_init(connection, NCOT_CONN_NODE);
-				DL_APPEND(node->connections, connection);
+				connectionlist->connection = ncot_connection_new();
+				if (!connectionlist->connection) {
+					NCOT_LOG_WARNING("ncot_node_init: out of mem.\n");
+					free(connectionlist);
+					break;
+				}
+				ncot_connection_init(connectionlist->connection, NCOT_CONN_NODE);
+				DL_APPEND(node->connections, connectionlist);
 			}
 		}
 	} else {
@@ -152,19 +158,23 @@ ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *conn
 	return;
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG 0
 void
 ncot_node_free(struct ncot_node **pnode) {
 	struct ncot_node *node;
-	struct ncot_connection *connection;
+	struct ncot_connection_list *connectionlist;
 	if (pnode) {
 		node = *pnode;
 		if (node) {
 			if (node->uuid) uuid_destroy(node->uuid);
-			connection = node->connections;
-			while (connection) {
-				LL_DELETE(node->connections, connection);
-				/*ncot_connection_free(&connection);*/
-				connection = node->connections;
+			connectionlist = node->connections;
+			while (connectionlist) {
+				DL_DELETE(node->connections, connectionlist);
+				ncot_connection_list_free(&connectionlist);
+				connectionlist = node->connections;
 			}
 			free(node);
 			*pnode = NULL;

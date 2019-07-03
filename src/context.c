@@ -280,18 +280,18 @@ ncot_context_controlconnection_authenticate(struct ncot_context *context, struct
 {
 }
 
-/* We need a way somehow to find out where a connection belongs to
+/** We need a way somehow to find out where a connection belongs to
  * when there is i/o action necessary. */
 struct ncot_node
 *ncot_context_get_node_by_connection(struct ncot_context *context, struct ncot_connection *connection)
 {
 	struct ncot_node *node;
-	struct ncot_connection *nodeconnection;
+	struct ncot_connection_list *nodeconnection;
 	node = context->globalnodelist;
 	while (node) {
 		nodeconnection = node->connections;
 		while (nodeconnection) {
-			if (connection == nodeconnection)
+			if (connection == nodeconnection->connection)
 				return node;
 			nodeconnection = nodeconnection->next;
 		}
@@ -302,7 +302,7 @@ struct ncot_node
 	return node;
 }
 
-/* Enqueuing a connection into a context connections list means
+/** Enqueuing a connection into a context connections list means
  * enqueueing it, and remove it from all other lists where it makes no
  * sense. - We forget that. We only enqueue for now. */
 void

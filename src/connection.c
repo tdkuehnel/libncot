@@ -26,22 +26,29 @@ ncot_connection_new_from_json(struct json_object *jsonobj)
 {
 }
 
-struct ncot_connection*
+struct ncot_connection_list*
 ncot_connections_new_from_json(struct json_object *jsonobj)
 {
-	struct ncot_connection *connection;
-	struct ncot_connection *connectionlist = NULL;
+	struct ncot_connection_list *connectionlist = NULL;
+	struct ncot_connection_list *returnlist = NULL;
 	struct json_object *jsonnode;
 	int numconnections;
 	int i;
 	numconnections = json_object_array_length(jsonobj);
 	for (i=0; i<numconnections; i++) {
 		jsonnode = json_object_array_get_idx(jsonobj, i);
-		connection = ncot_connection_new();
-		ncot_connection_init(connection, NCOT_CONN_NODE);
-		DL_APPEND(connectionlist, connection);
+		connectionlist = ncot_connection_list_new();
+		RETURN_ZERO_IF_NULL(connectionlist, "ncot_connection_new_from_json: out of memory");
+		connectionlist->connection = ncot_connection_new();
+		if (!connectionlist->connection) {
+			NCOT_LOG_ERROR("ncot_connection_new_from_json: out of memory");
+			free(connectionlist);
+			return NULL;
+		}
+		ncot_connection_init(connectionlist->connection, NCOT_CONN_NODE);
+		DL_APPEND(returnlist, connectionlist);
 	}
-	return connectionlist;
+	return returnlist;
 
 }
 
@@ -551,7 +558,7 @@ ncot_connection_free(struct ncot_connection **pconnection)
 				ncot_packet_free(&deletepacket);
 			}
 			NCOT_DEBUG("ncot_connection_free: closing connection\n");
-			ncot_connection_close(connection);
+			if (connection->status == NCOT_CONN_CONNECTED) ncot_connection_close(connection);
 			NCOT_DEBUG("ncot_connection_free: freeing connection\n");
 			free(connection);
 			*pconnection = NULL;
@@ -560,3 +567,36 @@ ncot_connection_free(struct ncot_connection **pconnection)
 	} else
 		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
 }
+
+/** Every connection belongs to exactly one connection list. So when
+ * we make sure that a connection list is responsible for releasing
+ * its connection, it should work. Don't free a connection
+ * otherwise. */
+void
+ncot_connection_list_free(struct ncot_connection_list **pconnectionlist)
+{
+	struct ncot_connection_list *connectionlist;
+	if (pconnectionlist)
+	{
+		connectionlist = *pconnectionlist;
+		if (connectionlist)
+		{
+			if (connectionlist->connection) {
+				ncot_connection_free(&connectionlist->connection);
+			} else {
+				NCOT_LOG_WARNING("ncot_connection_list_free: connection empty, no connection to free (should not happen)\n");
+			}
+			free(connectionlist);
+			*pconnectionlist = NULL;
+		}
+	}
+}
+
+struct ncot_connection_list*
+ncot_connection_list_new()
+{
+	struct ncot_connection_list *connectionlist;
+	connectionlist = calloc(1, sizeof(struct ncot_connection_list));
+	return connectionlist;
+}
+

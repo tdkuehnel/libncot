@@ -99,7 +99,9 @@ enum ncot_connection_status {
 
 struct ncot_connection;
 /** The conn struct itself. Content taken from one of the examples of
-    the GnuTLS package. */
+    the GnuTLS package. The list fields prev, next are for the main
+    context connections lists only, for a nodes list see next
+    section */
 struct ncot_connection {
 	/** Pointer for connection lists handling */
 	struct ncot_connection *prev;
@@ -143,9 +145,19 @@ struct ncot_connection {
 	struct json_object *json;
 };
 
+struct ncot_connection_list;
+/** A list structure to attach connections objects to nodes. The
+ * primary next, prev fields are used for the main context connection
+ * lists */
+struct ncot_connection_list {
+	struct ncot_connection *connection;
+	struct ncot_connection_list *next;
+	struct ncot_connection_list *prev;
+};
+
 struct ncot_connection *ncot_connection_new();
 struct ncot_connection* ncot_connection_new_from_json(struct json_object *jsonobj);
-struct ncot_connection* ncot_connections_new_from_json(struct json_object *jsonobj);
+struct ncot_connection_list* ncot_connections_new_from_json(struct json_object *jsonobj);
 void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
 void ncot_connection_save(struct ncot_connection *connection, struct json_object *parent);
 int ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port);
@@ -162,5 +174,8 @@ int ncot_connection_send_raw(struct ncot_context *context, struct ncot_connectio
 void ncot_connection_free(struct ncot_connection **connection);
 
 int ncot_control_connection_authenticate(struct ncot_connection *connection);
+
+void ncot_connection_list_free(struct ncot_connection_list **pconnectionlist);
+struct ncot_connection_list* ncot_connection_list_new();
 
 #endif
