@@ -72,3 +72,6 @@ docs/Doxyfile.bak
 docs/Doxyfile
 tests/check_policy
 tests/test_policy.json
+tests/check_ring
+tests/policies.json
+tests/test_policy_context.json

@@ -82,8 +82,11 @@ void ncot_context_free(struct ncot_context **context);
 void ncot_context_nodes_free(struct ncot_context *context);
 void ncot_context_abort_connection_io(struct ncot_context *context);
 
+int ncot_context_parse_from_json(struct ncot_context *context);
+int ncot_context_read_policies_from_file(struct ncot_context *context, const char* filename);
 void ncot_context_controlconnection_authenticate(struct ncot_context *context, struct ncot_connection *connection);
 struct ncot_node *ncot_context_get_node_by_connection(struct ncot_context *context, struct ncot_connection *connection);
+void ncot_context_add_policy(struct ncot_context *context, struct ncot_policy *policy);
 
 void ncot_context_enqueue_connection_connected(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_context_enqueue_connection_listen(struct ncot_context *context, struct ncot_connection *connection);

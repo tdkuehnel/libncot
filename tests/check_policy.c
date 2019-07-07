@@ -17,6 +17,8 @@
 #include "../src/init.h"
 #include "../src/select.h"
 #include "../src/policy.h"
+#include "../src/arg.h"
+#include "../src/identity.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 
@@ -29,6 +31,63 @@ void teardown()
 }
 
 #define NCOT_READ_BUFLEN 128
+
+START_TEST (test_policy_context)
+{
+	struct ncot_context *context;
+	struct ncot_policy *policy;
+	ncot_init();
+	context = ncot_context_new();
+	ncot_context_init(context);
+	context->identity = ncot_identity_new();
+	ncot_identity_init(context->identity);
+	context->arguments = calloc(1, sizeof(struct ncot_arguments));
+	context->arguments->config_file = "test_policy_context.json";
+	ncot_log_set_logfile("test_policy_context.log");
+
+	policy = ncot_policy_new();
+	ck_assert(policy != NULL);
+	ncot_policy_set_brief(policy, "Only user with real names");
+	ncot_policy_set_category(policy, "Authenticity");
+	ncot_policy_set_text(policy, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
+
+	ncot_context_add_policy(context, policy);
+	ck_assert(context->policies != NULL);
+
+	ncot_context_free(&context);
+
+	context = ncot_context_new();
+	ck_assert(context->policies == NULL);
+	ncot_context_read_policies_from_file(context, "policies.json");
+	ck_assert(context->policies != NULL);
+
+	ncot_context_free(&context);
+	ncot_done();
+}
+END_TEST
+
+START_TEST (test_policy_copy_deep)
+{
+	struct ncot_context *context;
+	struct ncot_policy *policy1 = NULL;
+	struct ncot_policy *policy2 = NULL;
+	policy1 = ncot_policy_new();
+	ncot_policy_set_brief(policy1, "Only user with real names");
+	ncot_policy_set_category(policy1, "Authenticity");
+	ncot_policy_set_text(policy1, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
+
+	policy2 = ncot_policy_copy_deep(policy1);
+	ck_assert(policy2 != NULL);
+	ncot_policy_free(&policy1);
+
+	ck_assert_str_eq(policy2->brief, "Only user with real names");
+	ck_assert_str_eq(policy2->category, "Authenticity");
+	ck_assert_str_eq(policy2->text, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
+
+	ncot_policy_free(&policy2);
+
+}
+END_TEST
 
 START_TEST (test_policy)
 {
@@ -44,7 +103,7 @@ START_TEST (test_policy)
 	int r;
 	char buf[NCOT_READ_BUFLEN];
 	int numpolicies;
-	
+
 	ncot_init();
 	context = ncot_context_new();
 	ncot_log_set_logfile("test_policy.log");
@@ -84,7 +143,7 @@ START_TEST (test_policy)
 	ck_assert_str_eq(policy->brief, "Only user with real names");
 	ck_assert_str_eq(policy->category, "Authenticity");
 	ck_assert_str_eq(policy->text, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
-	
+
 	json_tokener_free(tokener);
 	close(fd);
 
@@ -107,6 +166,8 @@ Suite * helper_suite(void)
 	tc_core = tcase_create("Core");
 	tcase_add_unchecked_fixture(tc_core, setup, teardown);
 	tcase_add_test(tc_core, test_policy);
+	tcase_add_test(tc_core, test_policy_copy_deep);
+	tcase_add_test(tc_core, test_policy_context);
 	suite_add_tcase(s, tc_core);
 	return s;
 }

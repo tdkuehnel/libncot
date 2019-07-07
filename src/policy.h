@@ -35,7 +35,7 @@
  * bots. We need to give the honest people the tools at hand to decide
  * on their own whom to trust and whom not. Its the identity with its
  * records saved all over the nodes he had contact with (and gained,
- * lost reputation) whats makes up the identity. Where is the fake bot
+ * lost reputation) what makes up the identity. Where is the fake bot
  * net on stackoverflow which gives fake good reputations ? This
  * should work in a distributed network of losely connected nodes,
  * too.
@@ -65,6 +65,8 @@ struct ncot_policy {
 	char category[NCOT_POLICY_CATEGORY_LENGTH]; /*Category a policy belongs to */
 	char *text; /* Long description */
 	UT_hash_handle hh; /* uthash required */
+	struct ncot_policy *next;
+	struct ncot_policy *prev;
 	struct json_object *json;
 };
 
@@ -76,5 +78,6 @@ void ncot_policy_set_category(struct ncot_policy *policy, char *category);
 void ncot_policy_set_text(struct ncot_policy *policy, char *text);
 void ncot_policy_save_to_json(struct ncot_policy *policy, struct json_object *parent);
 struct ncot_policy* ncot_policies_new_from_json(struct json_object *jsonobj);
+struct ncot_policy* ncot_policy_copy_deep(struct ncot_policy *policy);
 
 #endif

@@ -21,45 +21,6 @@ ncot_context_new()
 	return context;
 }
 
-int
-ncot_context_parse_from_json(struct ncot_context *context) {
-	struct json_object *jsonobj;
-	const char *string;
-	int ret;
-	NCOT_ERROR_IF_NULL(context, "ncot_context_parse_from_json: invalid context argument");
-	NCOT_ERROR_IF_NULL(context->json, "ncot_context_parse_from_json: invalid context->json argument");
-	/* First read our context uuid */
-	ret = json_object_object_get_ex(context->json, "uuid", &jsonobj);
-	if (! ret) {
-		NCOT_LOG_ERROR("ncot_context_parse_from_json: no field name \"uuid\" in json");
-		return NCOT_ERROR;
-	}
-	uuid_create(&context->uuid);
-	string = json_object_get_string(jsonobj);
-	ret = uuid_import(context->uuid, UUID_FMT_STR, string, strlen(string));
-	if (ret != UUID_RC_OK) {
-		NCOT_LOG_ERROR("ncot_context_parse_from_json: error importing uuid from json");
-		return NCOT_ERROR;
-	}
-
-	/* Next an identity object */
-	ret = json_object_object_get_ex(context->json, "identity", &jsonobj);
-	if (ret) {
-		NCOT_DEBUG("ncot_context_parse_from_json: identity found\n");
-		context->identity = ncot_identity_new_from_json(jsonobj);
-	}
-
-	/* Load nodes if any */
-	ret = json_object_object_get_ex(context->json, "nodes", &jsonobj);
-	if (ret) {
-		NCOT_DEBUG("ncot_context_parse_from_json: nodes found\n");
-		context->globalnodelist = ncot_nodes_new_from_json(jsonobj);
-	}
-
-	NCOT_LOG_VERBOSE("ncot_context_parse_from_json: Ok. uuid: %s\n", string);
-	return NCOT_SUCCESS;
-}
-
 /*Basic initialization which is shared among the following two functions */
 void
 ncot_context_init_base(struct ncot_context *context)
@@ -91,9 +52,57 @@ ncot_context_init(struct ncot_context *context)
 	}
 }
 
-/* This is called when a config file is available. Make initialization
- * depending on data found in config file */
 #define NCOT_READ_BUFLEN 128
+/** Read policies from file into context */
+int
+ncot_context_read_policies_from_file(struct ncot_context *context, const char* filename)
+{
+	struct json_object *jsonobj = NULL;
+	struct json_object *jsonpolicy;
+	struct json_object *jsonarray;
+	struct json_tokener *tokener;
+	enum json_tokener_error jerr;
+	int fd;
+	int numpolicies;
+	int ret;
+	ssize_t r;
+	char buf[NCOT_READ_BUFLEN];
+	NCOT_ERROR_IF_NULL(context, "ncot_context_read_policies_from_file: invalid context argument");
+	fd = open(filename, O_RDONLY);
+	if (fd <= 0) {
+		NCOT_LOG_ERROR("ncot_context_read_policies_from_file: Error opening file %s\n", filename);
+		return NCOT_ERROR;
+	}
+	tokener = json_tokener_new();
+	if (!tokener) {
+		NCOT_LOG_ERROR("ncot_context_read_policies_from_file: Error allocating json tokener object");
+		close(fd);
+		return NCOT_ERROR;
+	}
+	do {
+		r = read(fd, &buf, NCOT_READ_BUFLEN);
+		jsonobj = json_tokener_parse_ex(tokener, buf, r);
+	} while ((jerr = json_tokener_get_error(tokener)) == json_tokener_continue && r != 0);
+	close(fd);
+	if (jerr != json_tokener_success) {
+		NCOT_LOG_ERROR("ncot_context_read_policies_from_file: json parse error: %s\n", json_tokener_error_desc(jerr));
+		json_tokener_free(tokener);
+		return NCOT_ERROR;
+	}
+ 	json_tokener_free(tokener);
+	ret = json_object_object_get_ex(jsonobj, "policy", &jsonarray);
+	if (ret) {
+		context->policies = ncot_policies_new_from_json(jsonarray);
+	} else {
+		NCOT_LOG_ERROR("ncot_context_read_policies_from_file: no policy object in json file %s\n", filename);
+		return NCOT_ERROR;
+	}
+	NCOT_LOG_VERBOSE("context policies loaded from file: %s.\n", filename);
+	return NCOT_SUCCESS;
+}
+
+/** This is called when a config file is available. Make
+ * initialization depending on data found in config file */
 int
 ncot_context_init_from_file(struct ncot_context *context, const char* filename)
 {
@@ -130,6 +139,45 @@ ncot_context_init_from_file(struct ncot_context *context, const char* filename)
 		return NCOT_ERROR;
 	}
 	NCOT_LOG_INFO("context loaded from file: %s.\n", filename);
+	return NCOT_SUCCESS;
+}
+
+int
+ncot_context_parse_from_json(struct ncot_context *context) {
+	struct json_object *jsonobj;
+	const char *string;
+	int ret;
+	NCOT_ERROR_IF_NULL(context, "ncot_context_parse_from_json: invalid context argument");
+	NCOT_ERROR_IF_NULL(context->json, "ncot_context_parse_from_json: invalid context->json argument");
+	/* First read our context uuid */
+	ret = json_object_object_get_ex(context->json, "uuid", &jsonobj);
+	if (! ret) {
+		NCOT_LOG_ERROR("ncot_context_parse_from_json: no field name \"uuid\" in json");
+		return NCOT_ERROR;
+	}
+	uuid_create(&context->uuid);
+	string = json_object_get_string(jsonobj);
+	ret = uuid_import(context->uuid, UUID_FMT_STR, string, strlen(string));
+	if (ret != UUID_RC_OK) {
+		NCOT_LOG_ERROR("ncot_context_parse_from_json: error importing uuid from json");
+		return NCOT_ERROR;
+	}
+
+	/* Next an identity object */
+	ret = json_object_object_get_ex(context->json, "identity", &jsonobj);
+	if (ret) {
+		NCOT_DEBUG("ncot_context_parse_from_json: identity found\n");
+		context->identity = ncot_identity_new_from_json(jsonobj);
+	}
+
+	/* Load nodes if any */
+	ret = json_object_object_get_ex(context->json, "nodes", &jsonobj);
+	if (ret) {
+		NCOT_DEBUG("ncot_context_parse_from_json: nodes found\n");
+		context->globalnodelist = ncot_nodes_new_from_json(jsonobj);
+	}
+
+	NCOT_LOG_VERBOSE("ncot_context_parse_from_json: Ok. uuid: %s\n", string);
 	return NCOT_SUCCESS;
 }
 
@@ -190,6 +238,7 @@ ncot_context_save_state(struct ncot_context *context)
 	struct json_object *jsonarray;
 	char *uuidstring =  NULL;
 	struct ncot_node *node;
+	struct ncot_policy *policy;
 
 	RETURN_ERROR_IF_NULL(context, "ncot_context_save_state: invalid context argument.");
 	RETURN_ERROR_IF_NULL(context->arguments, "ncot_context_save_state: context argument not correctly initialized.");
@@ -238,12 +287,34 @@ ncot_context_save_state(struct ncot_context *context)
 	}
 	NCOT_LOG_VERBOSE("ncot_context_save_state: saved to %s.\n", context->arguments->config_file);
 	close(fd);
+
+	/* Store our policies */
+	fd = open("policies.json", O_CREAT|O_WRONLY, S_IRUSR | S_IWUSR | S_IRGRP | S_IWGRP | S_IROTH | S_IWOTH);
+	if (!fd > 0) {
+		NCOT_LOG_ERROR("ncot_context_save_state: error opening policies file %s for saving\n", "policies.json");
+		return NCOT_ERROR;
+	}
+	jsonobj = json_object_new_object();
+	jsonarray = json_object_new_array();
+	policy = context->policies;
+	while (policy) {
+		ncot_policy_save_to_json(policy, jsonarray);
+		policy = policy->next;
+	}
+	json_object_object_add_ex(jsonobj, "policy", jsonarray, JSON_C_OBJECT_KEY_IS_CONSTANT);
+	ret = json_object_to_fd(fd, jsonobj, JSON_C_TO_STRING_PRETTY);
+	if (ret == -1) {
+		NCOT_LOG_ERROR("ncot_context_save_state: error putting jsonobj: %s", json_util_get_last_err());
+		return NCOT_ERROR;
+	}
+	NCOT_LOG_VERBOSE("ncot_context_save_state: saved to %s.\n", context->arguments->config_file);
+	close(fd);
 }
 
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 0
+#define DEBUG 1
 void
 ncot_context_free(struct ncot_context **pcontext) {
 	struct ncot_context *context;
@@ -267,6 +338,7 @@ ncot_context_free(struct ncot_context **pcontext) {
 			if (context->uuid) uuid_destroy(context->uuid);
 			free(context);
 			*pcontext = NULL;
+			NCOT_DEBUG("ncot_context_free: done freeing context at 0x%x\n", context);
 		} else
 			NCOT_LOG_ERROR("Invalid context\n");
 	} else
@@ -274,6 +346,29 @@ ncot_context_free(struct ncot_context **pcontext) {
 }
 #undef DEBUG
 #define DEBUG 0
+
+/** Insert a policy into the global context policy hashtable */
+void
+ncot_context_add_policy(struct ncot_context *context, struct ncot_policy *policy)
+{
+	struct ncot_policy *policyresult;
+	if (!context) {
+		NCOT_LOG_ERROR("ncot_context_add_policy: Invalid argument context\n");
+		return;
+	}
+	if (!policy) {
+		NCOT_LOG_ERROR("ncot_context_add_policy: Invalid argument policy\n");
+		return;
+	}
+	policyresult = NULL;
+	HASH_FIND_STR(context->policies, policy->text, policyresult);
+	if (policyresult) {
+		NCOT_LOG_WARNING("ncot_context_add_policy: policy with such key (text) already in hashtable, skipping\n");
+		return;
+	}
+	HASH_ADD_PTR(context->policies, text, policy);
+	return;
+}
 
 void
 ncot_context_controlconnection_authenticate(struct ncot_context *context, struct ncot_connection *connection)

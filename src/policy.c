@@ -31,6 +31,25 @@ ncot_policy_free(struct ncot_policy **ppolicy)
 		NCOT_LOG_ERROR("Invalid argument (*policy)\n");
 }
 
+struct ncot_policy*
+ncot_policy_copy_deep(struct ncot_policy *policy)
+{
+	struct ncot_policy *newpolicy;
+	if (!policy) {
+		NCOT_LOG_ERROR("ncot_policy_copy_deep: Invalid policy parameter\n");
+		return NULL;
+	}
+	newpolicy = ncot_policy_new();
+	if (!policy) {
+		NCOT_LOG_ERROR("ncot_policy_copy_deep: Out of mem\n");
+		return NULL;
+	}
+	ncot_policy_set_brief(newpolicy, policy->brief);
+	ncot_policy_set_category(newpolicy, policy->category);
+	ncot_policy_set_text(newpolicy, policy->text);
+	return newpolicy;
+}
+
 /** Set brief to a policy */
 void
 ncot_policy_set_brief(struct ncot_policy *policy, char *brief)
@@ -161,5 +180,3 @@ ncot_policies_new_from_json(struct json_object *jsonobj)
 	}
 	return policylist;
 }
-
-

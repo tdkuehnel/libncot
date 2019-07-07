@@ -11,54 +11,12 @@
 #endif
 #define DEBUG 0
 
-int
-ncot_node_is_connected(struct ncot_node *node)
+struct ncot_node*
+ncot_node_new()
 {
-	struct ncot_connection_list *connectionlist;
-	int found = 0;
-	RETURN_FAIL_IF_NULL(node, "ncot_node_is_connected: invalid node parameter\n");
-	if (!node->connections) {
-		NCOT_LOG_WARNING("ncot_node_is_connected: node without connections encountered\n");
-		return NCOT_ERROR;
-	}
-	connectionlist = node->connections;
-	while (connectionlist) {
-		if (connectionlist->connection->status == NCOT_CONN_CONNECTED)
-			found = 1;
-		connectionlist = connectionlist->next;
-	}
-	return found;
-}
-
-void
-ncot_node_save(struct ncot_node *node, struct json_object *parent)
-{
-	int ret;
-	char *string =  NULL;
-	struct json_object *json;
-	struct sockaddr_in *sockaddr;
-	struct json_object *jsonobj;
-	struct json_object *jsonarray;
-	struct ncot_connection_list *connection;
-	ret = uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
-	if (ret != UUID_RC_OK) {
-		NCOT_LOG_ERROR("ncot_node_save: unable to convert uuid, aborting save.\n");
-		return;
-	}
-	node->json = json_object_new_string(string);
-	json_object_object_add_ex(parent, "uuid", node->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
-
-	jsonarray = json_object_new_array();
-	connection = node->connections;
-	while (connection) {
-		jsonobj = json_object_new_object();
-		ncot_connection_save(connection->connection, jsonobj);
-		json_object_array_add(jsonarray, jsonobj);
-		connection = connection->next;
-		NCOT_LOG_VERBOSE("ncot_node_save: saved a connections\n");
-	}
-	json_object_object_add_ex(parent, "connections", jsonarray, JSON_C_OBJECT_KEY_IS_CONSTANT);
-	NCOT_LOG_VERBOSE("ncot_node_save: node saved\n");
+	struct ncot_node *node;
+	node = calloc(1, sizeof(struct ncot_node));
+	return node;
 }
 
 /* Load nodes from json object, concat as a list and return list
@@ -107,15 +65,6 @@ ncot_nodes_new_from_json(struct json_object *jsonobj)
 	return nodelist;
 }
 
-struct ncot_node*
-ncot_node_new()
-{
-	struct ncot_node *node;
-	node = calloc(1, sizeof(struct ncot_node));
-	return node;
-}
-
-
 /** A node may get passed with pre init fields here, so only fill in
  * the missing data */
 void
@@ -150,14 +99,6 @@ ncot_node_init(struct ncot_node *node) {
 	}
 }
 
-void
-ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *connection)
-{
-	/* We have the connection accepted and in the connected
-	 * state. Lets authenticate the peer. */
-	return;
-}
-
 #ifdef DEBUG
 #undef DEBUG
 #endif
@@ -182,5 +123,63 @@ ncot_node_free(struct ncot_node **pnode) {
 			NCOT_LOG_ERROR("Invalid ncot_node\n");
 	} else
 		NCOT_LOG_ERROR("Invalid argument (*node)\n");
+}
+
+void
+ncot_node_save(struct ncot_node *node, struct json_object *parent)
+{
+	int ret;
+	char *string =  NULL;
+	struct json_object *json;
+	struct sockaddr_in *sockaddr;
+	struct json_object *jsonobj;
+	struct json_object *jsonarray;
+	struct ncot_connection_list *connection;
+	ret = uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
+	if (ret != UUID_RC_OK) {
+		NCOT_LOG_ERROR("ncot_node_save: unable to convert uuid, aborting save.\n");
+		return;
+	}
+	node->json = json_object_new_string(string);
+	json_object_object_add_ex(parent, "uuid", node->json, JSON_C_OBJECT_KEY_IS_CONSTANT);
+
+	jsonarray = json_object_new_array();
+	connection = node->connections;
+	while (connection) {
+		jsonobj = json_object_new_object();
+		ncot_connection_save(connection->connection, jsonobj);
+		json_object_array_add(jsonarray, jsonobj);
+		connection = connection->next;
+		NCOT_LOG_VERBOSE("ncot_node_save: saved a connections\n");
+	}
+	json_object_object_add_ex(parent, "connections", jsonarray, JSON_C_OBJECT_KEY_IS_CONSTANT);
+	NCOT_LOG_VERBOSE("ncot_node_save: node saved\n");
+}
+
+void
+ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *connection)
+{
+	/* We have the connection accepted and in the connected
+	 * state. Lets authenticate the peer. */
+	return;
+}
+
+int
+ncot_node_is_connected(struct ncot_node *node)
+{
+	struct ncot_connection_list *connectionlist;
+	int found = 0;
+	RETURN_FAIL_IF_NULL(node, "ncot_node_is_connected: invalid node parameter\n");
+	if (!node->connections) {
+		NCOT_LOG_WARNING("ncot_node_is_connected: node without connections encountered\n");
+		return NCOT_ERROR;
+	}
+	connectionlist = node->connections;
+	while (connectionlist) {
+		if (connectionlist->connection->status == NCOT_CONN_CONNECTED)
+			found = 1;
+		connectionlist = connectionlist->next;
+	}
+	return found;
 }
 
