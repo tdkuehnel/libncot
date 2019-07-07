@@ -79,7 +79,10 @@ struct ncot_shell {
 	/* Interactive data */
 	void *data;
 	void *subdata;
-	
+
+	/* Remote shell ? */
+	int isremote;
+
 	/* Currently to display user interaction text */
 	char interactivetext[NCOT_SHELL_BUFLEN];
 
@@ -108,5 +111,6 @@ void ncot_shell_handle_hexdump(struct ncot_context *context, char *command, char
 void ncot_shell_identity_list(struct ncot_context *context);
 void ncot_shell_nodes_list(struct ncot_context *context);
 
+void ncot_shell_reset(struct ncot_shell *shell);
 void ncot_shell_handle_interaction(struct ncot_shell *shell, char *text, void (*proceed_command)(struct ncot_context *context, char *command), void *data);
 #endif

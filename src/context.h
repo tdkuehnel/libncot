@@ -19,6 +19,7 @@ struct ncot_context;
 #include "connection.h"
 #include "packet.h"
 #include "shell.h"
+#include "policy.h"
 
 struct ncot_context {
 
@@ -66,6 +67,12 @@ struct ncot_context {
 	/* UUID of this context */
 	struct uuid_st *uuid;
 
+	/* Global policies we encounter during a run. Will be stored
+	 * and reread in to a policies.json file during
+	 * shutdown/restart. */
+	struct ncot_policy *policies; /* ncot_context_new calls calloc
+				       * so we have NULL here from the
+				       * start, np for utlist.h */
 };
 
 struct ncot_context *ncot_context_new();

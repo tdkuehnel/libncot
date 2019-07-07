@@ -177,5 +177,7 @@ int ncot_control_connection_authenticate(struct ncot_connection *connection);
 
 void ncot_connection_list_free(struct ncot_connection_list **pconnectionlist);
 struct ncot_connection_list* ncot_connection_list_new();
+char* ncot_connection_get_type_string(struct ncot_connection *connection);
+char* ncot_connection_get_status_string(struct ncot_connection *connection);
 
 #endif

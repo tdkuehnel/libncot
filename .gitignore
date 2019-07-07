@@ -70,3 +70,5 @@ docs/doxyfile.stamp
 docs/doxyfile.bak
 docs/Doxyfile.bak
 docs/Doxyfile
+tests/check_policy
+tests/test_policy.json

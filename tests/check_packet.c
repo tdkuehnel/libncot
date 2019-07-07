@@ -80,7 +80,7 @@ Suite * helper_suite(void)
 	Suite *s;
 	TCase *tc_core;
 
-	s = suite_create("Connection");
+	s = suite_create("Packet");
 
 	/* Core test case */
 	tc_core = tcase_create("Core");

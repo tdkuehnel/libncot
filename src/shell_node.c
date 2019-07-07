@@ -99,6 +99,108 @@ void ncot_shell_nodes_list(struct ncot_context *context)
 }
 
 void
+ncot_shell_node_handle_listen_2(struct ncot_context *context, char *command)
+{
+	struct ncot_shell *shell;
+	int port;
+	int ret;
+	shell = context->shell;
+	/* See if we can use the data read from the user. For now we
+	 * read in our port, too */
+	if (command[0] == '\0') {
+		ncot_shell_reset(shell);
+		DPRINTF(shell->writefd, "command aborted.\n");
+		return;
+	}
+	port = atoi(command);
+	if (port < 1025 || port > 65535) {
+		DPRINTF(shell->writefd, "invalid port number %d\n", port);
+		ncot_shell_reset(shell);
+		return;
+	}
+	ret = ncot_connection_listen(context, (struct ncot_connection*)shell->data, port);
+	DPRINTF(shell->writefd, "listen operation returned %d.\n", ret);
+	ncot_shell_reset(shell);
+}
+
+void
+ncot_shell_node_handle_listen(struct ncot_context *context)
+{
+	struct ncot_shell *shell;
+	struct ncot_node *node;
+	struct ncot_connection_list *connectionlist;
+	const char *string;
+	char *token;
+	int found = 0;
+	shell = context->shell;
+	node = context->globalnodelist;
+	token = strtok(NULL, " ");
+	if (token) {
+                /* Try to find a matching node */
+		while (node && !found) {
+			string = NULL;
+			uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
+			if (strncmp(token, string, strlen(token)) == 0) {
+				found = 1;
+				break;
+			}
+			node = node->next;
+		}
+		if (!found) {
+			DPRINTF(shell->writefd, "unknown node %s... \n", token);
+			return;
+		} else {
+			DPRINTF(shell->writefd, "trying to make node %s listen\n", string);
+		}
+	} else {
+		/* Without a token display current node if any */
+		if (shell->currentnode) {
+			string = NULL;
+			uuid_export(shell->currentnode->uuid, UUID_FMT_STR, &string, NULL);
+			DPRINTF(shell->writefd, "trying to make current node %s listen\n", string);
+		} else {
+			DPRINTF(context->shell->writefd, "no current node set and no node specified\n");
+			return;
+		}
+	}
+	/* Listen means we listen on one of our three connection
+	 * ends. Make sure we only listen on one end (Does this
+	 * restriction makes sense at all?) */
+	connectionlist = node->connections;
+	if (!connectionlist) {
+		DPRINTF(context->shell->writefd, "ERROR: node %s has no connections, cannot listen.\n", string);
+		return;
+	}
+	found = 0;
+	while (connectionlist) {
+		if (connectionlist->connection->type == NCOT_CONN_NODE && connectionlist->connection->status == NCOT_CONN_LISTEN) {
+			found = 1;
+			break;
+		}
+		connectionlist = connectionlist->next;
+	}
+	if (found) {
+		DPRINTF(context->shell->writefd, "One connection already in listening state and only one in this state allowed at all, sorry.\n");
+		return;
+	} else {
+		connectionlist = node->connections;
+		found = 0;
+		while (connectionlist) {
+			if (connectionlist->connection->type == NCOT_CONN_NODE && connectionlist->connection->status == NCOT_CONN_INIT) {
+				found = 1;
+				break;
+			}
+			connectionlist = connectionlist->next;
+		}
+		if (found) {
+			ncot_shell_handle_interaction(shell, "Enter Port to listen on (1025 - 65535)", ncot_shell_node_handle_listen_2, (void*)connectionlist->connection);
+		} else {
+			DPRINTF(context->shell->writefd, "No free connection available, cannot listen (Should never happen).\n", string);
+		}
+	}
+}
+
+void
 ncot_shell_node_handle_connect_3(struct ncot_context *context, char *command)
 {
 	struct ncot_shell *shell;
@@ -119,10 +221,7 @@ ncot_shell_node_handle_connect_3(struct ncot_context *context, char *command)
 	}
 	ret = ncot_connection_connect(context, (struct ncot_connection*)shell->data, command, (char*)shell->subdata);
 	DPRINTF(shell->writefd, "connect operation returned %d\n", ret);
-	shell->incommand = 0;
-	shell->proceed_command = NULL;
-	shell->data = NULL;
-	shell->interactivetext[0] = '\0';
+	ncot_shell_reset(context->shell);
 }
 
 void
@@ -133,10 +232,7 @@ ncot_shell_node_handle_connect_2(struct ncot_context *context, char *command)
 	/* See if we can use the data read from the user. For now we
 	 * read in our port, too */
 	if (command[0] == '\0') {
-		shell->incommand = 0;
-		shell->proceed_command = NULL;
-		shell->data = NULL;
-		shell->interactivetext[0] = '\0';
+		ncot_shell_reset(shell);
 		DPRINTF(shell->writefd, "command aborted.\n");
 		return;
 	}
@@ -208,6 +304,12 @@ ncot_shell_node_handle_connect(struct ncot_context *context)
 	}
 }
 
+/** We provide a schortcut to one selected node to operate on. You can
+ * issue ncot:>node current 1a23 <enter> and when there is a node
+ * which begins with 1a23, it will become the current one. When you
+ * have set a current node, every node related command works on this
+ * node without specifying its uuid further. It is shown with the
+ * <info> command. */
 void
 ncot_shell_node_handle_current(struct ncot_context *context)
 {
@@ -304,6 +406,10 @@ ncot_shell_handle_node(struct ncot_context *context, char *command, char *base)
 		}
 		if (!strcmp(token, "list")) {
 			ncot_shell_nodes_list(context);
+			valid = 1;
+		}
+		if (!strcmp(token, "listen")) {
+			ncot_shell_node_handle_listen(context);
 			valid = 1;
 		}
 		if (!strcmp(token, "delete")) {

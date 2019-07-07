@@ -20,6 +20,56 @@
 #include "error.h"
 #include "utlist.h"
 
+char*
+ncot_connection_get_type_string(struct ncot_connection *connection)
+{
+	char *type;
+	if (!connection) return "<empty>";
+	switch (connection->type) {
+	case NCOT_CONN_CONTROL:
+		type = "CONTROL";
+		break;
+	case NCOT_CONN_NODE:
+		type = "NODE";
+		break;
+	case NCOT_CONN_INCOMING:
+		type = "INCOMING";
+		break;
+	case NCOT_CONN_INITIATE:
+		type = "INITIATE";
+		break;
+	default:
+		type = "<unknwon>";
+	}
+	return type;
+}
+
+char*
+ncot_connection_get_status_string(struct ncot_connection *connection)
+{
+	char *status;
+	if (!connection) return "<empty>";
+	switch (connection->status) {
+	case NCOT_CONN_AVAILABLE:
+		status = "AVAILABLE";
+		break;
+	case NCOT_CONN_CONNECTED:
+		status = "CONNECTED";
+		break;
+	case NCOT_CONN_LISTEN:
+		status = "LISTEN";
+		break;
+	case NCOT_CONN_BOUND:
+		status = "BOUND";
+		break;
+	case NCOT_CONN_INIT:
+		status = "INIT";
+		break;
+	default:
+		status = "<unknown>";
+	}
+	return status;
+}
 
 struct ncot_connection*
 ncot_connection_new_from_json(struct json_object *jsonobj)

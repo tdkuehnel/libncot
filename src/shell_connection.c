@@ -23,41 +23,8 @@ ncot_shell_connection_list(struct ncot_context *context, struct ncot_connection 
 {
 	char *type;
 	char *status;
-	switch (connection->type) {
-	case NCOT_CONN_CONTROL:
-		type = "CONTROL";
-		break;
-	case NCOT_CONN_NODE:
-		type = "NODE";
-		break;
-	case NCOT_CONN_INCOMING:
-		type = "INCOMING";
-		break;
-	case NCOT_CONN_INITIATE:
-		type = "INITIATE";
-		break;
-	default:
-		type = "<unknwon>";
-	}
-	switch (connection->status) {
-	case NCOT_CONN_AVAILABLE:
-		status = "AVAILABLE";
-		break;
-	case NCOT_CONN_CONNECTED:
-		status = "CONNECTED";
-		break;
-	case NCOT_CONN_LISTEN:
-		status = "LISTEN";
-		break;
-	case NCOT_CONN_BOUND:
-		status = "BOUND";
-		break;
-	case NCOT_CONN_INIT:
-		status = "INIT";
-		break;
-	default:
-		status = "<unknown>";
-	}
+	type = ncot_connection_get_type_string(connection);
+	status = ncot_connection_get_status_string(connection);
 	DPRINTF(context->shell->writefd, "connection at 0x%0x: type: %s status: %s\n", connection, type, status);
 }
 

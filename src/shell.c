@@ -19,12 +19,22 @@
 #include "identity.h"
 #include "error.h"
 #include "node.h"
+#include "shell_connect.h"
 
 #ifdef _WIN32
 char string[2048];
 char *stringptr = (char*)string;
 int ret;
 #endif
+
+void
+ncot_shell_reset(struct ncot_shell *shell)
+{
+	shell->incommand = 0;
+	shell->proceed_command = NULL;
+	shell->data = NULL;
+	shell->interactivetext[0] = '\0';
+}
 
 void
 ncot_shell_handle_interaction(struct ncot_shell *shell, char *text, void (*proceed_command)(struct ncot_context *context, char *command), void *data)
@@ -43,6 +53,8 @@ ncot_shell_handle_info(struct ncot_context *context, char *command, char *base)
 	const char *string = NULL;
 	char *name = "<no identity>";
 	char *node = "<empty>";
+	char *cctype = "<none>";
+	char *ccstatus = "<none>";
 	shell = context->shell;
 	if (context->identity)
 		name = context->identity->name;
@@ -50,8 +62,12 @@ ncot_shell_handle_info(struct ncot_context *context, char *command, char *base)
 		uuid_export(shell->currentnode->uuid, UUID_FMT_STR, &string, NULL);
 		node = (char*)string;
 	}
+	if (context->controlconnection) {
+		cctype = ncot_connection_get_type_string(context->controlconnection);
+		ccstatus = ncot_connection_get_status_string(context->controlconnection);
+	}
 
-	DPRINTF(shell->writefd, "Info: name: %s - current node: %s\n", name, node);
+	DPRINTF(shell->writefd, "Info: name: %s - current node: %s - control connection: %s %s\n", name, node, cctype, ccstatus);
 }
 
 void
@@ -122,6 +138,10 @@ ncot_shell_handle_command(struct ncot_context *context, char *command)
 		}
 		if (!strcmp(token, "connection")) {
 			ncot_shell_handle_connection(context, command, token);
+			valid = 1;
+		}
+		if (!strcmp(token, "connect")) {
+			ncot_shell_handle_connect(context, command, token);
 			valid = 1;
 		}
 		if (!strcmp(token, "context")) {
@@ -229,10 +249,12 @@ ncot_shell_read_input(struct ncot_context *context)
 void
 ncot_shell_print_prompt(struct ncot_shell *shell)
 {
+	char *remote = "";
+	if (shell->isremote) remote="remote "; else remote = "";
 	if (shell->incommand) {
-		DPRINTF(shell->writefd, ANSI_COLOR_GREEN"%s%s%s", shell->interactivetext, shell->promptinteractive, shell->promptend);
+		DPRINTF(shell->writefd, ANSI_COLOR_GREEN"%s%s%s%s", remote, shell->interactivetext, shell->promptinteractive, shell->promptend);
 	} else {
-		DPRINTF(shell->writefd, "%s%s", shell->prompt, shell->promptend);
+		DPRINTF(shell->writefd, "%s%s%s", remote, shell->prompt, shell->promptend);
 	}
 }
 
