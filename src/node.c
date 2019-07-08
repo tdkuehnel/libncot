@@ -102,7 +102,7 @@ ncot_node_init(struct ncot_node *node) {
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 0
+#define DEBUG 1
 void
 ncot_node_free(struct ncot_node **pnode) {
 	struct ncot_node *node;
@@ -112,11 +112,13 @@ ncot_node_free(struct ncot_node **pnode) {
 		if (node) {
 			if (node->uuid) uuid_destroy(node->uuid);
 			connectionlist = node->connections;
+			NCOT_DEBUG("ncot_node_free: before freeing connectionlist\n");
 			while (connectionlist) {
 				DL_DELETE(node->connections, connectionlist);
 				ncot_connection_list_free(&connectionlist);
 				connectionlist = node->connections;
 			}
+			NCOT_DEBUG("ncot_node_free: after freeing connectionlist\n");
 			free(node);
 			*pnode = NULL;
 		} else

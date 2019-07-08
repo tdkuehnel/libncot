@@ -45,7 +45,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	arguments->config_file = "ncot_config.json";
 	arguments->log_level = NCOT_LOG_LEVEL_DEFAULT; /* NCOT_LOG_LEVEL_DEFAULT */
 	arguments->pidfile_name = "ncotd.pid";
-	arguments->logfile_name = "";
+	arguments->logfile_name = "ncot.log";
 	arguments->address_ip4 = "127.0.0.1";
 	arguments->port = "24002";
 	c = '\0';

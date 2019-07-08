@@ -20,6 +20,67 @@
 #include "error.h"
 #include "utlist.h"
 
+#undef DEBUG
+#define DEBUG 0
+
+struct ncot_connection*
+ncot_connection_new()
+{
+	struct ncot_connection *connection;
+	connection = calloc(1, sizeof(struct ncot_connection));
+	if (connection) {
+		connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
+		connection->readpointer = connection->readbuffer;
+	}
+	return connection;
+}
+
+void
+ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type)
+{
+	if (connection)
+	{
+		connection->type = type;
+		connection->status = NCOT_CONN_INIT;
+		connection->pskclientcredentialsallocated = 0;
+		connection->pskservercredentialsallocated = 0;
+	}
+}
+
+#undef DEBUG
+#define DEBUG 1
+void
+ncot_connection_free(struct ncot_connection **pconnection)
+{
+	struct ncot_connection *connection;
+	struct ncot_packet *packet;
+	struct ncot_packet *deletepacket;
+	if (pconnection)
+	{
+		connection = *pconnection;
+		if (connection)
+		{
+			packet = connection->readpacketlist;
+			NCOT_DEBUG("ncot_connection_free: 1\n");
+			while (packet) {
+				/*ncot_packet_print(packet);*/
+				NCOT_DEBUG("ncot_connection_free: deleting packet\n");
+				deletepacket = packet;
+				packet = packet->next;
+				LL_DELETE(connection->readpacketlist, deletepacket);
+				ncot_packet_free(&deletepacket);
+			}
+			NCOT_DEBUG("ncot_connection_free: closing connection\n");
+			if (connection->status == NCOT_CONN_CONNECTED) ncot_connection_close(connection);
+			NCOT_DEBUG("ncot_connection_free: freeing connection\n");
+			free(connection);
+			*pconnection = NULL;
+		} else
+			NCOT_LOG_ERROR("Invalid ncot_connection\n");
+	} else
+		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
+}
+
 char*
 ncot_connection_get_type_string(struct ncot_connection *connection)
 {
@@ -150,33 +211,6 @@ ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *c
 	LL_APPEND(connection->packetlist, packet);
 	ncot_context_enqueue_connection_writing(context, connection);
 	return length;
-}
-
-#undef DEBUG
-#define DEBUG 0
-
-struct ncot_connection*
-ncot_connection_new()
-{
-	struct ncot_connection *connection;
-	connection = calloc(1, sizeof(struct ncot_connection));
-	if (connection) {
-		connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
-		connection->readpointer = connection->readbuffer;
-	}
-	return connection;
-}
-
-void
-ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type)
-{
-	if (connection)
-	{
-		connection->type = type;
-		connection->status = NCOT_CONN_INIT;
-		connection->pskclientcredentialsallocated = 0;
-		connection->pskservercredentialsallocated = 0;
-	}
 }
 
 ssize_t data_push(gnutls_transport_ptr_t ptr, const void* data, size_t len);
@@ -586,37 +620,6 @@ ncot_connection_close(struct ncot_connection *connection)
 		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
 }
 
-void
-ncot_connection_free(struct ncot_connection **pconnection)
-{
-	struct ncot_connection *connection;
-	struct ncot_packet *packet;
-	struct ncot_packet *deletepacket;
-	if (pconnection)
-	{
-		connection = *pconnection;
-		if (connection)
-		{
-			packet = connection->readpacketlist;
-			NCOT_DEBUG("ncot_connection_free: 1\n");
-			while (packet) {
-				/*ncot_packet_print(packet);*/
-				NCOT_DEBUG("ncot_connection_free: deleting packet\n");
-				deletepacket = packet;
-				packet = packet->next;
-				LL_DELETE(connection->readpacketlist, deletepacket);
-				ncot_packet_free(&deletepacket);
-			}
-			NCOT_DEBUG("ncot_connection_free: closing connection\n");
-			if (connection->status == NCOT_CONN_CONNECTED) ncot_connection_close(connection);
-			NCOT_DEBUG("ncot_connection_free: freeing connection\n");
-			free(connection);
-			*pconnection = NULL;
-		} else
-			NCOT_LOG_ERROR("Invalid ncot_connection\n");
-	} else
-		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
-}
 
 /** Every connection belongs to exactly one connection list. So when
  * we make sure that a connection list is responsible for releasing
