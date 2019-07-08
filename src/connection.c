@@ -590,7 +590,7 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 0
+#define DEBUG 1
 void
 ncot_connection_close(struct ncot_connection *connection)
 {
@@ -599,9 +599,9 @@ ncot_connection_close(struct ncot_connection *connection)
 		NCOT_DEBUG("ncot_connection_close: 1\n");
 		if (connection->status == NCOT_CONN_CONNECTED) {
 			NCOT_DEBUG("ncot_connection_close: 2\n");
-			gnutls_bye(connection->session, GNUTLS_SHUT_WR);
+			if (connection->session) gnutls_bye(connection->session, GNUTLS_SHUT_WR);
 			NCOT_DEBUG("ncot_connection_close: 3\n");
-			gnutls_deinit(connection->session);
+			if (connection->session) gnutls_deinit(connection->session);
 			NCOT_DEBUG("ncot_connection_close: 4\n");
 			/* We have our pskclientcredentials plain in the struct (FIXME?)
 			   gnutls_psk_free_client_credentials(connection->pskclientcredentials);*/
