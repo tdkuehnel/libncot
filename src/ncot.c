@@ -186,7 +186,7 @@ main(int argc, char **argv)
 #endif
 
 		if (r > 0) {
-			if (context->arguments->interactive) {
+			if (context->arguments->interactive && !context->arguments->logfile_name) {
 			} else {
 				NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
 				NCOT_DEBUG("input/ouput ready\n");

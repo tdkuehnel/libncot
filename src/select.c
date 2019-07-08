@@ -11,6 +11,9 @@
 #include "context.h"
 #include "node.h"
 
+
+#undef DEBUG
+#define DEBUG 1
 /* Our main pselect loop has encountered some ready sds. Lets see how
  * we can handle that */
 int
@@ -24,6 +27,7 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	}
 	/* Doing it with the contexts lists. */
 	struct ncot_connection *connection;
+	struct ncot_connection *connectionnext;
 	struct ncot_node *node;
 	int ret;
 	/* First the connected ones */
@@ -34,21 +38,18 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 			/* recv 0 bytes means orderly peer shut down,
 			 * so react on it accordingly */
 			if (ncot_connection_read_data(context, connection) == 0) {
+				connectionnext = connection->next;
+				ncot_context_dequeue_connection_connected(context, connection);
 				ncot_context_enqueue_connection_closed(context, connection);
+				connection->status = NCOT_CONN_INIT;
 				NCOT_DEBUG("ncot_process_fd: remote connection closed\n");
-				connection = connection->next;
+				connection = connectionnext;
 				continue;
 			}
 			while (ncot_connection_process_data(context, connection) > 0) {
 				NCOT_DEBUG("ncot_process_fd: packet processed\n");
 			}
 		}
-		connection = connection->next;
-	}
-	/* Lets take our closed connections out of the connected queue */
-	connection = context->connections_closed;
-	while (connection) {
-		ncot_context_dequeue_connection_connected(context, connection);
 		connection = connection->next;
 	}
 	/* Then the listening ones */
