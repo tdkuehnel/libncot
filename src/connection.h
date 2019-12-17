@@ -10,6 +10,8 @@
 #endif
 
 #include <gnutls/gnutls.h>
+#include <libssh/libssh.h>
+#include <libssh/server.h>
 #include <json-c/json.h>
 
 #include "context.h"
@@ -127,6 +129,8 @@ struct ncot_connection {
 	 * which ma be reflected in smaller chunksize. */
 	int chunksize;
 	/** GnuTLS stuff */
+	/* We let this in until we get the libssh implementation work,
+	   then remove GnuTLS stuff */
 	gnutls_session_t session;
 	gnutls_anon_server_credentials_t servercred;
 	gnutls_anon_client_credentials_t clientcred;
@@ -135,6 +139,9 @@ struct ncot_connection {
 	int pskclientcredentialsallocated;
 	int pskservercredentialsallocated;
 	gnutls_datum_t key;
+	/** libssh stuff */
+	ssh_session sshsession;
+	ssh_bind sshbind;
 	/** Our type */
 	enum ncot_connection_type type;
 	/** status */
