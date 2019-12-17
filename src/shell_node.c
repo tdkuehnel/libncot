@@ -242,6 +242,74 @@ ncot_shell_node_handle_connect_2(struct ncot_context *context, char *command)
 }
 
 void
+ncot_shell_node_handle_disconnect(struct ncot_context *context)
+{
+	struct ncot_shell *shell;
+	struct ncot_node *node;
+	struct ncot_connection_list *connectionlist;
+	const char *string;
+	char *token;
+	int found = 0;
+	int connnum;
+	int i;
+	shell = context->shell;
+	node = context->globalnodelist;
+	token = strtok(NULL, " ");
+	if (token) {
+                /* Try to find a matching node */
+		while (node && !found) {
+			string = NULL;
+			uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
+			if (strncmp(token, string, strlen(token)) == 0) {
+				found = 1;
+				break;
+			}
+			node = node->next;
+		}
+		if (!found) {
+			/* When we have a current node, use it and
+			 * presume our token is the connection
+			 * number */
+			if (shell->currentnode) {
+				/* Use token as connection number */
+			} else {
+				DPRINTF(shell->writefd, "unknown node %s and no current node set \n", token);
+				return;
+			}
+		} else {
+			token = strtok(NULL, " ");
+			if (!token) {
+				DPRINTF(context->shell->writefd, "Node found, but no connection number specified\n");
+				return;
+			}
+		}
+		DPRINTF(shell->writefd, "disconnecting node: %s\n", string);
+		connnum = atoi(token);
+		if (connnum < 1 || connnum > 3) {
+			DPRINTF(context->shell->writefd, "invalid connection number specified (%d)\n", connnum);
+			return;
+		}
+		connectionlist = node->connections;
+		for (i=1; i<connnum; i++) {
+			if (connectionlist->next) {
+				connectionlist = connectionlist->next;
+			} else {
+				NCOT_LOG_ERROR("ncot_shell_handle_disconnect: invalid number of connections\n");
+				return;
+			}
+		}
+		if (connectionlist->connection->status != NCOT_CONN_CONNECTED && connectionlist->connection->status != NCOT_CONN_LISTEN) {
+			DPRINTF(shell->writefd, "connection %d of node: %s neither connected nor listening, cannot disconnect\n", connnum, string);
+			return;
+		}
+		ncot_connection_close(connectionlist->connection);
+		DPRINTF(shell->writefd, "connection %d of node: %s disconnected\n", connnum, string);
+	} else {
+		DPRINTF(context->shell->writefd, "No node and connection number specified\n");
+	}
+}
+
+void
 ncot_shell_node_handle_connect(struct ncot_context *context)
 {
 	/* TODO: wrong code */
@@ -414,6 +482,10 @@ ncot_shell_handle_node(struct ncot_context *context, char *command, char *base)
 		}
 		if (!strcmp(token, "delete")) {
 			ncot_shell_node_handle_delete(context);
+			valid = 1;
+		}
+		if (!strcmp(token, "disconnect")) {
+			ncot_shell_node_handle_disconnect(context);
 			valid = 1;
 		}
 		if (!strcmp(token, "current")) {

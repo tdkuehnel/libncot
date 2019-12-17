@@ -200,10 +200,10 @@ ncot_context_abort_connection_io(struct ncot_context *context)
 		LL_DELETE(context->connections_connected, connection);
 		connection = context->connections_connected;
 	}
-	connection = context->connections_closed;
+	connection = context->connections_closing;
 	while (connection) {
-		LL_DELETE(context->connections_closed, connection);
-		connection = context->connections_closed;
+		LL_DELETE(context->connections_closing, connection);
+		connection = context->connections_closing;
 	}
 
 }
@@ -413,9 +413,9 @@ ncot_context_enqueue_connection_listen(struct ncot_context *context, struct ncot
 }
 
 void
-ncot_context_enqueue_connection_closed(struct ncot_context *context, struct ncot_connection *connection)
+ncot_context_enqueue_connection_closing(struct ncot_context *context, struct ncot_connection *connection)
 {
-	LL_APPEND(context->connections_closed, connection);
+	LL_APPEND(context->connections_closing, connection);
 }
 
 void
@@ -447,9 +447,9 @@ ncot_context_dequeue_connection_listen(struct ncot_context *context, struct ncot
 }
 
 void
-ncot_context_dequeue_connection_closed(struct ncot_context *context, struct ncot_connection *connection)
+ncot_context_dequeue_connection_closing(struct ncot_context *context, struct ncot_connection *connection)
 {
-	LL_DELETE(context->connections_closed, connection);
+	LL_DELETE(context->connections_closing, connection);
 }
 
 void

@@ -17,6 +17,7 @@
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 #define PIDFILE_NAME_1 "ncotd1.pid"
+#define PIDFILE_NAME_TEST_NCOT "test_ncotd.pid"
 
 void setup()
 {
@@ -25,9 +26,58 @@ void setup()
 void teardown()
 {
 }
+void teardown2()
+{
+	int i;
+	struct stat logfilestat;
+	i = stat("logfilename", &logfilestat);
+	if (i == 0) {
+		unlink("logfilename");
+	}
+
+	struct stat pidfilestat;
+	sleep(1);
+	printf("teardown\n");
+	if (stat(PIDFILE_NAME_TEST_NCOT, &pidfilestat) == 0) {
+		printf("executing kill by pid\n");
+		system("cat " PIDFILE_NAME_TEST_NCOT " | xargs kill");
+	}
+}
+
 
 #define WRITESTRING "NCOT"
 #define LF "\n"
+
+START_TEST (test_shell_ex)
+{
+	struct ncot_context *context;
+	int pipefd[2];
+	int res;
+	int i;
+
+	ck_assert(0 == 0);
+	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_NCOT " --logfile=test_ncot.log");
+	ck_assert(i == 0);
+	sleep(1);
+
+	ncot_init();
+	context = ncot_context_new();
+	ncot_context_init(context);
+	context->arguments = calloc(1, sizeof(struct ncot_arguments));
+	context->arguments->config_file = "test_policy_context.json";
+	ncot_log_set_logfile("test_shell_ex.log");
+
+	context->shell = ncot_shell_new();
+	ncot_shell_init(context->shell);
+	ck_assert(context->shell != NULL);
+
+	ncot_context_free(&context);
+	ncot_done();
+
+	i = system("cat " PIDFILE_NAME_TEST_NCOT " | xargs kill");
+	ck_assert(i == 0);
+}
+END_TEST
 
 START_TEST (test_shell)
 {
@@ -83,6 +133,7 @@ Suite * helper_suite(void)
 	tcase_add_checked_fixture(tc_core, setup, teardown);
 
 	tcase_add_test(tc_core, test_shell);
+	tcase_add_test(tc_core, test_shell_ex);
 	suite_add_tcase(s, tc_core);
 	return s;
 }

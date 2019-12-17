@@ -54,7 +54,7 @@ struct ncot_context {
 
 	/* Closed connections are just closed, not connected. They are
 	 * available for reuse and in neither of the fds sets. */
-	struct ncot_connection *connections_closed;
+	struct ncot_connection *connections_closing;
 
 	/* Connections in the following list are in a writing process
 	 * of something, they are connected and in the wfds set,
@@ -90,12 +90,12 @@ void ncot_context_add_policy(struct ncot_context *context, struct ncot_policy *p
 
 void ncot_context_enqueue_connection_connected(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_context_enqueue_connection_listen(struct ncot_context *context, struct ncot_connection *connection);
-void ncot_context_enqueue_connection_closed(struct ncot_context *context, struct ncot_connection *connection);
+void ncot_context_enqueue_connection_closing(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_context_enqueue_connection_writing(struct ncot_context *context, struct ncot_connection *connection);
 
 void ncot_context_dequeue_connection_connected(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_context_dequeue_connection_listen(struct ncot_context *context, struct ncot_connection *connection);
-void ncot_context_dequeue_connection_closed(struct ncot_context *context, struct ncot_connection *connection);
+void ncot_context_dequeue_connection_closing(struct ncot_context *context, struct ncot_connection *connection);
 void ncot_context_dequeue_connection_writing(struct ncot_context *context, struct ncot_connection *connection);
 
 #endif

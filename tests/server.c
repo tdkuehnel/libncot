@@ -42,7 +42,7 @@
 // This is the port number that the server will listen on.
 #define PORT 8050
 // GnuTLS log level. 9 is the most verbose.
-#define LOG_LEVEL 3
+#define LOG_LEVEL 9
 
 int accept_one_connection(int port);
 void error_exit(const char *msg);

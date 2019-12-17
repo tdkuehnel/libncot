@@ -30,7 +30,13 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	struct ncot_connection *connectionnext;
 	struct ncot_node *node;
 	int ret;
-	/* First the connected ones */
+	/* First the closing ones */
+	connection = context->connections_closing;
+	while (connection) {
+		connection = connection->next;
+	}
+
+        /* Second the connected ones */
 	connection = context->connections_connected;
 	while (connection) {
 		if (FD_ISSET(connection->sd, rfds)) {
@@ -40,9 +46,9 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 			if (ncot_connection_read_data(context, connection) == 0) {
 				connectionnext = connection->next;
 				ncot_context_dequeue_connection_connected(context, connection);
-				ncot_context_enqueue_connection_closed(context, connection);
-				connection->status = NCOT_CONN_INIT;
-				NCOT_DEBUG("ncot_process_fd: remote connection closed\n");
+				ncot_context_enqueue_connection_closing(context, connection);
+				connection->status = NCOT_CONN_CLOSING;
+				NCOT_DEBUG("ncot_process_fd: remote connection closing\n");
 				connection = connectionnext;
 				continue;
 			}

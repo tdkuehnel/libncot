@@ -46,6 +46,8 @@ check_ncot
 src/ncotd
 src/tcpserver
 src/tcpclient
+src/sshclient
+src/sshserver
 
 tests/*log
 tests/*trs
@@ -75,4 +77,9 @@ tests/test_policy.json
 tests/check_ring
 tests/policies.json
 tests/test_policy_context.json
+tests/ssh2client
+tests/ssh2server
+
 policies.json
+testkey
+README

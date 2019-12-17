@@ -91,6 +91,7 @@ enum ncot_connection_status {
 	NCOT_CONN_CONNECTED,
 	NCOT_CONN_LISTEN,
 	NCOT_CONN_BOUND,
+	NCOT_CONN_CLOSING,
 	NCOT_CONN_INIT
 };
 
