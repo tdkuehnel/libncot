@@ -48,7 +48,7 @@ LT_INIT([win32-dll])
 
 # Checks for header files.
 # AC_HEADER_STDC
-AC_CHECK_HEADERS([errno.h fcntl.h stdio.h stdlib.h unistd.h sys/uio.h])
+AC_CHECK_HEADERS([errno.h fcntl.h stdio.h stdlib.h unistd.h sys/uio.h poll.h])
 AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/ioctl.h sys/time.h])
 AC_CHECK_HEADERS([arpa/inet.h netinet/in.h])
 
@@ -111,6 +111,8 @@ echo "$GNUTLS_LIBS"
 # Checks for typedefs, structures, and compiler characteristics.
 
 # Checks for library functions.
+
+AH_BOTTOM([#include <autopollconf.h>])
 
 AC_CHECK_FUNCS([strtol])
 AC_OUTPUT

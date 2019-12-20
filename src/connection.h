@@ -128,6 +128,19 @@ struct ncot_connection {
 	/** Max amount to send in on try. Packages may be split up
 	 * which ma be reflected in smaller chunksize. */
 	int chunksize;
+	/** GnuTLS stuff */
+	/* We let this in until we get the libssh implementation work,
+	   then remove GnuTLS stuff */
+	gnutls_session_t gnutlssession;
+	gnutls_anon_server_credentials_t servercred;
+	gnutls_anon_client_credentials_t clientcred;
+	gnutls_psk_client_credentials_t pskclientcredentials;
+	gnutls_psk_server_credentials_t pskservercredentials;
+	int pskclientcredentialsallocated;
+	int pskservercredentialsallocated;
+	gnutls_datum_t key;
+	/** libssh stuff */
+
 	/** libssh stuff */
 	ssh_session session;
 	ssh_bind sshbind;
