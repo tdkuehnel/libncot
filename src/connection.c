@@ -213,8 +213,8 @@ ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *c
 	return length;
 }
 
-ssize_t data_push(gnutls_transport_ptr_t ptr, const void* data, size_t len);
-ssize_t data_pull(gnutls_transport_ptr_t ptr, void* data, size_t maxlen);
+/* GnuTLS stuff starts here */
+
 // GnuTLS calls this function to get the pre-shared key. The client will tell
 // the server its username, and GnuTLS will give us that username. We have to
 // return the key that we share with that client. We set this callback with
@@ -238,8 +238,18 @@ int psk_creds(gnutls_session_t session, const char *username, gnutls_datum_t *ke
 	return 0;
 }
 
+
 int
 ncot_connection_authenticate_client(struct ncot_connection *connection)
+{
+	if (!connection) return NCOT_ERROR;
+	if (!connection->sshsession) return NCOT_ERROR;
+
+
+}
+
+int
+ncot_connection_authenticate_client_gnutls(struct ncot_connection *connection)
 {
 	int err;
 	int res;
@@ -443,6 +453,12 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 int
 ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port)
 {
+	
+}
+
+int
+ncot_connection_listen_bare(struct ncot_context *context, struct ncot_connection *connection, int port)
+{
 	int err;
 	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_listen: Invalid argument: connection");
 	if (connection->status == NCOT_CONN_CONNECTED)
@@ -473,26 +489,13 @@ ncot_connection_listen(struct ncot_context *context, struct ncot_connection *con
 	return 0;
 }
 
-// GnuTLS calls this function to send data through the transport layer. We set
-// this callback with gnutls_transport_set_push_function(). It should behave
-// like send() (see the manual for specifics).
-ssize_t data_push(gnutls_transport_ptr_t ptr, const void* data, size_t len)
+int
+ncot_connection_authenticate_server(struct ncot_connection *connection)
 {
-	int sockfd = *(int*)(ptr);
-	return send(sockfd, data, len, 0);
-}
-
-// GnuTLS calls this function to receive data from the transport layer. We set
-// this callback with gnutls_transport_set_pull_function(). It should act like
-// recv() (see the manual for specifics).
-ssize_t data_pull(gnutls_transport_ptr_t ptr, void* data, size_t maxlen)
-{
-	int sockfd = *(int*)(ptr);
-	return recv(sockfd, data, maxlen, 0);
 }
 
 int
-ncot_connection_authenticate_server(struct ncot_connection *connection)
+ncot_connection_authenticate_server_gnutls(struct ncot_connection *connection)
 {
 	int err;
 	int res;
@@ -543,6 +546,24 @@ ncot_connection_authenticate_server(struct ncot_connection *connection)
 int
 ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
 {
+	if (!context) return NCOT_ERROR;
+	if (!connection) return NCOT_ERROR;
+	if (!connection->sshsession) connection->sshsession = ssh_new();
+	if (ssh_options_set(connection->sshsession, SSH_OPTIONS_HOST, address) < 0) return NCOT_ERROR;
+	if (ssh_options_set(connection->sshsession, SSH_OPTIONS_PORT_STR, port) < 0) return NCOT_ERROR;
+	if (ssh_connect(connection->sshsession)) {
+		NCOT_LOG_ERROR("Connection failed : %s\n", ssh_get_error(connection->sshsession));
+		return NCOT_ERROR;
+	}
+	connection->status = NCOT_CONN_CONNECTED;
+	ncot_context_enqueue_connection_connected(context, connection);
+	NCOT_LOG_INFO("ncot_connection_connect: connection connected\n");
+	return NCOT_OK;
+}
+
+int
+ncot_connection_connect_bare(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
+{
 	int err;
 	int res;
 	struct addrinfo hints;
@@ -587,12 +608,25 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 	}
 }
 
+void
+ncot_connection_close(struct ncot_connection *connection)
+{
+	if (!connection) RETURN_ERROR_STR("ncot_connection_close: bad connection parameter.");
+	if (!connection->sshsession) RETURN_ERROR_STR("ncot_connection_close: bad connection->session parameter.");
+	if (connection->status != NCOT_CONN_CONNECTED) RETURN_WARNING_STR("ncot_connection_close: Trying to close a connection not open.");
+	ssh_disconnect(connection->sshsession);
+	connection->status == NCOT_CONN_INIT;
+	NCOT_LOG_INFO("ncot_connection_close: closing a connection.");
+}
+
+
+
 #ifdef DEBUG
 #undef DEBUG
 #endif
 #define DEBUG 1
 void
-ncot_connection_close(struct ncot_connection *connection)
+ncot_connection_close_bare(struct ncot_connection *connection)
 {
 	if (connection)
 	{

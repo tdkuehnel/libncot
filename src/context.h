@@ -4,6 +4,7 @@
 #include <stdio.h>
 #include <uuid.h>
 #include <json-c/json.h>
+#include <libssh/libssh.h>
 
 struct ncot_context;
 
@@ -40,6 +41,12 @@ struct ncot_context {
 
 	/* Our dedicated control connection for the daemon, if any */
 	struct ncot_connection *controlconnection;
+
+	/* libssh poll context to hold all our f(s)ds */
+
+	/* The whole libssh poll stuff is unstable and not exposed by
+	 * the lib. */
+	/* struct ssh_poll_ctx_struct *pollcontext; */
 
 	/* We need lists for our connections in the different
 	 * connection states */

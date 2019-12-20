@@ -7,6 +7,9 @@
 #include "ncot.h"
 #include "log.h"
 
+#define NCOT_ERROR -1
+#define NCOT_OK 0
+
 #define NCOT_ERROR_IF_NULL(val, fmt, ...) if(val==NULL) {NCOT_LOG_ERROR(fmt, ## __VA_ARGS__); return NCOT_ERROR;}
 
 #define SOCKET_ERR(err, s)  if(err==-1) {NCOT_LOG_ERROR("%s: %s\n", s, strerror(err));return(1);}
@@ -26,6 +29,9 @@
 #define RETURN_NULL_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return NULL;}
 #define RETURN_ZERO_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return 0;}
 #define RETURN_ERROR_IF_NULL(p, s) if(p == NULL){NCOT_LOG_ERROR("%s\n", s);return NCOT_ERROR;}
+
+#define RETURN_ERROR_STR(s) {NCOT_LOG_ERROR("%s\n", s);return;}
+#define RETURN_WARNING_STR(s) {NCOT_LOG_WARNING("%s\n", s);return;}
 
 #ifdef _WIN32
 #include <winsock2.h>
