@@ -83,3 +83,5 @@ tests/ssh2server
 policies.json
 testkey
 README
+
+config.log.old

@@ -27,6 +27,7 @@ ncot_context_init_base(struct ncot_context *context)
 {
 	if (context) {
 		context->globalnodelist = NULL;
+		context->pollcontext = ssh_poll_ctx_new(0);
 		context->controlconnection = ncot_connection_new();
 		ncot_connection_init(context->controlconnection, NCOT_CONN_CONTROL);
 	} else {
@@ -336,6 +337,7 @@ ncot_context_free(struct ncot_context **pcontext) {
 			NCOT_DEBUG("ncot_context_free: 5 freeing context at 0x%x\n", context);
 			if (context->shell) ncot_shell_free(&context->shell);
 			if (context->uuid) uuid_destroy(context->uuid);
+			if (context->pollcontext) ssh_poll_ctx_free(context->pollcontext);
 			free(context);
 			*pcontext = NULL;
 			NCOT_DEBUG("ncot_context_free: done freeing context at 0x%x\n", context);
