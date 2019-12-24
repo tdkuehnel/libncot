@@ -12,7 +12,7 @@ include_HEADERS = ncot.h
 libncot_la_CFLAGS = @GNUTLS_CFLAGS@ @POPT_CFLAGS@ @UUID_CFLAGS@ @JSONC_CFLAGS@ @SSH_CFLAGS@
 libncot_la_LIBADD = @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@ @SSH_LIBS@
 
-bin_PROGRAMS = ncot cmdi sshserver sshclient
+bin_PROGRAMS = ncot cmdi sshserver sshclient sshserver2
 
 ncot_SOURCES = ncot.c
 ncot_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@ @SSH_LIBS@
@@ -25,6 +25,9 @@ cmdi_LDADD = -lm
 
 sshserver_SOURCES = sshserver.c log.c
 sshserver_LDADD = @SSH_LIBS@
+
+sshserver2_SOURCES = sshserver2.c log.c
+sshserver2_LDADD = @SSH_LIBS@
 
 sshclient_SOURCES = sshclient.c
 sshclient_LDADD = @SSH_LIBS@
