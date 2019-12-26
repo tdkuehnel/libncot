@@ -121,7 +121,7 @@ START_TEST (test_connection_daemon)
 	struct timeval  tv1, tv2;
 	ncot_init(4);
 	ncot_log_set_logfile("test_connection_daemon.log");
-	NCOT_LOG_INFO("TEST_CONNECTION_DAEMON START\n");
+	NCOT_LOG_INFO("TEST_CONNECTION_DAEMON START CLIENT PART\n");
 	context = ncot_context_new();
 	ncot_context_init(context);
 
@@ -200,7 +200,7 @@ Suite * helper_suite(void)
 	/* Core test case */
 	tc_core = tcase_create("Core");
 	tcase_add_unchecked_fixture(tc_core, setup, teardown);
-	tcase_set_timeout(tc_core, 12);
+	tcase_set_timeout(tc_core, 4);
 	/* The simple test is disabled because ncot_connection_connect
 	 * now blocks because of the GnuTLS handshake. */
 	/*tcase_add_test(tc_core, test_connection_simple);*/

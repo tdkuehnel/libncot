@@ -71,6 +71,7 @@ ncot_context_read_policies_from_file(struct ncot_context *context, const char* f
 	int ret;
 	ssize_t r;
 	char buf[NCOT_READ_BUFLEN];
+
 	NCOT_ERROR_IF_NULL(context, "ncot_context_read_policies_from_file: invalid context argument");
 	fd = open(filename, O_RDONLY);
 	if (fd <= 0) {
@@ -88,6 +89,7 @@ ncot_context_read_policies_from_file(struct ncot_context *context, const char* f
 		jsonobj = json_tokener_parse_ex(tokener, buf, r);
 	} while ((jerr = json_tokener_get_error(tokener)) == json_tokener_continue && r != 0);
 	close(fd);
+
 	if (jerr != json_tokener_success) {
 		NCOT_LOG_ERROR("ncot_context_read_policies_from_file: json parse error: %s\n", json_tokener_error_desc(jerr));
 		json_tokener_free(tokener);

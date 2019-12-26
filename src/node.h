@@ -3,8 +3,10 @@
 
 #include <uuid.h>
 #include <json-c/json.h>
+#include <libssh/libssh.h>
 
 #include "connection.h"
+#include "ssh.h"
 
 struct ncot_node;
 /*!A node is a possible participant in a circle of other nodes. Every
@@ -113,11 +115,19 @@ struct ncot_node;
    place where any interconnection communication between rings
    occurs.
 */
+
+/** Each node can easily be identified by its public key ! No need for
+ * node uuid anymore.  So the strength of and algorithms, allowed
+ * crypto key types all that stuff fits nicely into a ring policy (see
+ * "policy.h").
+ */
+
 struct ncot_node {
 	struct ncot_connection_list *connections;
 	struct uuid_st *uuid;
 	struct ncot_node *next;
 	struct ncot_node *prev;
+	struct ncot_ssh_keyset *keyset;
 	struct json_object *json;
 };
 

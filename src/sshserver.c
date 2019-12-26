@@ -104,52 +104,97 @@ generate_key()
 
 int main(int argc, char **argv)
 {
-    ssh_bind sshbind;
-    ssh_session session;
-    int verbosity = SSH_LOG_FUNCTIONS;
-    int rc;
+	int verbosity = SSH_LOG_PACKET;
+	struct server_state_st *state;
+	ssh_bind sshbind;
+	ssh_session session;
+	ssh_event mainloop;
+	static int authenticated=0;
+	static int tries = 0;
+	static int error = 0;
+	static ssh_channel channel=NULL;
+	int rc;
+	int r;
 
-    ncot_log_init(NCOT_LOG_LEVEL_INFO);
-    rc = ssh_init();
-    if (rc < 0) {
-        fprintf(stderr, "ssh_init failed\n");
-        return 1;
-    }
+	ncot_log_init(NCOT_LOG_LEVEL_INFO);
+	rc = ssh_init();
+	if (rc < 0) {
+		fprintf(stderr, "ssh_init failed\n");
+		return 1;
+	}
 
-    generate_key();
+	generate_key();
 /*    exit(0);*/
 
-    sshbind = ssh_bind_new();
-    if (sshbind == NULL) {
-        fprintf(stderr, "ssh_bind_new failed\n");
-        return 1;
-    }
+	sshbind = ssh_bind_new();
+	if (sshbind == NULL) {
+		fprintf(stderr, "ssh_bind_new failed\n");
+		return 1;
+	}
 
-    (void) argc;
-    (void) argv;
+	(void) argc;
+	(void) argv;
 
-    set_default_keys(sshbind, 0, 0, 0);
+	set_default_keys(sshbind, 0, 0, 0);
 
-    ssh_bind_options_set(sshbind, SSH_OPTIONS_LOG_VERBOSITY, "3");
-    ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDPORT_STR, "2244");
-    ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDADDR, "192.168.178.24");
+	ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_CONFIG_DIR, "./");
+	ssh_bind_options_set(sshbind, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
+	ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDPORT_STR, "2244");
+	ssh_bind_options_set(sshbind, SSH_BIND_OPTIONS_BINDADDR, "127.0.0.1");
 
-    if(ssh_bind_listen(sshbind) < 0) {
-	    fprintf(stderr, "%s\n", ssh_get_error(sshbind));
-	    return 1;
-    }
-    printf("Mark 3\n");
+	if(ssh_bind_listen(sshbind) < 0) {
+		fprintf(stderr, "%s\n", ssh_get_error(sshbind));
+		return 1;
+	}
+	printf("Mark 3\n");
 
-    session = ssh_new();
-    if (session == NULL) {
-	    fprintf(stderr, "Failed to allocate session\n");
-	    return 1;
-    }
+	session = ssh_new();
+	if (session == NULL) {
+		fprintf(stderr, "Failed to allocate session\n");
+		return 1;
+	}
+	ssh_options_set(session, SSH_OPTIONS_LOG_VERBOSITY, &verbosity);
+	printf("Mark 4\n");
 
-    /* Blocks until there is a new incoming connection. */
-    if(ssh_bind_accept(sshbind, session) != SSH_ERROR) {
+	/* Blocks until there is a new incoming connection. */
+	if(ssh_bind_accept(sshbind, session) != SSH_ERROR) {
+		printf("bind accept ok\n");
+
+		if (ssh_handle_key_exchange(session) != SSH_OK) {
+			fprintf(stderr, "%s\n", ssh_get_error(session));
+			return 1;
+		}
+		printf("Keyexchange happened\n");
+		ssh_set_auth_methods(session, SSH_AUTH_METHOD_PUBLICKEY);
+
+		mainloop = ssh_event_new();
+		ssh_event_add_session(mainloop, session);
+
+		while (!(authenticated && channel != NULL)){
+			if(error)
+				break;
+			r = ssh_event_dopoll(mainloop, -1);
+			if (r == SSH_ERROR){
+				printf("Error : %s\n",ssh_get_error(session));
+				ssh_disconnect(session);
+				return 1;
+			}
+		}
+
+		if(error){
+			printf("Error, exiting loop\n");
+		} else
+			printf("Authenticated and got a channel\n");
+
+		struct ssh_channel_struct *channel;
+		channel = ssh_channel_new(session);
+		if (!channel)
+			fprintf(stderr, "ssh_channel_new: %s\n", ssh_get_error(session));
+	} else {
+		printf("bind accept not ok\n");
+	}
 
 
-    }
+
     printf("done\n");
 }

@@ -125,6 +125,7 @@ ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 	connection = context->connections_connected;
 	NCOT_DEBUG("ncot_set_fds: 2\n");
 	while (connection) {
+		connection->sd = ssh_bind_get_fd(connection->sshbind);
 		FD_SET(connection->sd, rfds);
 		if (connection->sd > maxfd) maxfd = connection->sd;
 		connection = connection->next;
@@ -137,6 +138,7 @@ ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 	connection = context->connections_listen;
 	NCOT_DEBUG("ncot_set_fds: 4\n");
 	while (connection) {
+ 		connection->sd = ssh_bind_get_fd(connection->sshbind);
 		FD_SET(connection->sd, rfds);
 		if (connection->sd > maxfd) maxfd = connection->sd;
 		connection = connection->next;
@@ -150,6 +152,7 @@ ncot_set_fds(struct ncot_context *context, fd_set *rfds, fd_set *wfds)
 	connection = context->connections_writing;
 	NCOT_DEBUG("ncot_set_fds: 7\n");
 	while (connection) {
+ 		connection->sd = ssh_bind_get_fd(connection->sshbind);
 		FD_SET(connection->sd, wfds);
 		if (connection->sd > maxfd) maxfd = connection->sd;
 		connection = connection->next;

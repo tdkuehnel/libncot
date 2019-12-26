@@ -8,6 +8,7 @@
 #include "log.h"
 
 #define NCOT_ERROR -1
+#define NCOT_FAILURE -1
 #define NCOT_OK 0
 
 #define NCOT_ERROR_IF_NULL(val, fmt, ...) if(val==NULL) {NCOT_LOG_ERROR(fmt, ## __VA_ARGS__); return NCOT_ERROR;}

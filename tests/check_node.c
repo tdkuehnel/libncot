@@ -5,6 +5,8 @@
 #include <unistd.h>
 #include <fcntl.h>
 #include <stdio.h>
+#include <json-c/json.h>
+#include <libssh/libssh.h>
 
 #include "../src/utlist.h"
 #include "../src/node.h"
@@ -14,6 +16,7 @@
 #include "../src/context.h"
 #include "../src/init.h"
 #include "../src/select.h"
+#include "../src/keys.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 #define PIDFILE_NAME_1 "ncotd1.pid"
@@ -76,6 +79,66 @@ START_TEST (test_find_node_by_connection)
 }
 END_TEST
 
+#define NCOT_READ_BUFLEN 512
+
+struct json_object*
+get_json_obj()
+{
+	int fd;
+	char buf[NCOT_READ_BUFLEN];
+	struct json_tokener *tokener;
+	struct json_object *jsonobj = NULL;
+	enum json_tokener_error jerr;
+	int r;
+
+	fd = open("nodes.json", O_RDONLY);
+	tokener = json_tokener_new();
+	do {
+		r = read(fd, &buf, NCOT_READ_BUFLEN);
+		jsonobj = json_tokener_parse_ex(tokener, buf, r);
+	} while ((jerr = json_tokener_get_error(tokener)) == json_tokener_continue && r != 0);
+	close(fd);
+ 	json_tokener_free(tokener);
+
+	return jsonobj;
+}
+
+void
+setup_context(struct ncot_context *context)
+{
+
+}
+
+START_TEST (test_node_keys)
+{
+
+	struct ncot_node *node = NULL;
+	struct json_object *jsonobj = NULL;
+	struct ncot_node *nodes;
+	struct json_object *jsonarray;
+	struct ssh_key_struct *pkey;
+	struct ncot_context *context;
+	int r;
+
+	node = ncot_node_new();
+	jsonobj = get_json_obj();
+	ck_assert(jsonobj != NULL);
+
+	r = json_object_object_get_ex(jsonobj, "nodes", &jsonarray);
+	nodes = ncot_nodes_new_from_json(jsonarray);
+	ck_assert(nodes != NULL);
+
+	context = ncot_context_new();
+	pkey = ncot_node_get_public_key(context, nodes);
+	ck_assert(pkey != NULL);
+	ck_assert(ssh_key_is_private(pkey) != 0 );
+
+	ncot_node_init(node);
+	ncot_node_free(&node);
+	ck_assert(node == NULL);
+}
+END_TEST
+
 START_TEST (test_node)
 {
 
@@ -94,7 +157,6 @@ START_TEST (test_node)
 }
 END_TEST
 
-
 Suite * helper_suite(void)
 {
 	Suite *s;
@@ -108,6 +170,7 @@ Suite * helper_suite(void)
 
 	tcase_add_test(tc_core, test_find_node_by_connection);
 	tcase_add_test(tc_core, test_node);
+	tcase_add_test(tc_core, test_node_keys);
 	suite_add_tcase(s, tc_core);
 	return s;
 }

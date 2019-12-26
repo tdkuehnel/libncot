@@ -11,6 +11,7 @@ struct ncot_arguments
 	char *logfile_name;
 	char *port;
 	char *address_ip4;
+	char *ncot_dir;
 	int log_level;
 	int daemonize;
 	int interactive;

@@ -33,6 +33,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 		{ "address",    'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
 		{ "port",       'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
 		{ "configfile", 'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ncot_config.json", NULL},
+		{ "ncotdir",    'r', POPT_ARG_STRING, &arguments->ncot_dir,     0,  "NCoTs dir. default: ~/.ncot", NULL},
 		{ "logfile",    'g', POPT_ARG_STRING, &arguments->logfile_name, 0,  "Use logfile STRING instead of logging to stdout", NULL},
 		{ "pidfile",    'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
 		{ "loglevel",   'l', POPT_ARG_INT,    &arguments->log_level,    0,  "Set log level (0 .. 8), default 1", NULL},
@@ -48,6 +49,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	arguments->logfile_name = "ncot.log";
 	arguments->address_ip4 = "127.0.0.1";
 	arguments->port = "24002";
+	arguments->ncot_dir = "~/.ncot";
 	c = '\0';
 	i = 0;
 

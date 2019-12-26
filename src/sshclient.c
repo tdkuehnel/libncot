@@ -347,13 +347,14 @@ int main(int argc, char **argv)
 	/*           ssh_get_error(session)); */
 	/*   exit(-1); */
 	/* } */
-	/* if (ssh_userauth_autopubkey(session, NULL) != SSH_AUTH_SUCCESS) */
-	/* 	  fprintf(stderr, "Error authenticating\n"); */
+
+	rc = ssh_userauth_autopubkey(session, NULL);
 
 	/* while (rc = authenticate_kbdint(session, "libssh") != SSH_AUTH_SUCCESS) { */
 	/* 	  fprintf(stderr, "authenticating step: rc: %d\n", rc); */
 	/* } */
-	rc = ssh_userauth_none(session, NULL);
+
+	/* rc = ssh_userauth_none(session, NULL); */
 
 	if (rc == SSH_AUTH_SUCCESS)
 		printf("authentication success\n");

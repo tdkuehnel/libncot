@@ -41,6 +41,20 @@
  * too.
  */
 
+/** New thoughts on policies and ssh2.  All the ssh2 encryption
+ * parameters normally defined when using ssh implementations through
+ * ssh_config or sshd_config files are handled as ring policies.
+ *
+ * The ncot software, techncially speaking, offers all actual
+ * provided crypto patterns like key types, handshake algorithms
+ * etc. as the underlying crypto lib (currently libssh as the main
+ * favorite) provides. So when no ring policy is defined, a suitable
+ * default is used.
+ *
+ * But ring participants can implement a policy to make several crypto
+ * parmaters mandantory.
+ */
+
 #define NCOT_POLICY_BRIEF_LENGTH 256
 #define NCOT_POLICY_CATEGORY_LENGTH 64
 #define NCOT_POLICY_MAX_TEXT_LEN 2048
