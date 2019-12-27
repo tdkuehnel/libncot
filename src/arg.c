@@ -24,19 +24,20 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	/* FIXME: buffer length ?? */
 	char buf[2048];
 	struct poptOption optionsTable[] = {
-		{ "verbose",    'v', POPT_ARG_NONE,   0,                        0,  "Produce verbose output", NULL },
-		{ "quiet",      'q', POPT_ARG_NONE,   0,                        0,  "Don't produce any output", NULL },
+		{ "verbose",      'v', POPT_ARG_NONE,   0,                        0,  "Produce verbose output", NULL },
+		{ "quiet",        'q', POPT_ARG_NONE,   0,                        0,  "Don't produce any output", NULL },
 #ifndef _WIN32
-		{ "daemonize",  'd', POPT_ARG_NONE,   &arguments->daemonize,    0,  "Daemonize to background", NULL },
+		{ "daemonize",    'd', POPT_ARG_NONE,   &arguments->daemonize,    0,  "Daemonize to background", NULL },
 #endif
-		{ "interactive",'i', POPT_ARG_NONE,   &arguments->interactive,  0,  "Enter interactive mode after startup", NULL },
-		{ "address",    'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
-		{ "port",       'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
-		{ "configfile", 'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ncot_config.json", NULL},
-		{ "ncotdir",    'r', POPT_ARG_STRING, &arguments->ncot_dir,     0,  "NCoTs dir. default: ~/.ncot", NULL},
-		{ "logfile",    'g', POPT_ARG_STRING, &arguments->logfile_name, 0,  "Use logfile STRING instead of logging to stdout", NULL},
-		{ "pidfile",    'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
-		{ "loglevel",   'l', POPT_ARG_INT,    &arguments->log_level,    0,  "Set log level (0 .. 8), default 1", NULL},
+		{ "interactive",  'i', POPT_ARG_NONE,   &arguments->interactive,  0,  "Enter interactive mode after startup", NULL },
+		{ "address",      'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
+		{ "port",         'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
+		{ "configfile",   'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ncot_config.json", NULL},
+		{ "ncotdir",      'r', POPT_ARG_STRING, &arguments->ncot_dir,     0,  "NCoTs dir. default: ~/.ncot", NULL},
+		{ "logfile",      'g', POPT_ARG_STRING, &arguments->logfile_name, 0,  "Use logfile STRING instead of logging to stdout", NULL},
+		{ "pidfile",      'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
+		{ "sshkeypass",   'k', POPT_ARG_STRING, &arguments->keypass,      0,  "Passphrase for ssh private key files", NULL},
+		{ "loglevel",     'l', POPT_ARG_INT,    &arguments->log_level,    0,  "Set log level (0 .. 8), default 1", NULL},
 		POPT_AUTOHELP
 		{ NULL, 0, 0, NULL, 0 }
 	};
@@ -49,6 +50,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	arguments->logfile_name = "ncot.log";
 	arguments->address_ip4 = "127.0.0.1";
 	arguments->port = "24002";
+	arguments->keypass = "simplepass"; /* Hardcoded default better than nothing ? */
 	arguments->ncot_dir = "~/.ncot";
 	c = '\0';
 	i = 0;

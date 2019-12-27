@@ -12,6 +12,7 @@ struct ncot_arguments
 	char *port;
 	char *address_ip4;
 	char *ncot_dir;
+	char *keypass;
 	int log_level;
 	int daemonize;
 	int interactive;

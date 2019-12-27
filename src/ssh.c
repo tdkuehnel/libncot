@@ -144,9 +144,15 @@ void
 ncot_ssh_keyset_free(struct ncot_ssh_keyset **pkeyset)
 {
 	struct ncot_ssh_keyset *keyset;
+	int i;
+
 	if (pkeyset) {
 		keyset = *pkeyset;
 		if (keyset) {
+			for (i = 0; i < NCOT_SSH_KEYSET_NUMS; i++) {
+				if (keyset->keypairs[i])
+					ncot_ssh_keypair_free(&keyset->keypairs[i]);
+			}
 			free(keyset);
 			*pkeyset = NULL;
 		}

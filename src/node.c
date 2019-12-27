@@ -76,6 +76,9 @@ ncot_node_init(struct ncot_node *node) {
 			uuid_create(&node->uuid);
 			uuid_make(node->uuid, UUID_MAKE_V1);
 		}
+		if (!node->keyset) {
+			node->keyset = ncot_ssh_keyset_new();
+		}
 		if (!node->connections) {
 			/* Create some dangling connections */
 			for (i=0; i<NCOT_NODE_CONNECTION_COUNT; i++) {

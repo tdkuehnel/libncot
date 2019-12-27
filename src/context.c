@@ -28,9 +28,6 @@ ncot_context_init_base(struct ncot_context *context)
 {
 	if (context) {
 		context->globalnodelist = NULL;
-		/* The whole libssh poll stuff is unstable and not exposed by
-		 * the lib. */
-		/* context->pollcontext = ssh_poll_ctx_new(0);  */
 		context->controlconnection = ncot_connection_new();
 		ncot_connection_init(context->controlconnection, NCOT_CONN_CONTROL);
 	} else {
