@@ -4,6 +4,7 @@
 #include <string.h>
 #include <sys/types.h>
 #include <sys/stat.h>
+#include <errno.h>
 
 #include <libssh/libssh.h>
 
@@ -22,6 +23,7 @@
 #include "packet.h"
 #include "error.h"
 #include "utlist.h"
+#include "ssh.h"
 
 #undef DEBUG
 #define DEBUG 0
@@ -71,31 +73,30 @@ ncot_connection_new()
 {
 	struct ncot_connection *connection;
 	connection = calloc(1, sizeof(struct ncot_connection));
-	if (connection) {
-		connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
-		connection->readpointer = connection->readbuffer;
-		connection->sshbind = ssh_bind_new();
-		ncot_connection_ensure_hostkey(hostkey);
-		ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_RSAKEY, hostkey);
-
-	}
+	if (!connection) return NULL;
+	connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
+	connection->readpointer = connection->readbuffer;
+	connection->sshbind = ssh_bind_new();
+	connection->keypath = calloc(1, NCOT_CONN_KEYPATH_LENGTH);
 	return connection;
 }
 
 void
-ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type)
+ncot_connection_init(struct ncot_context *context, struct ncot_node *node, struct ncot_connection *connection, enum ncot_connection_type type)
 {
-	if (connection)
-	{
-		connection->type = type;
-		connection->status = NCOT_CONN_INIT;
-		connection->pskclientcredentialsallocated = 0;
-		connection->pskservercredentialsallocated = 0;
-	}
+	if (!connection) return;
+	connection->type = type;
+	connection->status = NCOT_CONN_INIT;
+	/* Set up default ssh connection parameters */
+	snprintf((char*)&connection->keypath, NCOT_CONN_KEYPATH_LENGTH, "%s/%s", context->arguments->ncot_dir, uuidstring);
+	
+	ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_RSAKEY, hostkey);
+	/* connection->pskclientcredentialsallocated = 0; */
+	/* connection->pskservercredentialsallocated = 0; */
 }
 
 #undef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 void
 ncot_connection_free(struct ncot_connection **pconnection)
 {
@@ -122,7 +123,7 @@ ncot_connection_free(struct ncot_connection **pconnection)
 			NCOT_DEBUG("ncot_connection_free: closing connection\n");
 			if (connection->status == NCOT_CONN_CONNECTED) ncot_connection_close(connection);
 			NCOT_DEBUG("ncot_connection_free: freeing connection\n");
-
+			if (connection->keypath) free(connection->keypath);
 			free(connection);
 			*pconnection = NULL;
 		} else
@@ -183,12 +184,12 @@ ncot_connection_get_status_string(struct ncot_connection *connection)
 }
 
 struct ncot_connection*
-ncot_connection_new_from_json(struct json_object *jsonobj)
+ncot_connection_new_from_json(struct ncot_context *context, struct json_object *jsonobj)
 {
 }
 
 struct ncot_connection_list*
-ncot_connections_new_from_json(struct json_object *jsonobj)
+ncot_connections_new_from_json(struct ncot_context *context, struct ncot_node *node, struct json_object *jsonobj)
 {
 	struct ncot_connection_list *connectionlist = NULL;
 	struct ncot_connection_list *returnlist = NULL;
@@ -206,7 +207,7 @@ ncot_connections_new_from_json(struct json_object *jsonobj)
 			free(connectionlist);
 			return NULL;
 		}
-		ncot_connection_init(connectionlist->connection, NCOT_CONN_NODE);
+		ncot_connection_init(context, node, connectionlist->connection, NCOT_CONN_NODE);
 		DL_APPEND(returnlist, connectionlist);
 	}
 	return returnlist;
@@ -640,6 +641,76 @@ ncot_connection_authenticate_server_gnutls(struct ncot_connection *connection)
 	return 0;
 }
 
+static int
+verify_knownhost(struct ssh_session_struct *session)
+{
+	enum ssh_known_hosts_e state;
+	unsigned char *hash = NULL;
+	ssh_key srv_pubkey = NULL;
+	size_t hlen;
+	char buf[10];
+	char *hexa;
+	char *p;
+	int cmp;
+	int rc;
+	rc = ssh_get_server_publickey(session, &srv_pubkey);
+	if (rc < 0) return NCOT_FAILURE;
+	rc = ssh_get_publickey_hash(srv_pubkey, SSH_PUBLICKEY_HASH_SHA1, &hash, &hlen);
+	ssh_key_free(srv_pubkey);
+	if (rc < 0) return NCOT_FAILURE;
+	state = ssh_session_is_known_server(session);
+	switch (state) {
+        case SSH_KNOWN_HOSTS_OK:
+		/* OK */
+		break;
+        case SSH_KNOWN_HOSTS_CHANGED:
+		NCOT_LOG_ERROR("verfiy_knownhost: SSH_KNOWN_HOSTS_OTHER");
+		NCOT_LOG_WARNING("verfiy_knownhost: Host key for server changed: it is now:\n");
+		ncot_log_hex("verfiy_knownhost: Public key hash", hash, hlen);
+		ssh_clean_pubkey_hash(&hash);
+		return NCOT_FAILURE;
+        case SSH_KNOWN_HOSTS_OTHER:
+		NCOT_LOG_WARNING("verfiy_knownhost: SSH_KNOWN_HOSTS_OTHER");
+		ssh_clean_pubkey_hash(&hash);
+		return NCOT_FAILURE;
+        case SSH_KNOWN_HOSTS_NOT_FOUND:
+		NCOT_LOG_INFO("verfiy_knownhost: SSH_KNOWN_HOSTS_NOT_FOUND\n");
+		/* FALL THROUGH to SSH_SERVER_NOT_KNOWN behavior */
+        case SSH_KNOWN_HOSTS_UNKNOWN:
+		/* As we have, at the moment, no clue on how to handle
+		 * the involved userinteraction on an unknown host key
+		 * in an asyncrounous way using our main loop, we will
+		 * go for the beginning with autoaccept for now and
+		 * come back later TODO: Fix it, important :) */
+		hexa = ssh_get_hexa(hash, hlen);
+		NCOT_LOG_INFO("verfiy_knownhost: The server is unknown. Do you trust the host key?\n");
+		NCOT_LOG_INFO("verfiy_knownhost: Public key hash: %s\n", hexa);
+		ssh_string_free_char(hexa);
+		ssh_clean_pubkey_hash(&hash);
+		/* p = fgets(buf, sizeof(buf), stdin); */
+		/* if (p == NULL) { */
+		/* 	return -1; */
+		/* } */
+		/* cmp = strncasecmp(buf, "yes", 3); */
+		/* if (cmp != 0) { */
+		/* 	return -1; */
+		/* } */
+		NCOT_LOG_INFO("verfiy_knownhost: Autoaccepting unknwon host key for now\n");
+		rc = ssh_session_update_known_hosts(session);
+		if (rc < 0) {
+			NCOT_LOG_ERROR("Error %s\n", strerror(errno));
+			return NCOT_FAILURE;
+		}
+		break;
+        case SSH_KNOWN_HOSTS_ERROR:
+		NCOT_LOG_ERROR("Error %s", ssh_get_error(session));
+		ssh_clean_pubkey_hash(&hash);
+		return NCOT_FAILURE;
+	}
+	ssh_clean_pubkey_hash(&hash);
+	return NCOT_SUCCESS;
+}
+
 int
 ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
 {
@@ -725,7 +796,7 @@ ncot_connection_close(struct ncot_connection *connection)
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 1
+#define DEBUG 0
 void
 ncot_connection_close_bare(struct ncot_connection *connection)
 {
