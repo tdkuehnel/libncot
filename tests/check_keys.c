@@ -88,7 +88,23 @@ START_TEST (test_keys)
 	ck_assert(ncot_ssh_keyset_has_keytype(keyset, NCOT_SSH_KEYTYPE_ED25519));
 	ncot_ssh_keyset_free(&keyset);
 
+	keyset = ncot_ssh_keyset_new();
+	ck_assert(!ncot_ssh_keyset_has_keytype(keyset, NCOT_SSH_KEYTYPE_RSA));
+	r = ncot_ssh_keyset_generate_key(keyset, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(r == NCOT_OK);
+	ck_assert(ncot_ssh_keyset_has_keytype(keyset, NCOT_SSH_KEYTYPE_RSA));
+	r = ncot_ssh_keyset_generate_key(keyset, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(r == NCOT_ERROR);
+	ck_assert(ncot_ssh_keyset_has_keytype(keyset, NCOT_SSH_KEYTYPE_RSA));
+	ncot_ssh_keyset_free(&keyset);
+
+	NCOT_LOG_INFO("CHECK KEYS ENDS HERE\n");
 	ncot_done();
+}
+END_TEST
+
+START_TEST (test_keyset)
+{
 }
 END_TEST
 

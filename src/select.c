@@ -4,13 +4,15 @@
 #include <sys/time.h>
 #include <sys/types.h>
 #include <unistd.h>
+#include <libssh/libssh.h>
+#include <poll.h>
 
 #define DEBUG 0
 #include "debug.h"
 #include "log.h"
 #include "context.h"
 #include "node.h"
-
+#include "callback.h"
 
 #undef DEBUG
 #define DEBUG 1
@@ -43,17 +45,24 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 			NCOT_DEBUG("ncot_process_fd: connected connection is ready in rfds\n");
 			/* recv 0 bytes means orderly peer shut down,
 			 * so react on it accordingly */
-			if (ncot_connection_read_data(context, connection) == 0) {
-				connectionnext = connection->next;
-				ncot_context_dequeue_connection_connected(context, connection);
-				ncot_context_enqueue_connection_closing(context, connection);
-				connection->status = NCOT_CONN_CLOSING;
-				NCOT_DEBUG("ncot_process_fd: remote connection closing\n");
-				connection = connectionnext;
-				continue;
-			}
-			while (ncot_connection_process_data(context, connection) > 0) {
-				NCOT_DEBUG("ncot_process_fd: packet processed\n");
+			switch (connection->status) {
+			case NCOT_CONN_ACCEPTED:
+				
+				break;
+			case NCOT_CONN_CONNECTED:
+				if (ncot_connection_read_data(context, connection) == 0) {
+					connectionnext = connection->next;
+					ncot_context_dequeue_connection_connected(context, connection);
+					ncot_context_enqueue_connection_closing(context, connection);
+					connection->status = NCOT_CONN_CLOSING;
+					NCOT_DEBUG("ncot_process_fd: remote connection closing\n");
+					connection = connectionnext;
+					continue;
+				}
+				while (ncot_connection_process_data(context, connection) > 0) {
+					NCOT_DEBUG("ncot_process_fd: packet processed\n");
+					break;
+				}
 			}
 		}
 		connection = connection->next;
@@ -106,6 +115,17 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 		}
 	}
 	return res;
+}
+
+int
+ncot_init_poll(struct ncot_context *context, struct ssh_event_struct *event)
+{
+	/* In interactive mode we include stdin */
+	if (context->arguments) {
+		if (context->arguments->interactive) {
+			return ssh_event_add_fd(event, STDIN_FILENO, POLLIN, ncot_cb_stdin_ready, context);
+		}
+	}
 }
 
 #ifdef DEBUG

@@ -64,13 +64,13 @@ START_TEST (test_connection_simple)
 	conn1 = ncot_connection_new();
 	ck_assert(conn1 != NULL);
 
-	ncot_connection_init(conn1, NCOT_CONN_CONTROL);
+	ncot_connection_init(context, NULL, conn1, NCOT_CONN_CONTROL);
 
 	ret = ncot_connection_listen(context, conn1, TEST_CONNECTION_SIMPLE_CLIENT_PORT);
 	ck_assert_int_eq(ret, 0);
 
 	conn2 = ncot_connection_new();
-	ncot_connection_init(conn2, NCOT_CONN_CONTROL);
+	ncot_connection_init(context, NULL, conn2, NCOT_CONN_CONTROL);
 
 	ret = ncot_connection_connect(context, conn2, TEST_CONNECTION_SIMPLE_SERVER_PORT, TESTADDRESS_STRING);
 	ck_assert_int_eq(ret, 0);
@@ -125,7 +125,7 @@ START_TEST (test_connection_daemon)
 	context = ncot_context_new();
 	ncot_context_init(context);
 
-	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log");
+	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log --ncotdir=./.ncot");
 	ck_assert(i == 0);
 	/*sleep(1);*/
 

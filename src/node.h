@@ -5,6 +5,7 @@
 #include <json-c/json.h>
 #include <libssh/libssh.h>
 
+#include "context.h"
 #include "connection.h"
 #include "ssh.h"
 
@@ -129,7 +130,12 @@ struct ncot_node {
 	struct ncot_node *prev;
 	struct ncot_ssh_keyset *keyset;
 	struct json_object *json;
+	char *uuidstring;
 };
+
+/** Forward declaration to make cyclic struct references
+ * possible. node->connections, connections->node. */
+struct ncot_connection;
 
 /** Having only three connections per node is an important design
  * priciple of the whole ncot approach. */
@@ -146,11 +152,17 @@ void ncot_node_free(struct ncot_node **pnode);
 void ncot_node_authenticate_peer(struct ncot_node *node, struct ncot_connection *connection);
 /** Init the provided node structure. At the moment only generates a
  * new uuid. */
-void ncot_node_init(struct ncot_node *node);
+void ncot_node_init(struct ncot_context *context, struct ncot_node *node);
 /** Create a new node and read some node data and connection
  * information from the provided json object */
-struct ncot_node* ncot_nodes_new_from_json(struct json_object *jsonobj);
+struct ncot_node* ncot_nodes_new_from_json(struct ncot_context *context, struct json_object *jsonobj);
 /** Determine if a node is connected to any peer */
 int ncot_node_is_connected(struct ncot_node *node);
+struct ssh_key_struct* ncot_node_get_private_key(struct ncot_node *node, enum ncot_ssh_keytype type, int autogenerate);
+struct ssh_key_struct *ncot_node_get_public_key(struct ncot_node *node, enum ncot_ssh_keytype type);
+int ncot_node_persist_keys(struct ncot_context *context, struct ncot_node *node);
+int ncot_node_load_key(struct ncot_context *context, struct ncot_node *node, int types);
+int ncot_node_load_pkey(struct ncot_context *context, struct ncot_node *node, int types);
+int ncot_node_load_keys(struct ncot_context *context, struct ncot_node *node, int types);
 #endif
 

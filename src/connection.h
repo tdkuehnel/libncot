@@ -12,10 +12,12 @@
 #include <gnutls/gnutls.h>
 #include <libssh/libssh.h>
 #include <libssh/server.h>
+#include <libssh/callbacks.h>
 #include <json-c/json.h>
 
 #include "context.h"
 #include "packet.h"
+#include "node.h"
 
 /** \struct ncot_connection
    A connection is a securely encrypted TCP
@@ -54,6 +56,10 @@
    the server in terms of the GnuTLS library implementation.
 */
 
+/* Function prototype for unknwon host key display and user query */
+/* typedef int (*ncot_connection_unknwon_host_query_function)(char *fingerprint, struct ncot_node *node, enum ncot_ssh_keytype type); */
+/* maybe later :) */
+
 /** For the proof on concept working sample, and until we have a UI for
  * its input, we use this hard coded PSK */
 #define SECRET_KEY "THIS IS THE PRE-SHARED SECRET KEY"
@@ -91,6 +97,7 @@ enum ncot_connection_type {
 enum ncot_connection_status {
 	NCOT_CONN_AVAILABLE,
 	NCOT_CONN_CONNECTED,
+	NCOT_CONN_ACCEPTED,
 	NCOT_CONN_LISTEN,
 	NCOT_CONN_BOUND,
 	NCOT_CONN_CLOSING,
@@ -99,8 +106,11 @@ enum ncot_connection_status {
 
 /** The default chunksize we start of transmitting with */
 #define NCOT_DEFAULT_CHUNKSIZE 2048
+#define NCOT_CONN_SSHDIR_LENGTH 2048
 
 struct ncot_connection;
+/* struct ssh_server_callbacks_struct; */
+/* struct ssh_channel_callbacks_struct; */
 /** The conn struct itself. Content taken from one of the examples of
     the GnuTLS package. The list fields prev, next are for the main
     context connections lists only, for a nodes list see next
@@ -109,6 +119,8 @@ struct ncot_connection {
 	/** Pointer for connection lists handling */
 	struct ncot_connection *prev;
 	struct ncot_connection *next;
+	/** The node this connection belongs to */
+	struct ncot_node *node;
 	/** This is our socket fd*/
 	int sd;
 	/** A connections originates either from listening as server
@@ -140,8 +152,12 @@ struct ncot_connection {
 	int pskservercredentialsallocated;
 	gnutls_datum_t key;
 	/** libssh stuff */
-	ssh_session sshsession;
-	ssh_bind sshbind;
+	struct ssh_session_struct *sshsession;
+	struct ssh_bind_struct *sshbind;
+	struct ssh_server_callbacks_struct servercallbacks;
+	struct ssh_channel_callbacks_struct channelcallbacks;
+	char *sshdir;
+	int terminate;
 	/** Our type */
 	enum ncot_connection_type type;
 	/** status */
@@ -164,9 +180,9 @@ struct ncot_connection_list {
 };
 
 struct ncot_connection *ncot_connection_new();
-struct ncot_connection* ncot_connection_new_from_json(struct json_object *jsonobj);
-struct ncot_connection_list* ncot_connections_new_from_json(struct json_object *jsonobj);
-void ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type);
+struct ncot_connection* ncot_connection_new_from_json(struct ncot_context *context, struct json_object *jsonobj);
+struct ncot_connection_list* ncot_connections_new_from_json(struct ncot_context *context, struct ncot_node *node, struct json_object *jsonobj);
+void ncot_connection_init(struct ncot_context *context, struct ncot_node *node, struct ncot_connection *connection, enum ncot_connection_type type);
 void ncot_connection_save(struct ncot_connection *connection, struct json_object *parent);
 int ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port);
 int ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address);
@@ -182,10 +198,13 @@ int ncot_connection_send_raw(struct ncot_context *context, struct ncot_connectio
 void ncot_connection_free(struct ncot_connection **connection);
 
 int ncot_control_connection_authenticate(struct ncot_connection *connection);
+int ncot_connection_verify_knownhost(struct ncot_context *context, struct ncot_connection *connection);
 
 void ncot_connection_list_free(struct ncot_connection_list **pconnectionlist);
 struct ncot_connection_list* ncot_connection_list_new();
 char* ncot_connection_get_type_string(struct ncot_connection *connection);
 char* ncot_connection_get_status_string(struct ncot_connection *connection);
+int ncot_bind_set_control_connection_keyfiles(struct ncot_context *context, struct ssh_bind_struct *sshbind);
+int ncot_bind_set_node_keys(struct ssh_bind_struct *sshbind, struct ncot_node *node);
 
 #endif

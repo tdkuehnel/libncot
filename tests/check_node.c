@@ -17,16 +17,30 @@
 #include "../src/init.h"
 #include "../src/select.h"
 #include "../src/keys.h"
+#include "../src/error.h"
+#include "../src/db.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 #define PIDFILE_NAME_1 "ncotd1.pid"
 
 void setup()
 {
+	system("rm -rf /tmp/.ncot");
 }
 
 void teardown()
 {
+}
+
+struct ncot_context*
+new_context()
+{
+	struct ncot_context *context;
+	context = ncot_context_new();
+	ncot_context_init(context);
+	context->arguments = calloc(1, sizeof(struct ncot_arguments));
+	context->arguments->ncot_dir = "./.ncot";
+	return context;
 }
 
 START_TEST (test_find_node_by_connection)
@@ -43,13 +57,16 @@ START_TEST (test_find_node_by_connection)
 	struct ncot_connection_list *list2;
 	struct ncot_connection_list *list3;
 	ncot_init();
+	ncot_log_set_logfile("test_find_node_by_connection.log");
+	NCOT_LOG_INFO("TEST FIND NODE BY CONNECTIONSTARTS HERE\n");
+
 	context = ncot_context_new();
 	node1 = ncot_node_new();
 	node2 = ncot_node_new();
 	LL_APPEND(context->globalnodelist, node1);
 	LL_APPEND(context->globalnodelist, node2);
-	ncot_node_init(node1);
-	ncot_node_init(node2);
+	ncot_node_init(context, node1);
+	ncot_node_init(context, node2);
 	conn1 = ncot_connection_new();
 	conn2 = ncot_connection_new();
 	conn3 = ncot_connection_new();
@@ -82,7 +99,7 @@ END_TEST
 #define NCOT_READ_BUFLEN 512
 
 struct json_object*
-get_json_obj()
+get_json_obj_nodes_from_testfile()
 {
 	int fd;
 	char buf[NCOT_READ_BUFLEN];
@@ -91,7 +108,7 @@ get_json_obj()
 	enum json_tokener_error jerr;
 	int r;
 
-	fd = open("nodes.json", O_RDONLY);
+	fd = open("./.ncot/nodes.json", O_RDONLY);
 	tokener = json_tokener_new();
 	do {
 		r = read(fd, &buf, NCOT_READ_BUFLEN);
@@ -114,28 +131,71 @@ START_TEST (test_node_keys)
 
 	struct ncot_node *node = NULL;
 	struct json_object *jsonobj = NULL;
-	struct ncot_node *nodes;
-	struct json_object *jsonarray;
+	struct json_object *jsonarray = NULL;
 	struct ssh_key_struct *pkey;
 	struct ncot_context *context;
+	enum ssh_keytypes_e keytype;
 	int r;
 
-	node = ncot_node_new();
-	jsonobj = get_json_obj();
+	ncot_init();
+	ncot_log_set_logfile("test_node_keys.log");
+	NCOT_LOG_INFO("TEST NODE KEYS STARTS HERE\n");
+
+	context = new_context();
+
+	/* node = ncot_node_new(); */
+	jsonobj = get_json_obj_nodes_from_testfile();
 	ck_assert(jsonobj != NULL);
-
 	r = json_object_object_get_ex(jsonobj, "nodes", &jsonarray);
-	nodes = ncot_nodes_new_from_json(jsonarray);
-	ck_assert(nodes != NULL);
+	node = ncot_nodes_new_from_json(context, jsonarray);
+	ck_assert(node != NULL);
+	/* We have some nodes, like read from our state file. But the
+	 * keys are stored elsewhere and get loaded or generated on
+	 * demand */
 
-	context = ncot_context_new();
-	pkey = ncot_node_get_public_key(context, nodes);
+	/* Use file implementation functions directly until we have no
+	 * other backend (sql)*/
+	pkey = ncot_node_get_public_key(node, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(pkey == NULL);
+	r = ncot_db_node_load_pkey(context, node, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(pkey == NCOT_OK);
+	pkey = ncot_node_get_public_key(node, NCOT_SSH_KEYTYPE_RSA);
 	ck_assert(pkey != NULL);
-	ck_assert(ssh_key_is_private(pkey) != 0 );
+	ck_assert(ssh_key_is_public(pkey));
+	ck_assert(!ssh_key_is_private(pkey));
 
-	ncot_node_init(node);
+	ncot_ssh_keypair_free(&node->keyset->keypairs[0]);
+	pkey = ncot_node_get_public_key(node, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(pkey == NULL);
+	ncot_node_load_keys(context, node, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(node->keyset->keypairs[0]->key != NULL);
+	ck_assert(node->keyset->keypairs[0]->pkey != NULL);
+	ck_assert(ssh_key_is_private(node->keyset->keypairs[0]->key));
+	keytype = ssh_key_type(node->keyset->keypairs[0]->pkey);
+	NCOT_LOG_INFO("keytype: %s\n", ssh_key_type_to_char(keytype));
+	ck_assert(ssh_key_is_public(node->keyset->keypairs[0]->pkey));
+	ck_assert(ssh_key_is_private(node->keyset->keypairs[0]->key));
+
+	ncot_node_load_keys(context, node, NCOT_SSH_KEYTYPE_ALL);
+	ck_assert(ssh_key_is_public(node->keyset->keypairs[0]->pkey));
+	ck_assert(ssh_key_is_private(node->keyset->keypairs[0]->key));
+	ck_assert(ssh_key_is_public(node->keyset->keypairs[1]->pkey));
+	ck_assert(ssh_key_is_private(node->keyset->keypairs[1]->key));
+	ck_assert(ssh_key_is_public(node->keyset->keypairs[2]->pkey));
+	ck_assert(ssh_key_is_private(node->keyset->keypairs[2]->key));
+
+	ncot_node_free(&node->next);
+	ncot_node_free(&node);
+
+	/* Maybe check some initialization variants here */
+	node = ncot_node_new();
+	ncot_node_init(context, node);
 	ncot_node_free(&node);
 	ck_assert(node == NULL);
+
+	ncot_context_free(&context);
+	NCOT_LOG_INFO("TEST NODE KEYS ENDS HERE\n");
+	ncot_done();
 }
 END_TEST
 
@@ -149,7 +209,7 @@ START_TEST (test_node)
 	node = ncot_node_new();
 	ck_assert(node != NULL);
 
-	ncot_node_init(node);
+	/* ncot_node_init(node); */
 
 	ncot_node_free(&node);
 	ck_assert(node == NULL);

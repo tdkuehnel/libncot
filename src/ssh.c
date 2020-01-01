@@ -87,6 +87,10 @@ int
 ncot_ssh_keyset_has_keytype(struct ncot_ssh_keyset *keyset, enum ncot_ssh_keytype type)
 {
 	int i;
+	if (!keyset) {
+		NCOT_LOG_ERROR("ncot_ssh_keyset_has_keytype: invalid keyset parameter\n");
+		return NCOT_ERROR;
+	}
 	for (i=0; i < NCOT_SSH_KEYSET_NUMS; i++) {
 		if (keyset->keypairs[i]) {
 			if (keyset->keypairs[i]->type == type) {
@@ -94,6 +98,22 @@ ncot_ssh_keyset_has_keytype(struct ncot_ssh_keyset *keyset, enum ncot_ssh_keytyp
 			}
 		}
 	}
+	return 0;
+}
+
+struct ncot_ssh_keypair*
+ncot_ssh_keyset_get_keypair(struct ncot_ssh_keyset *keyset, enum ncot_ssh_keytype type)
+{
+	if (!keyset) return NULL;
+	int i;
+	for (i=0; i < NCOT_SSH_KEYSET_NUMS; i++) {
+		if (keyset->keypairs[i]) {
+			if (keyset->keypairs[i]->type == type) {
+				return keyset->keypairs[i];
+			}
+		}
+	}
+	return NULL;
 }
 
 int
@@ -137,7 +157,56 @@ ncot_ssh_keyset_init(struct ncot_ssh_keyset *keyset, int types)
 			NCOT_LOG_WARNING("ncot_ssh_keyset_init: keyset has keytype ED25519 already, skipping key generation\n");
 		}
 	}
-	if (i) NCOT_LOG_INFO("ncot_ssh_keyset_init: init keyset with %d keypairs\n", i);
+	if (i) {
+		NCOT_LOG_INFO("ncot_ssh_keyset_init: init keyset with %d keypairs\n", i);
+		return NCOT_OK;
+	} else {
+		NCOT_LOG_WARNING("ncot_ssh_keyset_init: init keyset with %d keypairs\n", i);
+		return NCOT_OK;
+	}
+}
+
+const char*
+ncot_ssh_keytype_to_char(enum ncot_ssh_keytype type) {
+	switch (type) {
+	case NCOT_SSH_KEYTYPE_RSA:
+		return "ssh-rsa";
+	case NCOT_SSH_KEYTYPE_ECDSA_P256:
+		return "ecdsa-sha2-nistp256";
+	case NCOT_SSH_KEYTYPE_ECDSA_P384:
+		return "ecdsa-sha2-nistp384";
+	case NCOT_SSH_KEYTYPE_ECDSA_P521:
+		return "ecdsa-sha2-nistp521";
+	case NCOT_SSH_KEYTYPE_ED25519:
+		return "ssh-ed25519";
+	default:
+		NCOT_LOG_WARNING("ncot_ssh_key_type_to_char: unknown keytype passed as argument\n");
+		return "<unknown keytype>";
+	}
+}
+
+int
+ncot_ssh_keyset_generate_key(struct ncot_ssh_keyset *keyset, enum ncot_ssh_keytype type)
+{
+	int i;
+	if (!keyset) return NCOT_ERROR;
+	if (ncot_ssh_keyset_has_keytype(keyset, type)) {
+		NCOT_LOG_ERROR("ncot_ssh_keyset_generate_key: key %s already in keyset\n", ncot_ssh_keytype_to_char(type));
+		return NCOT_ERROR;
+	}
+	for (i=0; i<NCOT_SSH_KEYSET_NUMS; i++) if (!keyset->keypairs[i]) break;
+	if (i == NCOT_SSH_KEYSET_NUMS && !keyset->keypairs[i]) {
+		NCOT_LOG_ERROR("ncot_ssh_keyset_generate_key: keyset full (should never happen)\n");
+		return NCOT_ERROR;
+	}
+	keyset->keypairs[i] = ncot_ssh_keypair_new();
+	if (ncot_ssh_keypair_init(keyset->keypairs[i], type) != NCOT_OK) {
+		NCOT_LOG_ERROR("ncot_ssh_keyset_generate_key: error generating %s keytype\n",
+			ssh_key_type_to_char(ssh_key_type(keyset->keypairs[i]->key)));
+		return NCOT_ERROR;
+	}
+	NCOT_LOG_INFO("ncot_ssh_keyset_generate_key: add %s key to keyset \n", ssh_key_type_to_char(ssh_key_type(keyset->keypairs[i]->key)));
+	return NCOT_OK;
 }
 
 void

@@ -26,9 +26,13 @@ enum ncot_ssh_keytype {
 	NCOT_SSH_KEYTYPE_RSA = 1,
 	NCOT_SSH_KEYTYPE_ECDSA_P256 = 2,
 	NCOT_SSH_KEYTYPE_ECDSA_P384 = 4,
-	NCOT_SSH_KEYTYPE_ECDSA_P512 = 8,
-	NCOT_SSH_KEYTYPE_ED25519 = 16
+	NCOT_SSH_KEYTYPE_ECDSA_P521 = 8,
+	NCOT_SSH_KEYTYPE_ED25519 = 16,
+	NCOT_SSH_KEYTYPE_ALL = 31
 };
+
+const char*
+ncot_ssh_keytype_to_char(enum ncot_ssh_keytype type);
 
 struct ncot_ssh_keypair {
 	/* public key */
@@ -54,6 +58,8 @@ void ncot_ssh_keypair_free(struct ncot_ssh_keypair **pkeypair);
 struct ncot_ssh_keyset* ncot_ssh_keyset_new();
 int ncot_ssh_keyset_init(struct ncot_ssh_keyset *keyset, int types);
 int ncot_ssh_keyset_has_keytype(struct ncot_ssh_keyset *keyset, enum ncot_ssh_keytype type);
+struct ncot_ssh_keypair* ncot_ssh_keyset_get_keypair(struct ncot_ssh_keyset *keyset, enum ncot_ssh_keytype type);
+int ncot_ssh_keyset_generate_key(struct ncot_ssh_keyset *keyset, enum ncot_ssh_keytype type);
 void ncot_ssh_keyset_free(struct ncot_ssh_keyset **pkeyset);
 
 #endif /* _NCOT_SSH_H_ */

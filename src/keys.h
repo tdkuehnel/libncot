@@ -24,9 +24,5 @@
 #define NCOT_PRIVATE_KEYS_FILE "private_keys.json"
 
 int ncot_key_is_known(struct ncot_context *context, struct ssh_key_struct *key);
-struct ssh_key_struct *ncot_node_get_public_key(struct ncot_context *context, struct ncot_node *node);
-struct ssh_key_struct *ncot_node_get_private_key(struct ncot_context *context, struct ncot_node *node);
-int ncot_node_save_public_key(struct ncot_context *context, struct ncot_node *node, struct ssh_key_struct *key);
-int ncot_node_save_private_key(struct ncot_context *context, struct ncot_node *node, struct ssh_key_struct *key);
 
 #endif /* _NCOT_KEYS_H_ */

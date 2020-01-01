@@ -1,6 +1,8 @@
 #ifndef _NCOT_ARG_
 #define _NCOT_ARG_
 
+#include "ssh.h"
+
 /* from main config or command line arguments. */
 struct ncot_arguments
 {
@@ -13,9 +15,12 @@ struct ncot_arguments
 	char *address_ip4;
 	char *ncot_dir;
 	char *keypass;
+	enum  ncot_ssh_keytype usecipher;
+	char *cipherbits;
 	int log_level;
 	int daemonize;
 	int interactive;
+	int noautokeygen;
 };
 
 int

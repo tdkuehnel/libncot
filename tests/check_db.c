@@ -60,38 +60,61 @@ START_TEST (test_db)
 	ncot_log_set_logfile("test_db.log");
 	NCOT_LOG_INFO("CHECK DB STARTS HERE\n");
 
+	context = new_context();
 	ncot_db_init();
 	node = NULL;
 	node = ncot_node_new();
-	ncot_node_init(node);
+	ncot_node_init(context, node);
 	ncot_ssh_keyset_init(node->keyset, NCOT_SSH_KEYTYPE_RSA|NCOT_SSH_KEYTYPE_ECDSA_P256|NCOT_SSH_KEYTYPE_ED25519);
-	context = new_context();
 	NCOT_LOG_INFO("Mark 0\n");
-	r = ncot_db_node_save_pkeys(context, node);
+	r = ncot_db_node_save_keys(context, node);
 	ck_assert(r == NCOT_OK);
 	uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
 	ck_assert(string != NULL);
-
+	/* Check if all key files are present after generation */
 	snprintf((char*)&buf, 2048, "/tmp/.ncot/%s", string);
 	ck_assert(stat((char*)&buf, &dstat) == 0);
 	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_rsa", string);
 	ck_assert(stat((char*)&buf2, &dstat) == 0);
-	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_ecdsa", string);
+	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_ecdsa_p256", string);
 	ck_assert(stat((char*)&buf2, &dstat) == 0);
 	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_ed25519", string);
 	ck_assert(stat((char*)&buf2, &dstat) == 0);
 	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_rsa.pub", string);
 	ck_assert(stat((char*)&buf2, &dstat) == 0);
-	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_ecdsa.pub", string);
+	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_ecdsa_p256.pub", string);
 	ck_assert(stat((char*)&buf2, &dstat) == 0);
 	snprintf((char*)&buf2, 2048, "/tmp/.ncot/%s/id_ed25519.pub", string);
 	ck_assert(stat((char*)&buf2, &dstat) == 0);
 
+	ncot_ssh_keypair_free(&node->keyset->keypairs[0]);
+	ncot_ssh_keypair_free(&node->keyset->keypairs[1]);
+	ncot_ssh_keypair_free(&node->keyset->keypairs[2]);
+
+	r = ncot_db_node_load_key(context, node, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(r == NCOT_OK);
+	ck_assert(ncot_ssh_keyset_has_keytype(node->keyset, NCOT_SSH_KEYTYPE_RSA));
+	ck_assert(node->keyset->keypairs[0]->key != NULL);
+	ck_assert(node->keyset->keypairs[0]->pkey == NULL);
+	r = ncot_db_node_load_pkey(context, node, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(r == NCOT_OK);
+	ck_assert(node->keyset->keypairs[0]->key != NULL);
+	ck_assert(node->keyset->keypairs[0]->pkey != NULL);
+
+	/* Overloading present key */
+	r = ncot_db_node_load_pkey(context, node, NCOT_SSH_KEYTYPE_RSA);
+	ck_assert(r == NCOT_OK);
+	ck_assert(node->keyset->keypairs[0]->key != NULL);
+	ck_assert(node->keyset->keypairs[0]->pkey != NULL);
+
+	/* ck_assert(ncot_ssh_keyset_has_keytype(keyset, NCOT_SSH_KEYTYPE_ECDSA_P256)); */
+	/* ck_assert(!ncot_ssh_keyset_has_keytype(keyset, NCOT_SSH_KEYTYPE_ED25519)); */
 
 	ncot_node_free(&node);
 	ck_assert(node == NULL);
 
 	ncot_context_free(&context);
+	NCOT_LOG_INFO("CHECK DB ENDS HERE\n");
 	ncot_done();
 }
 END_TEST

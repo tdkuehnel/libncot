@@ -29,7 +29,7 @@ ncot_context_init_base(struct ncot_context *context)
 	if (context) {
 		context->globalnodelist = NULL;
 		context->controlconnection = ncot_connection_new();
-		ncot_connection_init(context->controlconnection, NCOT_CONN_CONTROL);
+		ncot_connection_init(context, NULL, context->controlconnection, NCOT_CONN_CONTROL);
 	} else {
 		NCOT_LOG_WARNING("Invalid context passed to ncot_context_init_base\n");
 	}
@@ -177,7 +177,7 @@ ncot_context_parse_from_json(struct ncot_context *context) {
 	ret = json_object_object_get_ex(context->json, "nodes", &jsonobj);
 	if (ret) {
 		NCOT_DEBUG("ncot_context_parse_from_json: nodes found\n");
-		context->globalnodelist = ncot_nodes_new_from_json(jsonobj);
+		context->globalnodelist = ncot_nodes_new_from_json(context, jsonobj);
 	}
 
 	NCOT_LOG_VERBOSE("ncot_context_parse_from_json: Ok. uuid: %s\n", string);
@@ -317,7 +317,7 @@ ncot_context_save_state(struct ncot_context *context)
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 1
+#define DEBUG 0
 void
 ncot_context_free(struct ncot_context **pcontext) {
 	struct ncot_context *context;
@@ -325,23 +325,14 @@ ncot_context_free(struct ncot_context **pcontext) {
 		context = *pcontext;
 		if (context) {
 			context = *pcontext;
- 			NCOT_DEBUG("ncot_context_free: 0 freeing context at 0x%x\n", context);
 			ncot_context_save_state(context);
-			NCOT_DEBUG("ncot_context_free: 1 freeing context at 0x%x\n", context);
 			/*      if (context->config) free(context->config); */
 			ncot_context_abort_connection_io(context);
-			NCOT_DEBUG("ncot_context_free: 2 freeing context at 0x%x\n", context);
 			ncot_context_nodes_free(context);
-			NCOT_DEBUG("ncot_context_free: 3 freeing context at 0x%x\n", context);
 			if (context->controlconnection) ncot_connection_free(&context->controlconnection);
-			NCOT_DEBUG("ncot_context_free: 4 freeing context at 0x%x\n", context);
 			if (context->arguments) free(context->arguments);
-			NCOT_DEBUG("ncot_context_free: 5 freeing context at 0x%x\n", context);
 			if (context->shell) ncot_shell_free(&context->shell);
 			if (context->uuid) uuid_destroy(context->uuid);
-			/* The whole libssh poll stuff is unstable and not exposed by
-			 * the lib. */
-			/* if (context->pollcontext) ssh_poll_ctx_free(context->pollcontext); */
 			free(context);
 			*pcontext = NULL;
 			NCOT_DEBUG("ncot_context_free: done freeing context at 0x%x\n", context);

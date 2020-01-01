@@ -24,20 +24,21 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	/* FIXME: buffer length ?? */
 	char buf[2048];
 	struct poptOption optionsTable[] = {
-		{ "verbose",      'v', POPT_ARG_NONE,   0,                        0,  "Produce verbose output", NULL },
-		{ "quiet",        'q', POPT_ARG_NONE,   0,                        0,  "Don't produce any output", NULL },
+		{ "address",      'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
+		{ "port",         'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
 #ifndef _WIN32
 		{ "daemonize",    'd', POPT_ARG_NONE,   &arguments->daemonize,    0,  "Daemonize to background", NULL },
 #endif
-		{ "interactive",  'i', POPT_ARG_NONE,   &arguments->interactive,  0,  "Enter interactive mode after startup", NULL },
-		{ "address",      'a', POPT_ARG_STRING, &arguments->address_ip4,  0,  "Address to listen on for control connection", NULL},
-		{ "port",         'c', POPT_ARG_STRING, &arguments->port,         0,  "Port to listen on for control connection", NULL},
 		{ "configfile",   'f', POPT_ARG_STRING, &arguments->config_file,  0,  "Use configfile instead of ncot_config.json", NULL},
-		{ "ncotdir",      'r', POPT_ARG_STRING, &arguments->ncot_dir,     0,  "NCoTs dir. default: ~/.ncot", NULL},
 		{ "logfile",      'g', POPT_ARG_STRING, &arguments->logfile_name, 0,  "Use logfile STRING instead of logging to stdout", NULL},
-		{ "pidfile",      'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
+		{ "interactive",  'i', POPT_ARG_NONE,   &arguments->interactive,  0,  "Enter interactive mode after startup", NULL },
 		{ "sshkeypass",   'k', POPT_ARG_STRING, &arguments->keypass,      0,  "Passphrase for ssh private key files", NULL},
 		{ "loglevel",     'l', POPT_ARG_INT,    &arguments->log_level,    0,  "Set log level (0 .. 8), default 1", NULL},
+		{ "noautokeygen", 'n', POPT_ARG_NONE,   &arguments->noautokeygen, 0,  "No automatic ssh key generation", NULL },
+		{ "pidfile",      'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
+		{ "quiet",        'q', POPT_ARG_NONE,   0,                        0,  "Don't produce any output", NULL },
+		{ "ncotdir",      'r', POPT_ARG_STRING, &arguments->ncot_dir,     0,  "NCoTs dir. default: ~/.ncot", NULL},
+		{ "verbose",      'v', POPT_ARG_NONE,   0,                        0,  "Produce verbose output", NULL },
 		POPT_AUTOHELP
 		{ NULL, 0, 0, NULL, 0 }
 	};
@@ -52,6 +53,9 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	arguments->port = "24002";
 	arguments->keypass = "simplepass"; /* Hardcoded default better than nothing ? */
 	arguments->ncot_dir = "~/.ncot";
+	arguments->noautokeygen = 0;
+	arguments->usecipher = NCOT_SSH_KEYTYPE_RSA;
+	arguments->cipherbits = "2048";
 	c = '\0';
 	i = 0;
 
@@ -80,14 +84,26 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 		case 'g':
 			buf[i++] = 'g';
 			break;
+		case 'i':
+			buf[i++] = 'i';
+			break;
+		case 'k':
+			buf[i++] = 'k';
+			break;
 		case 'l':
 			buf[i++] = 'l';
+			break;
+		case 'n':
+			buf[i++] = 'n';
 			break;
 		case 'p':
 			buf[i++] = 'p';
 			break;
 		case 'q':
 			buf[i++] = 'q';
+			break;
+		case 'r':
+			buf[i++] = 'r';
 			break;
 		case 'v':
 			buf[i++] = 'v';

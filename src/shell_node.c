@@ -27,7 +27,7 @@ void ncot_shell_node_create(struct ncot_context *context)
 	const char *string = NULL;
 	int ret;
 	node = ncot_node_new();
-	ncot_node_init(node);
+	ncot_node_init(context, node);
 	DL_APPEND(context->globalnodelist, node);
 	ret = uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
 	if (ret != UUID_RC_OK) {
@@ -302,6 +302,7 @@ ncot_shell_node_handle_disconnect(struct ncot_context *context)
 			DPRINTF(shell->writefd, "connection %d of node: %s neither connected nor listening, cannot disconnect\n", connnum, string);
 			return;
 		}
+		ncot_context_dequeue_connection_connected(context, connectionlist->connection);
 		ncot_connection_close(connectionlist->connection);
 		DPRINTF(shell->writefd, "connection %d of node: %s disconnected\n", connnum, string);
 	} else {

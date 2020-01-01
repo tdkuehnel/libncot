@@ -1,1 +1,4 @@
-This directory is for static test data files
+This directory is for static test data files. Dynamically generated
+tests data goes into system wide /tmp/.ncot and can freely be deleted.
+Every test using dynamic data in /tmp/.ncot should delete /tmp/.ncot
+on test setup.
