@@ -67,7 +67,7 @@ START_TEST (test_ncot)
 
 	printf("test_ncot PID is %ld\n", (long) getpid());
 
-	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_NCOT " --logfile=test_ncot.log");
+	i = system("../src/ncotpoll -d --pidfile=" PIDFILE_NAME_TEST_NCOT " --logfile=test_ncot.log");
 	ck_assert(i == 0);
 	sleep(1);
 	i = stat(PIDFILE_NAME_TEST_NCOT, &pidfilestat);

@@ -5,6 +5,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <errno.h>
+#include <poll.h>
 
 #include <libssh/libssh.h>
 
@@ -24,6 +25,7 @@
 #include "error.h"
 #include "utlist.h"
 #include "ssh.h"
+#include "callback.h"
 
 #undef DEBUG
 #define DEBUG 0
@@ -33,6 +35,23 @@
 const char *hostkey = "/home/tdkuehnel/hostkey.rsa";
 
 const char *ncot_ssh_banner = "* ncot ssh connection banner *";
+
+int
+ncot_connection_open_channel(struct ncot_connection *connection)
+{
+	connection->channel = ssh_channel_new(connection->sshsession);
+	if (!connection->channel) {
+		NCOT_LOG_ERROR("ncot_connection_open_channel: error creating channel\n");
+		return NCOT_FAILURE;
+	}
+
+	if (!ssh_channel_open_session(connection->channel) == SSH_OK) {
+		NCOT_LOG_ERROR("ncot_connection_open_channel: error opening session channel\n");
+		return NCOT_FAILURE;
+	}
+	NCOT_LOG_VERBOSE("ncot_connection_open_channel: channel_opened ok\n");
+	return NCOT_OK;
+}
 
 int
 ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port)
@@ -48,13 +67,19 @@ ncot_connection_listen(struct ncot_context *context, struct ncot_connection *con
 	}
 	ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_BINDPORT, &port);
 	ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_BANNER, &ncot_ssh_banner);
+	connection->sshlogverbosity = SSH_LOG_PACKET;
+	if (context->arguments)
+		ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY, &context->arguments->ssh_log_level);
 	switch (connection->type) {
 	case NCOT_CONN_CONTROL:
 		r = ncot_bind_set_control_connection_keyfiles(context, connection->sshbind);
 		NCOT_LOG_INFO("ncot_connection_listen: controlconnection bind keys\n");
 		break;
 	case NCOT_CONN_NODE:
-		if (!connection->node) return NCOT_FAILURE;
+		if (!connection->node) {
+			NCOT_LOG_ERROR("ncot_connection_listen: invalid connection->node entry\n");
+			return NCOT_FAILURE;
+		}
 		if (!ncot_node_load_keys(context, connection->node, NCOT_SSH_KEYTYPE_RSA) == NCOT_OK) {
 			NCOT_LOG_ERROR("ncot_connection_listen: unable to load node keys\n");
 			return NCOT_FAILURE;
@@ -76,12 +101,80 @@ ncot_connection_listen(struct ncot_context *context, struct ncot_connection *con
 	}
 	connection->status = NCOT_CONN_LISTEN;
 	ncot_context_enqueue_connection_listen(context, connection);
+
+	ssh_event_add_fd(context->mainloop, connection->sd, POLLIN|POLLOUT, ncot_cb_connection_listen, connection);
 	NCOT_LOG_INFO("ncot_connection_listen: connection now listening on port %i\n", port);
 	return 0;
 
 }
 
 int
+ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
+{
+	if (!context) return NCOT_ERROR;
+	if (!connection) return NCOT_ERROR;
+	if (!connection->sshsession) connection->sshsession = ssh_new();
+	if (ssh_options_set(connection->sshsession, SSH_OPTIONS_HOST, address) < 0) return NCOT_ERROR;
+	if (ssh_options_set(connection->sshsession, SSH_OPTIONS_PORT_STR, port) < 0) return NCOT_ERROR;
+	if (context->arguments) ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY, &context->arguments->ssh_log_level);
+	/* last parameter of the following call can be our ssh config file name */
+	ssh_options_parse_config(connection->sshsession, NULL);
+	NCOT_LOG_INFO("ncot_connection_connect: trying to connect to %s %s\n", address, port);
+	if (ssh_connect(connection->sshsession)) {
+		NCOT_LOG_ERROR("ncot_connection_connect: Connection failed : %s\n", ssh_get_error(connection->sshsession));
+		ssh_disconnect(connection->sshsession);
+		return NCOT_ERROR;
+	}
+	if (!ssh_event_add_session(connection->context->mainloop, connection->sshsession) == SSH_OK) {
+		NCOT_LOG_ERROR("ncot_connection_connect: ssh_event_add_session: %s\n", ssh_get_error(connection->sshsession));
+		return NCOT_FAILURE;
+	}
+	connection->status = NCOT_CONN_CONNECTED;
+	ssh_event_add_fd(context->mainloop, connection->sd, POLLIN, ncot_cb_connection_connect, connection);
+	ncot_context_enqueue_connection_connected(context, connection);
+	NCOT_LOG_INFO("ncot_connection_connect: Connection connected\n");
+	return NCOT_OK;
+}
+
+int
+ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
+{
+	int r;
+
+	if (!context) RETURN_FAIL("ncot_connection_accept: invalid context parameter");
+	if (!connection) RETURN_FAIL("ncot_connection_accept: invalid connection parameter");
+	if (!connection->context) RETURN_FAIL("ncot_connection_accept: invalid connection->context parameter");
+	if (connection->status != NCOT_CONN_LISTEN) RETURN_FAIL("ncot_connection_accept: connection not in listening state");
+	if (!connection->sshsession) connection->sshsession = ssh_new();
+	if (context->arguments) ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY, &context->arguments->ssh_log_level);
+        r = ssh_bind_accept(connection->sshbind, connection->sshsession);
+	if (!r == SSH_OK) {
+		NCOT_LOG_ERROR("ncot_connection_accept: ssh_bind_accept unsuccesful\n");
+		return NCOT_ERROR;
+	}
+	/* connection->sd = ssh_get_fd(connection->sshsession); */
+	ssh_callbacks_init(&connection->servercallbacks);
+	connection->servercallbacks.userdata = connection;
+        connection->servercallbacks.channel_open_request_session_function = ncot_new_session_channel;
+	connection->servercallbacks.auth_pubkey_function = ncot_auth_pubkey;
+	ssh_set_server_callbacks(connection->sshsession, &connection->servercallbacks);
+	if (ssh_handle_key_exchange(connection->sshsession)) {
+		NCOT_LOG_ERROR("ncot_connection_accept: ssh_handle_key_exchange: %s\n", ssh_get_error(connection->sshsession));
+		return NCOT_FAILURE;
+	}
+	ssh_set_auth_methods(connection->sshsession, SSH_AUTH_METHOD_PUBLICKEY);
+	connection->status = NCOT_CONN_ACCEPTED;
+	ncot_context_dequeue_connection_listen(context, connection);
+	ncot_context_enqueue_connection_connected(context, connection);
+	if (!ssh_event_add_session(connection->context->mainloop, connection->sshsession) == SSH_OK) {
+		NCOT_LOG_ERROR("ncot_connection_accept: ssh_event_add_session: %s\n", ssh_get_error(connection->sshsession));
+		return NCOT_FAILURE;
+	}
+	NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
+	return NCOT_OK;
+}
+
+static int
 ncot_auth_pubkey(ssh_session session, const char *user, struct ssh_key_struct *pubkey, char signature_state, void *userdata)
 {
 	struct ncot_connection *connection;
@@ -89,6 +182,7 @@ ncot_auth_pubkey(ssh_session session, const char *user, struct ssh_key_struct *p
 	if (!userdata) return NCOT_FAILURE;
 	connection = (struct ncot_connection*)userdata;
 	connection->authenticated = 1;
+	NCOT_LOG_INFO("ncot_auth_pubkey: returning SSH_AUTH_SUCCESS l\n");
 	return SSH_AUTH_SUCCESS;
 }
 
@@ -100,6 +194,7 @@ ncot_channel_close_callback (ssh_session session, ssh_channel channel, void *use
 	if (!userdata) return;
 	connection = (struct ncot_connection*)userdata;
 	connection->terminate = 1;
+	NCOT_LOG_INFO("ncot_channel_close_callback: called\n");
 }
 
 int
@@ -119,6 +214,12 @@ ncot_channel_data_callback (ssh_session session, ssh_channel channel, void *data
 	}
 }
 
+int
+ncot_channel_write_wontblock_callback (ssh_session session, ssh_channel channel, size_t bytes, void *userdata)
+{
+	NCOT_LOG_INFO("ncot_channel_write_wontblock_callback: called\n");
+}
+
 static struct ssh_channel_struct*
 ncot_new_session_channel(ssh_session session, void *userdata)
 {
@@ -132,32 +233,10 @@ ncot_new_session_channel(ssh_session session, void *userdata)
 	connection->channelcallbacks.userdata = userdata;
 	connection->channelcallbacks.channel_data_function = ncot_channel_data_callback;
 	connection->channelcallbacks.channel_eof_function = ncot_channel_close_callback;
+	connection->channelcallbacks.channel_write_wontblock_function = ncot_channel_write_wontblock_callback;
 	ssh_set_channel_callbacks(channel, &connection->channelcallbacks);
 	NCOT_LOG_INFO("ncot_new_session_channel: Allocated session channel\n");
 	return channel;
-}
-
-int
-ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
-{
-	int r;
-	if (connection->status != NCOT_CONN_LISTEN) RETURN_FAIL("ncot_connection_accept: connection not in listening state");
-	if (!connection->sshsession) connection->sshsession = ssh_new();
-        r = ssh_bind_accept(connection->sshbind, connection->sshsession);
-	if (!r == SSH_OK) {
-		NCOT_LOG_ERROR("ncot_connection_accept: ssh_bind_accept unsuccesful\n");
-		return NCOT_ERROR;
-	}
-	connection->sd = ssh_get_fd(connection->sshsession);
-	connection->servercallbacks.userdata = connection;
-        connection->servercallbacks.channel_open_request_session_function = ncot_new_session_channel;
-	connection->servercallbacks.auth_pubkey_function = ncot_auth_pubkey;
-	ssh_set_server_callbacks(connection->sshsession, &connection->servercallbacks);
-	connection->status = NCOT_CONN_ACCEPTED;
-	ncot_context_dequeue_connection_listen(context, connection);
-	ncot_context_enqueue_connection_connected(context, connection);
-	NCOT_LOG_INFO("ncot_connection_accept: connection accepted\n");
-	return 0;
 }
 
 int
@@ -165,12 +244,13 @@ ncot_connection_authenticate_server(struct ncot_connection *connection)
 {
 	int r;
 
-	if (ncot_connection_verify_knownhost(NULL,connection) != NCOT_OK) {
+	if (ncot_connection_verify_knownhost(NULL, connection) != NCOT_OK) {
 		NCOT_LOG_ERROR("ncot_connection_authenticate_server: error authenticating peer\n");
 		return NCOT_ERROR;
 	}
-	NCOT_LOG_INFO("ncot_connection_authenticate_server: knownhost sucessfully verfied\n");
+	NCOT_LOG_INFO("ncot_connection_authenticate_server: knownhost successfully verified\n");
 	r = ssh_userauth_autopubkey(connection->sshsession, NULL);
+	NCOT_LOG_INFO("ncot_connection_authenticate_server: after ssh_userauth_autopubkey\n");
 	if (r != SSH_AUTH_SUCCESS) {
 		NCOT_LOG_ERROR("ncot_connection_authenticate_server: error authenticating to server by ssh_userauth_autopubkey\n");
 		return NCOT_FAILURE;
@@ -226,6 +306,7 @@ ncot_connection_verify_knownhost(struct ncot_context *context, struct ncot_conne
 	switch (state) {
         case SSH_KNOWN_HOSTS_OK:
 		/* OK */
+		NCOT_LOG_INFO("ncot_connection_verify_knownhost: SSH_KNOWN_HOST_OK\n");
 		break;
         case SSH_KNOWN_HOSTS_CHANGED:
 		NCOT_LOG_ERROR("ncot_connection_verify_knownhost: SSH_KNOWN_HOSTS_OTHER");
@@ -412,8 +493,10 @@ ncot_connection_init(struct ncot_context *context, struct ncot_node *node, struc
 {
 	if (!context) return;
 	if (!connection) return;
+	connection->sshlogverbosity = SSH_LOG_PACKET;
 	connection->type = type;
 	connection->status = NCOT_CONN_INIT;
+	connection->node = node;
 	if (context->arguments) {
 		switch (type) {
 		case NCOT_CONN_CONTROL:
@@ -426,6 +509,7 @@ ncot_connection_init(struct ncot_context *context, struct ncot_node *node, struc
 			break;
 		}
 	}
+	connection->context = context;
 	if (connection->sshbind) ssh_bind_free(connection->sshbind);
 	connection->sshbind = ssh_bind_new();
 	if (connection->sshsession) ssh_free(connection->sshsession);
@@ -435,6 +519,7 @@ ncot_connection_init(struct ncot_context *context, struct ncot_node *node, struc
 		return;
 	}
 	ssh_options_set(connection->sshsession, SSH_OPTIONS_SSH_DIR, connection->sshdir);
+	if (context->arguments) ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_LOG_VERBOSITY, &context->arguments->ssh_log_level);
 	/* main options dir (?) */
 	if (context->arguments) ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_CONFIG_DIR, context->arguments->ncot_dir);
  	/* ssh_bind_options_set(connection->sshbind, SSH_BIND_OPTIONS_RSAKEY, hostkey); */
@@ -477,28 +562,6 @@ ncot_connection_free(struct ncot_connection **pconnection)
 			NCOT_LOG_ERROR("Invalid ncot_connection\n");
 	} else
 		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
-}
-
-int
-ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
-{
-	if (!context) return NCOT_ERROR;
-	if (!connection) return NCOT_ERROR;
-	if (!connection->sshsession) connection->sshsession = ssh_new();
-	if (ssh_options_set(connection->sshsession, SSH_OPTIONS_HOST, address) < 0) return NCOT_ERROR;
-	if (ssh_options_set(connection->sshsession, SSH_OPTIONS_PORT_STR, port) < 0) return NCOT_ERROR;
-	/* last parameter of the following call can be our ssh config file name */
-	ssh_options_parse_config(connection->sshsession, NULL);
-	NCOT_LOG_INFO("ncot_connection_connect: trying to connect to %s %s\n", address, port);
-	if (ssh_connect(connection->sshsession)) {
-		NCOT_LOG_ERROR("ncot_connection_connect: Connection failed : %s\n", ssh_get_error(connection->sshsession));
-		ssh_disconnect(connection->sshsession);
-		return NCOT_ERROR;
-	}
-	connection->status = NCOT_CONN_CONNECTED;
-	ncot_context_enqueue_connection_connected(context, connection);
-	NCOT_LOG_INFO("ncot_connection_connect: Connection connected\n");
-	return NCOT_OK;
 }
 
 char*
@@ -617,6 +680,7 @@ ncot_connection_send(struct ncot_context *context, struct ncot_connection *conne
 	packet = ncot_packet_new_with_message(message, length, type);
 	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send: Out of memory");
 	LL_APPEND(connection->packetlist, packet);
+	/* ssh_poll_add_events(connection->sshsession); */
 	ncot_context_enqueue_connection_writing(context, connection);
 	return length;
 }
@@ -794,6 +858,11 @@ ncot_connection_process_data(struct ncot_context *context, struct ncot_connectio
 	return 0;
 }
 
+
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG 1
 int
 ncot_connection_write_data(struct ncot_context *context, struct ncot_connection *connection)
 {
@@ -803,6 +872,9 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	ssize_t amount;
 	struct ncot_packet *packet;
 	struct ncot_packet_data *pointer;
+	int blocking;
+	int result;
+
 	if (!connection->packetlist) {
 		ncot_context_dequeue_connection_writing(context, connection);
 		NCOT_DEBUG("ncot_connection_write_data: No more packets in queue\n");
@@ -829,17 +901,24 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	NCOT_DEBUG("ncot_connection_write_data: connection->chunksize is %i bytes\n", connection->chunksize);
 	pointer = packet->data + packet->index;
 	NCOT_DEBUG("ncot_connection_write_data: going to send %i bytes\n", amount);
-#ifdef _WIN32
-	u_long iMode = 1;
-	ioctlsocket(connection->sd, FIONBIO, &iMode);
-	amount = send(connection->sd, (char*)pointer, amount, 0);
-#else
-	amount = send(connection->sd, pointer, amount, MSG_DONTWAIT);
-#endif
-#ifdef _WIN32
-	iMode = 0;
-	ioctlsocket(connection->sd, FIONBIO, &iMode);
-#endif
+
+	blocking = ssh_is_blocking(connection->sshsession);
+	ssh_set_blocking(connection->sshsession, 0);
+	amount = ssh_channel_write(connection->channel, pointer, amount);
+	ssh_set_blocking(connection->sshsession, blocking);
+
+/* #ifdef _WIN32 */
+/* 	u_long iMode = 1; */
+/* 	ioctlsocket(connection->sd, FIONBIO, &iMode); */
+/* 	amount = send(connection->sd, (char*)pointer, amount, 0); */
+/* #else */
+/* 	amount = send(connection->sd, pointer, amount, MSG_DONTWAIT); */
+/* #endif */
+/* #ifdef _WIN32 */
+/* 	iMode = 0; */
+/* 	ioctlsocket(connection->sd, FIONBIO, &iMode); */
+/* #endif */
+
 	NCOT_DEBUG("ncot_connection_write_data: %i bytes send by call\n", amount);
 	if (amount == -1) {
 		/* We need to check for the reason why this may
@@ -849,8 +928,8 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 		handy. We could enable timed out pselect only when we
 		have blocking writing i/o and a context->waiting list
 		where we got back in from with our blocking connection
-		when some amount of time has passed. For now we ignore
-		errors at all ! FIXME */
+		when some amount of time has passed. ! FIXME */
+		NCOT_LOG_ERROR("ncot_connection_write_data: ssh_channel_write returned %d\n", amount);
 		return 0;
 	}
 	/* We have sent some data.*/
@@ -860,6 +939,11 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	/* TODO: We need to check for EMSGSIZE and split the chunksize accordingly. */
 }
 
+
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG 0
 int
 ncot_connection_listen_bare(struct ncot_context *context, struct ncot_connection *connection, int port)
 {

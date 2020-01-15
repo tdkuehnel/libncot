@@ -109,6 +109,7 @@ enum ncot_connection_status {
 #define NCOT_CONN_SSHDIR_LENGTH 2048
 
 struct ncot_connection;
+struct ncot_context;
 /* struct ssh_server_callbacks_struct; */
 /* struct ssh_channel_callbacks_struct; */
 /** The conn struct itself. Content taken from one of the examples of
@@ -121,6 +122,8 @@ struct ncot_connection {
 	struct ncot_connection *next;
 	/** The node this connection belongs to */
 	struct ncot_node *node;
+	/** The context this connection belongs to */
+	struct ncot_context *context;
 	/** This is our socket fd*/
 	int sd;
 	/** A connections originates either from listening as server
@@ -156,6 +159,8 @@ struct ncot_connection {
 	struct ssh_bind_struct *sshbind;
 	struct ssh_server_callbacks_struct servercallbacks;
 	struct ssh_channel_callbacks_struct channelcallbacks;
+	struct ssh_channel_struct *channel;
+	int sshlogverbosity;
 	char *sshdir;
 	int terminate;
 	/** Our type */
@@ -206,5 +211,10 @@ char* ncot_connection_get_type_string(struct ncot_connection *connection);
 char* ncot_connection_get_status_string(struct ncot_connection *connection);
 int ncot_bind_set_control_connection_keyfiles(struct ncot_context *context, struct ssh_bind_struct *sshbind);
 int ncot_bind_set_node_keys(struct ssh_bind_struct *sshbind, struct ncot_node *node);
+int ncot_connection_open_channel(struct ncot_connection *connection);
+
+static struct ssh_channel_struct* ncot_new_session_channel(ssh_session session, void *userdata);
+static int ncot_auth_pubkey(ssh_session session, const char *user, struct ssh_key_struct *pubkey, char signature_state, void *userdata);
+
 
 #endif

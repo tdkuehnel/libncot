@@ -15,6 +15,7 @@
 #define NCOT_LOG_LEVEL_FATAL   8
 #define NCOT_LOG_LEVEL_ERROR   16
 #define NCOT_LOG_LEVEL_WARNING 24
+#define NCOT_LOG_LEVEL_SSH     31
 #define NCOT_LOG_LEVEL_INFO    32
 #define NCOT_LOG_LEVEL_VERBOSE 40
 #define NCOT_LOG_LEVEL_DEBUG   48 /* debug.h has own macros for debugging*/
@@ -43,6 +44,7 @@ extern ncot_log_flush_pointer log_buffer_flush_ptr;
 #define NCOT_LOG_ERROR(fmt, ...) NCOT_LOG(NCOT_LOG_LEVEL_ERROR, fmt, ## __VA_ARGS__);
 #define NCOT_LOG_WARNING(fmt, ...) NCOT_LOG(NCOT_LOG_LEVEL_WARNING, fmt, ## __VA_ARGS__);
 #define NCOT_LOG_WARNING_IF_ERROR(err, fmt, ...) if(err==-1) {NCOT_LOG_WARNING(fmt, ## __VA_ARGS__)}
+#define NCOT_LOG_SSH(fmt, ...) NCOT_LOG(NCOT_LOG_LEVEL_SSH, fmt, ## __VA_ARGS__);
 
 #define NCOT_LOG_INFO_BUFFERED(fmt, ...) NCOT_LOG_BUFFERED(NCOT_LOG_LEVEL_INFO, fmt, ## __VA_ARGS__);
 /*#define NCOT_LOG_INFO_BUFFERED(fmt, ...) if (log_buffered_ptr != NULL) { (*log_buffered_ptr)(NCOT_LOG_LEVEL_INFO, fmt,  ## __VA_ARGS__); }*/
@@ -63,4 +65,5 @@ void ncot_log_printf_buffered( int level, const char *fmt, ... );
 void ncot_log_printf( int level, const char *fmt, ... );
 void ncot_log_hex (char *desc, void *addr, int len);
 
+void ncot_ssh_logging_callback(int priority, const char *function, const char *buffer, void *userdata);
 #endif

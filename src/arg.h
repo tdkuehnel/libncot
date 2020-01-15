@@ -18,12 +18,12 @@ struct ncot_arguments
 	enum  ncot_ssh_keytype usecipher;
 	char *cipherbits;
 	int log_level;
+	int ssh_log_level;
 	int daemonize;
 	int interactive;
 	int noautokeygen;
 };
 
-int
-ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv);
+int ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv);
 
 #endif

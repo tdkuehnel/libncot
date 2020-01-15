@@ -16,6 +16,34 @@
 
 #undef DEBUG
 #define DEBUG 1
+
+int
+ncot_poll_prepare(struct ncot_context *context, struct ssh_event_struct *event)
+{
+	/* Doing it with the contexts lists. */
+	struct ncot_connection *connection;
+	struct ncot_connection *connectionnext;
+	struct ncot_node *node;
+	int ret;
+	/* First the closing ones */
+	connection = context->connections_closing;
+	while (connection) {
+		connection = connection->next;
+	}
+
+}
+
+int
+ncot_poll_init(struct ncot_context *context, struct ssh_event_struct *event)
+{
+	/* In interactive mode we include stdin */
+	if (context->arguments) {
+		if (context->arguments->interactive) {
+			return ssh_event_add_fd(event, STDIN_FILENO, POLLIN, ncot_cb_stdin_ready, context);
+		}
+	}
+}
+
 /* Our main pselect loop has encountered some ready sds. Lets see how
  * we can handle that */
 int
@@ -47,7 +75,6 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 			 * so react on it accordingly */
 			switch (connection->status) {
 			case NCOT_CONN_ACCEPTED:
-				
 				break;
 			case NCOT_CONN_CONNECTED:
 				if (ncot_connection_read_data(context, connection) == 0) {
@@ -115,17 +142,6 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 		}
 	}
 	return res;
-}
-
-int
-ncot_init_poll(struct ncot_context *context, struct ssh_event_struct *event)
-{
-	/* In interactive mode we include stdin */
-	if (context->arguments) {
-		if (context->arguments->interactive) {
-			return ssh_event_add_fd(event, STDIN_FILENO, POLLIN, ncot_cb_stdin_ready, context);
-		}
-	}
 }
 
 #ifdef DEBUG

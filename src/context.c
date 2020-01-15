@@ -4,6 +4,7 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 #include <fcntl.h>
+#include <poll.h>
 #include <json-c/json.h>
 #include <libssh/libssh.h>
 
@@ -13,6 +14,7 @@
 #include "utlist.h"
 #include "node.h"
 #include "identity.h"
+#include "callback.h"
 
 struct ncot_context*
 ncot_context_new()
@@ -30,6 +32,7 @@ ncot_context_init_base(struct ncot_context *context)
 		context->globalnodelist = NULL;
 		context->controlconnection = ncot_connection_new();
 		ncot_connection_init(context, NULL, context->controlconnection, NCOT_CONN_CONTROL);
+		context->mainloop = ssh_event_new();
 	} else {
 		NCOT_LOG_WARNING("Invalid context passed to ncot_context_init_base\n");
 	}
@@ -333,6 +336,7 @@ ncot_context_free(struct ncot_context **pcontext) {
 			if (context->arguments) free(context->arguments);
 			if (context->shell) ncot_shell_free(&context->shell);
 			if (context->uuid) uuid_destroy(context->uuid);
+			if (context->mainloop) ssh_event_free(context->mainloop);
 			free(context);
 			*pcontext = NULL;
 			NCOT_DEBUG("ncot_context_free: done freeing context at 0x%x\n", context);
@@ -429,6 +433,7 @@ ncot_context_enqueue_connection_writing(struct ncot_context *context, struct nco
 		if (connection == writeconn) return;
 		writeconn = writeconn->next;
 	}
+	ssh_event_add_fd(context->mainloop, connection->sd, POLLOUT, ncot_cb_connection_ready, connection);
 	LL_APPEND(context->connections_writing, connection);
 }
 void
@@ -452,5 +457,6 @@ ncot_context_dequeue_connection_closing(struct ncot_context *context, struct nco
 void
 ncot_context_dequeue_connection_writing(struct ncot_context *context, struct ncot_connection *connection)
 {
+	/* ssh_event_add_fd(context->mainloop, connection->sd, POLLOUT, ncot_cb_connection_ready, connection); */
 	LL_DELETE(context->connections_writing, connection);
 }

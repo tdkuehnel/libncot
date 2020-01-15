@@ -79,6 +79,10 @@ ncot_log_logfile( int level, const char *fmt, ... )
 				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_GREEN);
 				stringptr += sprintf(stringptr, "Verb");
 				break;
+			case NCOT_LOG_LEVEL_SSH:
+				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_CYAN);
+				stringptr += sprintf(stringptr, " ssh");
+				break;
 			default:
 				stringptr += sprintf(stringptr, "%s", ANSI_COLOR_GREEN);
 				stringptr += sprintf(stringptr, " Def");
@@ -104,6 +108,9 @@ ncot_log_logfile( int level, const char *fmt, ... )
 				break;
 			case NCOT_LOG_LEVEL_VERBOSE:
 				dprintf(fd, ANSI_COLOR_GREEN "Verb");
+				break;
+			case NCOT_LOG_LEVEL_SSH:
+				dprintf(fd, ANSI_COLOR_CYAN " ssh");
 				break;
 			default:
 				dprintf(fd, ANSI_COLOR_GREEN " Def");
@@ -313,4 +320,11 @@ ncot_log_hex (char *desc, void *addr, int len) {
 	// And print the final ASCII bit.
 	NCOT_LOG_INFO_BUFFERED ("  %s\n", buff);
 	NCOT_LOG_INFO_BUFFER_FLUSH();
+}
+
+
+void
+ncot_ssh_logging_callback(int priority, const char *function, const char *buffer, void *userdata)
+{
+	NCOT_LOG_SSH("%s(%d): %s\n", function, priority, buffer);
 }

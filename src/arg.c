@@ -34,6 +34,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 		{ "interactive",  'i', POPT_ARG_NONE,   &arguments->interactive,  0,  "Enter interactive mode after startup", NULL },
 		{ "sshkeypass",   'k', POPT_ARG_STRING, &arguments->keypass,      0,  "Passphrase for ssh private key files", NULL},
 		{ "loglevel",     'l', POPT_ARG_INT,    &arguments->log_level,    0,  "Set log level (0 .. 8), default 1", NULL},
+		{ "sshloglevel",  's', POPT_ARG_INT,    &arguments->ssh_log_level,0,  "Set sshlib log level (0 .. 8), default 1", NULL},
 		{ "noautokeygen", 'n', POPT_ARG_NONE,   &arguments->noautokeygen, 0,  "No automatic ssh key generation", NULL },
 		{ "pidfile",      'p', POPT_ARG_STRING, &arguments->pidfile_name, 0,  "Pidfilename to use for this instance", NULL},
 		{ "quiet",        'q', POPT_ARG_NONE,   0,                        0,  "Don't produce any output", NULL },
@@ -56,6 +57,7 @@ ncot_arg_parse(struct ncot_arguments *arguments, int argc, char **argv) {
 	arguments->noautokeygen = 0;
 	arguments->usecipher = NCOT_SSH_KEYTYPE_RSA;
 	arguments->cipherbits = "2048";
+	arguments->ssh_log_level = 1;
 	c = '\0';
 	i = 0;
 

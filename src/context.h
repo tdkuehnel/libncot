@@ -80,6 +80,10 @@ struct ncot_context {
 	struct ncot_policy *policies; /* ncot_context_new calls calloc
 				       * so we have NULL here from the
 				       * start, np for utlist.h */
+	int terminate; /* Callback driven i/o cannot take return
+			* values into account to end our mainloop so
+			* we need this as a workaround */
+	struct ssh_event_struct *mainloop;
 };
 
 struct ncot_context *ncot_context_new();

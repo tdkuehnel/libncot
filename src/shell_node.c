@@ -118,6 +118,7 @@ ncot_shell_node_handle_listen_2(struct ncot_context *context, char *command)
 		ncot_shell_reset(shell);
 		return;
 	}
+	DPRINTF(shell->writefd, "before listen operation\n");
 	ret = ncot_connection_listen(context, (struct ncot_connection*)shell->data, port);
 	DPRINTF(shell->writefd, "listen operation returned %d.\n", ret);
 	ncot_shell_reset(shell);
@@ -129,15 +130,17 @@ ncot_shell_node_handle_listen(struct ncot_context *context)
 	struct ncot_shell *shell;
 	struct ncot_node *node;
 	struct ncot_connection_list *connectionlist;
-	const char *string;
+	char *string;
 	char *token;
 	int found = 0;
 	shell = context->shell;
 	node = context->globalnodelist;
 	token = strtok(NULL, " ");
+	string = NULL;
 	if (token) {
                 /* Try to find a matching node */
 		while (node && !found) {
+			if (string) free(string);
 			string = NULL;
 			uuid_export(node->uuid, UUID_FMT_STR, &string, NULL);
 			if (strncmp(token, string, strlen(token)) == 0) {
@@ -152,12 +155,15 @@ ncot_shell_node_handle_listen(struct ncot_context *context)
 		} else {
 			DPRINTF(shell->writefd, "trying to make node %s listen\n", string);
 		}
+		if (string) free(string);
 	} else {
 		/* Without a token display current node if any */
 		if (shell->currentnode) {
 			string = NULL;
 			uuid_export(shell->currentnode->uuid, UUID_FMT_STR, &string, NULL);
 			DPRINTF(shell->writefd, "trying to make current node %s listen\n", string);
+			node = shell->currentnode;
+			free(string);
 		} else {
 			DPRINTF(context->shell->writefd, "no current node set and no node specified\n");
 			return;

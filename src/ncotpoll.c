@@ -21,6 +21,7 @@
 #include "log.h"
 #include "error.h"
 #include "select.h"
+#include "shell.h"
 
 static int error = 0;
 static int terminate = 0;
@@ -69,12 +70,13 @@ sig_handler(int signum) {
 #endif
 }
 
+/* extern struct ssh_event_struct *mainloop; */
+
 int
 main(int argc, char **argv)
 {
 	struct ncot_context *context;
 	struct ncot_arguments *arguments;
-	struct ssh_event_struct *mainloop;
 
 	int r;
 
@@ -120,6 +122,7 @@ main(int argc, char **argv)
 	NCOT_LOG_INFO("%s our PID is %ld\n", PACKAGE_STRING, (long) getpid());
 	if (ncot_context_init_from_file(context, arguments->config_file) != NCOT_SUCCESS)
 		ncot_context_init(context);
+	/* mainloop = context->mainloop; */
 #ifndef _WIN32
 	if (context->arguments->daemonize)
 		ncot_connection_listen(context, context->controlconnection,
@@ -145,26 +148,31 @@ main(int argc, char **argv)
 		NCOT_LOG_ERROR("can't create self pipe\n");
 		goto out;;
 	}
-
-	mainloop = ssh_event_new();
-	r = ssh_event_add_fd(mainloop, pipefd[0], POLLIN, dummy_event_callback, NULL);
+	r = ssh_event_add_fd(context->mainloop, pipefd[0], POLLIN, dummy_event_callback, NULL);
 	if (r != SSH_OK) {
 		NCOT_LOG_ERROR("error adding dummyfd to event\n");
 		goto out;
 	}
-	ncot_init_poll(context, mainloop);
+	ncot_poll_init(context, context->mainloop);
 
-	while (!(terminate)) {
-		if(error)
+	while (!(terminate) && !(context->terminate)) {
+		NCOT_LOG_INFO("Main loop iteration\n");
+		ncot_poll_prepare(context, context->mainloop);
+		if(error) {
+			NCOT_LOG_ERROR("Breaking due to error ssh_event_dopoll\n");
 			break;
-		r = ssh_event_dopoll(mainloop, -1);
+		}
+		r = ssh_event_dopoll(context->mainloop, -1);
 		if (r == SSH_ERROR){
 			NCOT_LOG_ERROR("Error ssh_event_dopoll\n");
 			/* ssh_disconnect(session); */
-			break;;
+			/* break;; */
 		}
 	}
 	NCOT_LOG(NCOT_LOG_LEVEL_INFO, "%d signals handled\n", signalcount);
+	if (context->arguments->interactive) {
+		if (context->shell) DPRINTF(context->shell->writefd, "\n");
+	}
 	if (context->arguments->daemonize) {
 		struct stat pidfilestat;
 		if (stat(context->arguments->pidfile_name, &pidfilestat) == 0) unlink(context->arguments->pidfile_name);

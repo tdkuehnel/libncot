@@ -24,8 +24,11 @@
 
 #define PIDFILE_NAME_TEST_CONNECTION "connection_ncotd.pid"
 
+static struct ssh_event_struct *mainloop;
+
 void setup()
 {
+	mainloop = ssh_event_new();
 }
 
 void teardown()
@@ -37,6 +40,7 @@ void teardown()
 		printf("executing kill by pid\n");
 		system("cat " PIDFILE_NAME_TEST_CONNECTION " | xargs kill");
 	}
+	if (mainloop) ssh_event_free(mainloop);
 }
 
 /* Every test gets its own set of port numbers to avoid side
@@ -86,7 +90,7 @@ START_TEST (test_connection_simple)
 END_TEST
 
 int
-test_iterate_io(struct ncot_context *context, fd_set *rfds, fd_set *wfds, int *highestfd)
+test_iterate_io_select(struct ncot_context *context, fd_set *rfds, fd_set *wfds, int *highestfd)
 {
 	int r;
 	FD_ZERO(rfds); FD_ZERO(wfds);
@@ -98,6 +102,18 @@ test_iterate_io(struct ncot_context *context, fd_set *rfds, fd_set *wfds, int *h
 	}
 	return r;
 }
+
+int
+test_iterate_io(struct ncot_context *context)
+{
+	int r;
+	r = ssh_event_dopoll(context->mainloop, -1);
+	if (r == SSH_ERROR){
+		NCOT_LOG_ERROR("test_iterate_io: Error ssh_event_dopoll\n");
+	}
+	return r;
+}
+
 
 #define TESTPORT_GOOD  "24002"
 #define TESTPORT_BAD  "24001"
@@ -125,7 +141,7 @@ START_TEST (test_connection_daemon)
 	context = ncot_context_new();
 	ncot_context_init(context);
 
-	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log --ncotdir=./.ncot");
+	i = system("../src/ncotpoll -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log --ncotdir=./.ncot");
 	ck_assert(i == 0);
 	/*sleep(1);*/
 
@@ -140,38 +156,42 @@ START_TEST (test_connection_daemon)
 	ret = ncot_connection_authenticate_server(conn2);
 	ck_assert_int_eq(ret, 0);
 
+	ret = ncot_connection_open_channel(conn2);
+	ck_assert_int_eq(ret, 0);
+
 	ret = ncot_connection_send(context, conn2, message, strlen(message), NCOT_PACKET_COMMAND);
 	ck_assert_int_eq(ret, strlen(message));
 
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
+	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
 
-	/* Send an incomplete message to simulate high i/o load */
-	messagepointer = malloc(strlen(messageraw) + 1);
-	strncpy(messagepointer, messageraw, strlen(messageraw));
-	uint16_t *pint;
-	pint = (uint16_t*)&messagepointer[16];
-	*pint = htons(strlen(messageraw) - NCOT_PACKET_DATA_HEADER_LENGTH);
-	ret = ncot_connection_send_raw(context, conn2, messageraw, INCOMPLETE_MESSAGE_LENGTH);
-	ck_assert_int_eq(ret, INCOMPLETE_MESSAGE_LENGTH);
+	/* /\* Send an incomplete message to simulate high i/o load *\/ */
+	/* messagepointer = malloc(strlen(messageraw) + 1); */
+	/* strncpy(messagepointer, messageraw, strlen(messageraw)); */
+	/* uint16_t *pint; */
+	/* pint = (uint16_t*)&messagepointer[16]; */
+	/* *pint = htons(strlen(messageraw) - NCOT_PACKET_DATA_HEADER_LENGTH); */
+	/* ret = ncot_connection_send_raw(context, conn2, messageraw, INCOMPLETE_MESSAGE_LENGTH); */
+	/* ck_assert_int_eq(ret, INCOMPLETE_MESSAGE_LENGTH); */
 
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
+	/* ck_assert(test_iterate_io(context) == SSH_OK); */
+	/* ck_assert(test_iterate_io(context) == SSH_OK); */
 
-	/* Send another two bytes to have the header complete */
-	ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH, 2);
-	ck_assert_int_eq(ret, 2);
+	/* /\* Send another two bytes to have the header complete *\/ */
+	/* ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH, 2); */
+	/* ck_assert_int_eq(ret, 2); */
 
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
+	/* ck_assert(test_iterate_io(context) == SSH_OK); */
+	/* ck_assert(test_iterate_io(context) == SSH_OK); */
 
-	/* Send rest of message */
-	ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH + 2, 10);
-	ck_assert_int_eq(ret, 10);
+	/* /\* Send rest of message *\/ */
+	/* ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH + 2, 10); */
+	/* ck_assert_int_eq(ret, 10); */
 
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
-	ck_assert(test_iterate_io(context, &rfds, &wfds, &highestfd) > 0);
+	/* ck_assert(test_iterate_io(context) == SSH_OK); */
+	/* ck_assert(test_iterate_io(context) == SSH_OK); */
 
+	sleep(2);
 	free(messagepointer);
 	ck_assert(conn1 == NULL);
 	ncot_context_free(&context);

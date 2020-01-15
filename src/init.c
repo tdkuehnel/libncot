@@ -8,6 +8,7 @@
 #include <string.h>
 #include <unistd.h>
 #include <gnutls/gnutls.h>
+#include <libssh/libssh.h>
 
 #include "log.h"
 #include "init.h"
@@ -72,7 +73,7 @@ void
 ncot_init()
 {
 	ncot_log_init(NCOT_LOG_LEVEL_DEFAULT);
-
+	ssh_set_log_callback(ncot_ssh_logging_callback);
 	/* During tests we like to log to different files which is set
 	 * up later by ncot_log_set_logfile. This startup message
 	 * pollutes the main test log file. Alternatively we could

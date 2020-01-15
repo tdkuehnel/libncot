@@ -53,6 +53,7 @@ src/sshserver
 src/sshserver2
 src/sshserver3
 src/ncotpoll
+src/sshstructs.h
 
 tests/*log
 tests/*trs
