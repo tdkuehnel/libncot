@@ -25,6 +25,9 @@ struct ncot_cb_data {
 
 extern struct ssh_event_struct *mainloop;
 
+int ncot_channel_write_wontblock_callback (ssh_session session, ssh_channel channel, size_t bytes, void *userdata);
+int ncot_channel_data_callback (ssh_session session, ssh_channel channel, void *data, uint32_t len,	int is_stderr, void *userdata);
+void ncot_channel_close_callback (ssh_session session, ssh_channel channel, void *userdata);
 int ncot_cb_stdin_ready(socket_t fd, int revents, void *userdata);
 int ncot_cb_connection_listen(socket_t fd, int revents, void *userdata);
 int ncot_cb_connection_connect(socket_t fd, int revents, void *userdata);

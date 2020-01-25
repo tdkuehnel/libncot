@@ -186,40 +186,6 @@ ncot_auth_pubkey(ssh_session session, const char *user, struct ssh_key_struct *p
 	return SSH_AUTH_SUCCESS;
 }
 
-void
-ncot_channel_close_callback (ssh_session session, ssh_channel channel, void *userdata)
-{
-	struct ncot_connection *connection;
-
-	if (!userdata) return;
-	connection = (struct ncot_connection*)userdata;
-	connection->terminate = 1;
-	NCOT_LOG_INFO("ncot_channel_close_callback: called\n");
-}
-
-int
-ncot_channel_data_callback (ssh_session session, ssh_channel channel, void *data, uint32_t len,	int is_stderr, void *userdata)
-{
-	int rc;
-	char buf[1024];
-	rc = ssh_channel_read(channel, (char*)&buf, 5, 0);
-	if (rc != 5) {
-		NCOT_LOG_INFO("ncot_channel_data_callback: error reading 5 bytes over channel\n");
-	} else {
-		NCOT_LOG_INFO("ncot_channel_data_callback: 5 bytes read\n");
-		buf[5] = '\0';
-		printf("%s\n", buf);
-		NCOT_LOG_INFO("ncot_channel_data_callback: %s\n", buf);
-		return 5;
-	}
-}
-
-int
-ncot_channel_write_wontblock_callback (ssh_session session, ssh_channel channel, size_t bytes, void *userdata)
-{
-	NCOT_LOG_INFO("ncot_channel_write_wontblock_callback: called\n");
-}
-
 static struct ssh_channel_struct*
 ncot_new_session_channel(ssh_session session, void *userdata)
 {
@@ -668,7 +634,7 @@ ncot_connection_save(struct ncot_connection *connection, struct json_object *par
 
 #ifdef DEBUG
 #undef DEBUG
-#define DEBUG 0
+#define DEBUG 1
 #endif
 /* This is a function that, yes, copies a message, queues it and takes
  * the necessary steps to send it to the peer */
@@ -697,6 +663,10 @@ ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *c
 	return length;
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#define DEBUG 0
+#endif
 /* GnuTLS stuff starts here */
 
 // GnuTLS calls this function to get the pre-shared key. The client will tell
@@ -792,6 +762,10 @@ ncot_connection_accept_bare(struct ncot_context *context, struct ncot_connection
 	return 0;
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#define DEBUG 1
+#endif
 int
 ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *connection)
 {
@@ -802,18 +776,28 @@ ncot_connection_read_data(struct ncot_context *context, struct ncot_connection *
 		NCOT_LOG_WARNING("ncot_connection_read_data: read buffer full\n");
 		return 0;
 	}
-#ifdef _WIN32
-	u_long iMode = 1;
-	ioctlsocket(connection->sd, FIONBIO, &iMode);
-	r = recv(connection->sd, (char*)connection->readpointer, read_max, 0);
-#else
-	r = recv(connection->sd, connection->readpointer, read_max, MSG_DONTWAIT);
-#endif
-#ifdef _WIN32
-	iMode = 0;
-	ioctlsocket(connection->sd, FIONBIO, &iMode);
-#endif
-	SOCKET_NERR(r, "ncot_connection_read_data: error recv:");
+
+	r = ssh_channel_read(connection->channel, connection->readpointer, read_max, 0);
+/* #ifdef _WIN32 */
+/* 	u_long iMode = 1; */
+/* 	ioctlsocket(connection->sd, FIONBIO, &iMode); */
+/* 	r = recv(connection->sd, (char*)connection->readpointer, read_max, 0); */
+/* #else */
+/* 	r = recv(connection->sd, connection->readpointer, read_max, MSG_DONTWAIT); */
+/* #endif */
+/* #ifdef _WIN32 */
+/* 	iMode = 0; */
+/* 	ioctlsocket(connection->sd, FIONBIO, &iMode); */
+/* #endif */
+	/* SOCKET_NERR(r, "ncot_connection_read_data: error recv:"); */
+	if (r == SSH_ERROR) {
+		NCOT_LOG_ERROR("ncot_connection_read_data: ssh_channel_read: %s\n", ssh_get_error(connection->sshsession));
+		return 0;
+	}
+	if (r == SSH_AGAIN) {
+		NCOT_LOG_WARNING("ncot_connection_read_data: SSH_AGAIN occured\n");
+		return 0;
+	}
 	connection->readpointer += r;
 	*connection->readpointer = 0;
 	NCOT_DEBUG("ncot_connection_read_data: %i bytes read\n", r);
@@ -876,8 +860,8 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	int result;
 
 	if (!connection->packetlist) {
-		ncot_context_dequeue_connection_writing(context, connection);
 		NCOT_DEBUG("ncot_connection_write_data: No more packets in queue\n");
+		ncot_context_dequeue_connection_writing(context, connection);
 		return 0;
 	}
 	packet = connection->packetlist;

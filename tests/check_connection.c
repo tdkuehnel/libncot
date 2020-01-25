@@ -107,10 +107,11 @@ int
 test_iterate_io(struct ncot_context *context)
 {
 	int r;
-	r = ssh_event_dopoll(context->mainloop, -1);
+	r = ssh_event_dopoll(context->mainloop, 200);
 	if (r == SSH_ERROR){
 		NCOT_LOG_ERROR("test_iterate_io: Error ssh_event_dopoll\n");
 	}
+	NCOT_LOG_INFO("iterate i/o\n");
 	return r;
 }
 
@@ -164,34 +165,40 @@ START_TEST (test_connection_daemon)
 
 	ck_assert(test_iterate_io(context) == SSH_OK);
 	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
 
-	/* /\* Send an incomplete message to simulate high i/o load *\/ */
-	/* messagepointer = malloc(strlen(messageraw) + 1); */
-	/* strncpy(messagepointer, messageraw, strlen(messageraw)); */
-	/* uint16_t *pint; */
-	/* pint = (uint16_t*)&messagepointer[16]; */
-	/* *pint = htons(strlen(messageraw) - NCOT_PACKET_DATA_HEADER_LENGTH); */
-	/* ret = ncot_connection_send_raw(context, conn2, messageraw, INCOMPLETE_MESSAGE_LENGTH); */
-	/* ck_assert_int_eq(ret, INCOMPLETE_MESSAGE_LENGTH); */
+	/* Send an incomplete message to simulate high i/o load */
+	messagepointer = malloc(strlen(messageraw) + 1);
+	strncpy(messagepointer, messageraw, strlen(messageraw));
+	/* Put the length into packet header */
+	uint16_t *pint;
+	pint = (uint16_t*)&messagepointer[16];
+	*pint = htons(strlen(messageraw) - NCOT_PACKET_DATA_HEADER_LENGTH);
+	/* Send 16 bytes of raw packet */
+	ret = ncot_connection_send_raw(context, conn2, messageraw, INCOMPLETE_MESSAGE_LENGTH);
+	ck_assert_int_eq(ret, INCOMPLETE_MESSAGE_LENGTH);
 
-	/* ck_assert(test_iterate_io(context) == SSH_OK); */
-	/* ck_assert(test_iterate_io(context) == SSH_OK); */
+	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
 
-	/* /\* Send another two bytes to have the header complete *\/ */
-	/* ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH, 2); */
-	/* ck_assert_int_eq(ret, 2); */
+	/* Send another two bytes to have the header complete */
+	ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH, 2);
+	ck_assert_int_eq(ret, 2);
 
-	/* ck_assert(test_iterate_io(context) == SSH_OK); */
-	/* ck_assert(test_iterate_io(context) == SSH_OK); */
+	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
 
-	/* /\* Send rest of message *\/ */
-	/* ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH + 2, 10); */
-	/* ck_assert_int_eq(ret, 10); */
+	/* Send rest of message */
+	ret = ncot_connection_send_raw(context, conn2, messagepointer + INCOMPLETE_MESSAGE_LENGTH + 2, 10);
+	ck_assert_int_eq(ret, 10);
 
-	/* ck_assert(test_iterate_io(context) == SSH_OK); */
-	/* ck_assert(test_iterate_io(context) == SSH_OK); */
+	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
+	ck_assert(test_iterate_io(context) == SSH_OK);
 
-	sleep(2);
+	/* sleep(1); */
 	free(messagepointer);
 	ck_assert(conn1 == NULL);
 	ncot_context_free(&context);

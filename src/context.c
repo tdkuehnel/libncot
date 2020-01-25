@@ -454,9 +454,26 @@ ncot_context_dequeue_connection_closing(struct ncot_context *context, struct nco
 	LL_DELETE(context->connections_closing, connection);
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#define DEBUG 1
+#endif
 void
 ncot_context_dequeue_connection_writing(struct ncot_context *context, struct ncot_connection *connection)
 {
-	/* ssh_event_add_fd(context->mainloop, connection->sd, POLLOUT, ncot_cb_connection_ready, connection); */
-	LL_DELETE(context->connections_writing, connection);
+	struct ncot_connection *head, *element, *tmp;
+	int found;
+	found =0;
+	if (!connection)
+		NCOT_LOG_WARNING("ncot_context_dequeue_connection_writing: invalid connection parameter, ignoring\n");
+	ssh_event_remove_fd(context->mainloop, connection->sd);
+	DL_FOREACH_SAFE(context->connections_writing, element, tmp) {
+		if (element == connection) {
+			LL_DELETE(context->connections_writing, connection);
+			NCOT_DEBUG("ncot_context_dequeue_connection_writing: taking connection out of writing list\n");
+			found = 1;
+		}
+	}
+	if (!found)
+		NCOT_LOG_WARNING("ncot_context_dequeue_connection_writing: connection not in context->writing_list\n");
 }
