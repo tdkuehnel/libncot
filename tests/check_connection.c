@@ -111,6 +111,9 @@ test_iterate_io(struct ncot_context *context)
 	if (r == SSH_ERROR){
 		NCOT_LOG_ERROR("test_iterate_io: Error ssh_event_dopoll\n");
 	}
+	if (r == SSH_AGAIN){
+		NCOT_LOG_INFO("test_iterate_io: ssh_event_dopoll timed out\n");
+	}
 	NCOT_LOG_INFO("iterate i/o\n");
 	return r;
 }
