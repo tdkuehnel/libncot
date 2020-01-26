@@ -40,6 +40,8 @@ check_context
 check_process
 check_helper
 check_ncot
+check_db
+check_keys
 
 .dirstamp
 .deps
@@ -48,6 +50,10 @@ src/tcpserver
 src/tcpclient
 src/sshclient
 src/sshserver
+src/sshserver2
+src/sshserver3
+src/ncotpoll
+src/sshstructs.h
 
 tests/*log
 tests/*trs
@@ -83,3 +89,7 @@ tests/ssh2server
 policies.json
 testkey
 README
+
+config.log.old
+id_rsa
+id_rsa.pub

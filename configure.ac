@@ -86,7 +86,7 @@ PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
 #PKG_CHECK_MODULES([LIBRESSL], [libtls >= 18.1.0])
 PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.5.8 ])
 PKG_CHECK_MODULES([JSONC], [json-c >= 0.12 ])
-PKG_CHECK_MODULES([SSH], [libssh >= 0.7.3 ])
+#PKG_CHECK_MODULES([SSH], [libssh >= 0.7.3 ])
 #PKG_CHECK_MODULES([SSH2], [libssh2 >= 1.7.0 ])
 # PKG_CHECK_MODULES([AVUTIL], [libavutil >= 54])
 # AC_SUBST([AVUTIL_CFLAGS])
@@ -101,9 +101,9 @@ AC_SUBST([JSONC_CFLAGS])
 AC_SUBST([JSONC_LIBS])
 #AC_SUBST([SSH2_CFLAGS])
 #AC_SUBST([SSH2_LIBS])
-AC_SUBST([SSH_CFLAGS])
-AC_SUBST([SSH_LIBS])
-echo "$SSH_LIBS"
+#AC_SUBST([SSH_CFLAGS])
+#AC_SUBST([SSH_LIBS])
+#echo "$SSH_LIBS"
 echo "$POPT_LIBS"
 echo "$GNUTLS_LIBS"
 # Checks for header files.
