@@ -20,197 +20,116 @@
 #include "error.h"
 #include "utlist.h"
 
-#undef DEBUG
-#define DEBUG 0
-
-struct ncot_connection*
-ncot_connection_new()
+int
+ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port)
 {
-	struct ncot_connection *connection;
-	connection = calloc(1, sizeof(struct ncot_connection));
-	if (connection) {
-		connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
-		connection->readpointer = connection->readbuffer;
-	}
-	return connection;
-}
-
-void
-ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type)
-{
-	if (connection)
+	int err;
+	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_listen: Invalid argument: connection");
+	if (connection->status == NCOT_CONN_CONNECTED)
 	{
-		connection->type = type;
-		connection->status = NCOT_CONN_INIT;
-		connection->pskclientcredentialsallocated = 0;
-		connection->pskservercredentialsallocated = 0;
+		NCOT_LOG_ERROR("ncot_connection_listen: connection still connected, can't listen\n");
+		return 1;
 	}
-}
-
-#undef DEBUG
-#define DEBUG 1
-void
-ncot_connection_free(struct ncot_connection **pconnection)
-{
-	struct ncot_connection *connection;
-	struct ncot_packet *packet;
-	struct ncot_packet *deletepacket;
-	if (pconnection)
+	if (connection->status == NCOT_CONN_INIT)
 	{
-		connection = *pconnection;
-		if (connection)
-		{
-			packet = connection->readpacketlist;
-			NCOT_DEBUG("ncot_connection_free: 1\n");
-			while (packet) {
-				/*ncot_packet_print(packet);*/
-				NCOT_DEBUG("ncot_connection_free: deleting packet\n");
-				deletepacket = packet;
-				packet = packet->next;
-				LL_DELETE(connection->readpacketlist, deletepacket);
-				ncot_packet_free(&deletepacket);
-			}
-			NCOT_DEBUG("ncot_connection_free: closing connection\n");
-			if (connection->status == NCOT_CONN_CONNECTED) ncot_connection_close(connection);
-			NCOT_DEBUG("ncot_connection_free: freeing connection\n");
-			free(connection);
-			*pconnection = NULL;
-		} else
-			NCOT_LOG_ERROR("Invalid ncot_connection\n");
-	} else
-		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
-}
-
-char*
-ncot_connection_get_type_string(struct ncot_connection *connection)
-{
-	char *type;
-	if (!connection) return "<empty>";
-	switch (connection->type) {
-	case NCOT_CONN_CONTROL:
-		type = "CONTROL";
-		break;
-	case NCOT_CONN_NODE:
-		type = "NODE";
-		break;
-	case NCOT_CONN_INCOMING:
-		type = "INCOMING";
-		break;
-	case NCOT_CONN_INITIATE:
-		type = "INITIATE";
-		break;
-	default:
-		type = "<unknwon>";
+		connection->sd = socket(AF_INET, SOCK_STREAM, 0);
+		SOCKET_ERR(connection->sd, "ncot_connection_listen: socket()");
+		memset(&connection->sa_server, '\0', sizeof(connection->sa_server));
+		connection->sa_server.sin_family = AF_INET;
+		connection->sa_server.sin_addr.s_addr = INADDR_ANY;
+		connection->sa_server.sin_port = htons(port); /* Server Port number */
+		setsockopt(connection->sd, SOL_SOCKET, SO_REUSEADDR, (void *) &connection->optval, sizeof(int));
+		err = bind(connection->sd, (struct sockaddr *) &connection->sa_server, sizeof(connection->sa_server));
+		SOCKET_ERR(err, "ncot_connection_listen: bind()");
+		connection->status = NCOT_CONN_BOUND;
 	}
-	return type;
-}
 
-char*
-ncot_connection_get_status_string(struct ncot_connection *connection)
-{
-	char *status;
-	if (!connection) return "<empty>";
-	switch (connection->status) {
-	case NCOT_CONN_AVAILABLE:
-		status = "AVAILABLE";
-		break;
-	case NCOT_CONN_CONNECTED:
-		status = "CONNECTED";
-		break;
-	case NCOT_CONN_LISTEN:
-		status = "LISTEN";
-		break;
-	case NCOT_CONN_BOUND:
-		status = "BOUND";
-		break;
-	case NCOT_CONN_INIT:
-		status = "INIT";
-		break;
-	default:
-		status = "<unknown>";
-	}
-	return status;
-}
-
-struct ncot_connection*
-ncot_connection_new_from_json(struct json_object *jsonobj)
-{
-}
-
-struct ncot_connection_list*
-ncot_connections_new_from_json(struct json_object *jsonobj)
-{
-	struct ncot_connection_list *connectionlist = NULL;
-	struct ncot_connection_list *returnlist = NULL;
-	struct json_object *jsonnode;
-	int numconnections;
-	int i;
-	numconnections = json_object_array_length(jsonobj);
-	for (i=0; i<numconnections; i++) {
-		jsonnode = json_object_array_get_idx(jsonobj, i);
-		connectionlist = ncot_connection_list_new();
-		RETURN_ZERO_IF_NULL(connectionlist, "ncot_connection_new_from_json: out of memory");
-		connectionlist->connection = ncot_connection_new();
-		if (!connectionlist->connection) {
-			NCOT_LOG_ERROR("ncot_connection_new_from_json: out of memory");
-			free(connectionlist);
-			return NULL;
-		}
-		ncot_connection_init(connectionlist->connection, NCOT_CONN_NODE);
-		DL_APPEND(returnlist, connectionlist);
-	}
-	return returnlist;
-
-}
-
-/* Saving a connection makes sense only when it has information about
- * a peer. Do we really need to store own ip-address, port number ?
- * Don't think so at the moment, but who knows.*/
-void
-ncot_connection_save(struct ncot_connection *connection, struct json_object *parent)
-{
 	int ret;
-	char *string =  NULL;
-	struct json_object *json;
+	ret = listen(connection->sd, LISTEN_BACKLOG);
+	SOCKET_ERR(ret, "ncot_connection_listen: Error listening with connection\n");
+	connection->status = NCOT_CONN_LISTEN;
+	ncot_context_enqueue_connection_listen(context, connection);
+	NCOT_LOG_INFO("ncot_connection_listen: connection now listening on port %i\n", port);
+	return 0;
+}
+
+int
+ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
+{
+	if (connection->status != NCOT_CONN_LISTEN) RETURN_FAIL("ncot_connection_accept: connection not in listening state\n");
+	int nsd;
+	int err;
+	connection->client_len = sizeof(struct sockaddr);
+	nsd = accept(connection->sd, &connection->client, &connection->client_len);
+	SOCKET_NERR(nsd, "ncot_connection_accept: accept()");
+	err = close(connection->sd);
+	SOCKET_NERR(err, "ncot_connection_accept: close(connection->sd)");
+	connection->sd = nsd;
+	struct sockaddr_in *addr_in = (struct sockaddr_in *)&connection->client;
+	switch(connection->client.sa_family) {
+	case AF_INET: {
+		NCOT_LOG_INFO("ncot_connection_accept: peer ip4 address: %s\n", inet_ntoa(addr_in->sin_addr));
+		break;
+	}
+	case AF_INET6: {
+		NCOT_LOG_INFO("ncot_connection_accept: peer ip6 address: %s\n", inet_ntoa(addr_in->sin_addr));
+		break;
+	}
+	default:
+		NCOT_LOG_INFO("ncot_connection_accept: peer address: %s\n", inet_ntoa(addr_in->sin_addr));
+	}
+	connection->status = NCOT_CONN_CONNECTED;
+	ncot_context_dequeue_connection_listen(context, connection);
+	ncot_context_enqueue_connection_connected(context, connection);
+	NCOT_LOG_VERBOSE("ncot_connection_accept: connection accepted\n");
+	return 0;
+}
+
+int
+ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
+{
+	int err;
+	int res;
+	struct addrinfo hints;
+	struct addrinfo *results;
+	struct addrinfo *result;
 	struct sockaddr_in *sockaddr;
-
-	sockaddr = (struct sockaddr_in *)&connection->client;
-	json = json_object_new_string(inet_ntoa(sockaddr->sin_addr));
-	json_object_object_add_ex(parent, "Host", json, JSON_C_OBJECT_KEY_IS_CONSTANT);
-
-	json = json_object_new_int(ntohs(sockaddr->sin_port));
-	json_object_object_add_ex(parent, "Port", json, JSON_C_OBJECT_KEY_IS_CONSTANT);
-
-}
-
-#ifdef DEBUG
-#undef DEBUG
-#define DEBUG 0
+	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_connect: Invalid argument: connection");
+	if (connection->status == NCOT_CONN_CONNECTED) ERROR_MESSAGE_RETURN("ncot_connection_connect - ERROR: connection still connected, cant connect again\n");
+	if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
+		memset(&hints, '\0', sizeof(struct addrinfo));
+		hints.ai_family = AF_INET; /* ip4 for the moment only to simplify*/
+		hints.ai_socktype = SOCK_STREAM;
+#ifdef _WIN32
+		hints.ai_flags = AI_NUMERICHOST; /* for simplicity of this proof of concept */
+#else
+		hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_CANONNAME ; /* for simplicity of this proof of concept */
 #endif
-/* This is a function that, yes, copies a message, queues it and takes
- * the necessary steps to send it to the peer */
-int
-ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length, enum ncot_packet_type type)
-{
-	struct ncot_packet *packet;
-	NCOT_DEBUG("ncot_connections_send: sending message with %i bytes\n", length);
-	packet = ncot_packet_new_with_message(message, length, type);
-	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send: Out of memory");
-	LL_APPEND(connection->packetlist, packet);
-	ncot_context_enqueue_connection_writing(context, connection);
-	return length;
-}
-
-int
-ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length)
-{
-	struct ncot_packet *packet;
-	NCOT_DEBUG("ncot_connections_send_raw: sending raw %i bytes\n", length);
-	packet = ncot_packet_new_with_data(message, length);
-	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send_raw: Out of memory");
-	LL_APPEND(connection->packetlist, packet);
-	ncot_context_enqueue_connection_writing(context, connection);
-	return length;
+		res = getaddrinfo(address, port, &hints, &results);
+		if (res != 0) {
+			NCOT_LOG_ERROR("ncot_connection_connect: error in getaddrinfo - %s\n", gai_strerror(res));
+			return -1;
+		}
+		NCOT_DEBUG("ncot_connection_connect: connecting ...\n");
+		for (result = results; result != NULL; result = result->ai_next) {
+			connection->sd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+			if (connection->sd == -1)
+				continue;
+			if (connect(connection->sd, result->ai_addr, result->ai_addrlen) != -1)
+				break;
+			close(connection->sd);
+		}
+		freeaddrinfo(results);
+		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)");
+		sockaddr = (struct sockaddr_in *)&connection->client;
+		res = inet_aton(address, &sockaddr->sin_addr);
+		sockaddr->sin_port = htons(atoi(port));
+		NCOT_DEBUG("ncot_connection_connect: connect successful (after getaddrinfo iteration) %i\n", err);
+		connection->status = NCOT_CONN_CONNECTED;
+		ncot_context_enqueue_connection_connected(context, connection);
+		NCOT_LOG_INFO("ncot_connection_connect: connection connected\n");
+		return 0;
+	}
 }
 
 ssize_t data_push(gnutls_transport_ptr_t ptr, const void* data, size_t len);
@@ -244,19 +163,19 @@ ncot_connection_authenticate_client(struct ncot_connection *connection)
 	int err;
 	int res;
 	err = gnutls_init(&connection->session, GNUTLS_SERVER);
-	GNUTLS_ERROR(err, "Error during gnutls_init()");
+	GNUTLS_ERROR(err, "ncot_connection_authenticate_client: Error during gnutls_init()");
 
 	err = gnutls_psk_allocate_server_credentials(&connection->pskservercredentials);
-	GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_server_credentials()");
+	GNUTLS_ERROR(err, "ncot_connection_authenticate_client: Error during gnutls_psk_allocate_server_credentials()");
 	connection->pskservercredentialsallocated = 1;
 
 	gnutls_psk_set_server_credentials_function(connection->pskservercredentials, psk_creds);
 
 	res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskservercredentials);
-	GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
+	GNUTLS_ERROR(res, "ncot_connection_authenticate_client: Error during gnutls_credentials_set()");
 
 	res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
-	GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
+	GNUTLS_ERROR(res, "ncot_connection_authenticate_client: Error during gnutls_priority_set_direct()");
 
 	gnutls_transport_set_int(connection->session, connection->sd);
 
@@ -277,35 +196,83 @@ ncot_connection_authenticate_client(struct ncot_connection *connection)
 }
 
 int
-ncot_connection_accept(struct ncot_context *context, struct ncot_connection *connection)
+ncot_connection_authenticate_server(struct ncot_connection *connection)
 {
-	if (connection->status != NCOT_CONN_LISTEN) RETURN_FAIL("ncot_connection_accept: connection not in listening state");
-	int nsd;
 	int err;
-	connection->client_len = sizeof(struct sockaddr);
-	nsd = accept(connection->sd, &connection->client, &connection->client_len);
-	SOCKET_NERR(nsd, "ncot_connection_accept: accept()");
-	err = close(connection->sd);
-	SOCKET_NERR(err, "ncot_connection_accept: close(connection->sd)");
-	connection->sd = nsd;
-	struct sockaddr_in *addr_in = (struct sockaddr_in *)&connection->client;
-	switch(connection->client.sa_family) {
-	case AF_INET: {
-		NCOT_LOG_INFO("peer ip4 address: %s\n", inet_ntoa(addr_in->sin_addr));
-		break;
+	int res;
+	err = gnutls_init(&connection->session, GNUTLS_CLIENT);
+	GNUTLS_ERROR(err, "Error during gnutls_init()");
+
+	err = gnutls_psk_allocate_client_credentials(&connection->pskclientcredentials);
+	GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_client_credentials()");
+	connection->pskclientcredentialsallocated = 1;
+	connection->key.size = strlen(SECRET_KEY);
+	connection->key.data = malloc(connection->key.size);
+	memcpy(connection->key.data, SECRET_KEY, connection->key.size);
+	res = gnutls_psk_set_client_credentials(connection->pskclientcredentials, "Alice", &connection->key, GNUTLS_PSK_KEY_RAW);
+	memset(connection->key.data, 0, connection->key.size);
+	free(connection->key.data);
+	connection->key.data = NULL;
+	connection->key.size = 0;
+	GNUTLS_ERROR(res, "Error during gnutls_psk_set_client_credentials()");
+
+	res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskclientcredentials);
+	GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
+
+	/* As we use only the parts of GnuTLS which are not
+	   polluted by CA stuff, using NONE here makes sure
+	   GnuTLS does not automagically switch in any
+	   algorithms we do not want. */
+/*		gnutls_priority_set_direct(connection->session,	"NONE:+PSK-DH",	NULL);*/
+	res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
+	GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
+
+	gnutls_transport_set_int(connection->session, connection->sd);
+
+	NCOT_DEBUG("Gnutls stuff setup, lets shake hands\n");
+	do {
+		NCOT_DEBUG("Gnutls_handshake connect iteration\n");
+		res = gnutls_handshake(connection->session);
+		NCOT_DEBUG("Gnutls_handshake returned %i \n", res);
+	} while ( res != 0 && !gnutls_error_is_fatal(res) );
+	if (gnutls_error_is_fatal(res)) {
+		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
 	}
-	case AF_INET6: {
-		NCOT_LOG_INFO("peer ip6 address: %s\n", inet_ntoa(addr_in->sin_addr));
-		break;
-	}
-	default:
-		NCOT_LOG_INFO("peer address: %s\n", inet_ntoa(addr_in->sin_addr));
-	}
-	connection->status = NCOT_CONN_CONNECTED;
-	ncot_context_dequeue_connection_listen(context, connection);
-	ncot_context_enqueue_connection_connected(context, connection);
-	NCOT_LOG_VERBOSE("ncot_connection_accept: connection accepted\n");
+	NCOT_DEBUG("GnuTLS handshake complete\n");
+	/*gnutls_transport_set_int(connection->session, connection->sd);*/
+	connection->authenticated = 1;
 	return 0;
+}
+
+/** This is a function that, yes, copies a message, queues it and
+ * takes the necessary steps to send it to the peer. That is: enqueing
+ * the connection in the context global writing list so taht after the
+ * next pselect loop action to actually send the data is taken
+ * accordingly.  */
+int
+ncot_connection_send(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length, enum ncot_packet_type type)
+{
+	struct ncot_packet *packet;
+	NCOT_DEBUG("ncot_connections_send: sending message with %i bytes\n", length);
+	packet = ncot_packet_new_with_message(message, length, type);
+	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send: Out of memory");
+	LL_APPEND(connection->packetlist, packet);
+	ncot_context_enqueue_connection_writing(context, connection);
+	return length;
+}
+
+/** Similar as ncot_connection_send, but assume a valid packet is
+ * already constructed and passed in as the message argument. */
+int
+ncot_connection_send_raw(struct ncot_context *context, struct ncot_connection *connection, const char *message, size_t length)
+{
+	struct ncot_packet *packet;
+	NCOT_DEBUG("ncot_connections_send_raw: sending raw %i bytes\n", length);
+	packet = ncot_packet_new_with_data(message, length);
+	RETURN_ZERO_IF_NULL(packet, "ncot_connection_send_raw: Out of memory");
+	LL_APPEND(connection->packetlist, packet);
+	ncot_context_enqueue_connection_writing(context, connection);
+	return length;
 }
 
 int
@@ -440,39 +407,6 @@ ncot_connection_write_data(struct ncot_context *context, struct ncot_connection 
 	/* TODO: We need to check for EMSGSIZE and split the chunksize accordingly. */
 }
 
-int
-ncot_connection_listen(struct ncot_context *context, struct ncot_connection *connection, int port)
-{
-	int err;
-	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_listen: Invalid argument: connection");
-	if (connection->status == NCOT_CONN_CONNECTED)
-	{
-		NCOT_LOG_ERROR("Error connection still connected, cant listen\n");
-		return 1;
-	}
-	if (connection->status == NCOT_CONN_INIT)
-	{
-		connection->sd = socket(AF_INET, SOCK_STREAM, 0);
-		SOCKET_ERR(connection->sd, "ncot_connection_listen: socket()");
-		memset(&connection->sa_server, '\0', sizeof(connection->sa_server));
-		connection->sa_server.sin_family = AF_INET;
-		connection->sa_server.sin_addr.s_addr = INADDR_ANY;
-		connection->sa_server.sin_port = htons(port); /* Server Port number */
-		setsockopt(connection->sd, SOL_SOCKET, SO_REUSEADDR, (void *) &connection->optval, sizeof(int));
-		err = bind(connection->sd, (struct sockaddr *) &connection->sa_server, sizeof(connection->sa_server));
-		SOCKET_ERR(err, "ncot_connection_listen: bind()");
-		connection->status = NCOT_CONN_BOUND;
-	}
-
-	int ret;
-	ret = listen(connection->sd, LISTEN_BACKLOG);
-	SOCKET_ERR(ret, "Error listening with connection\n");
-	connection->status = NCOT_CONN_LISTEN;
-	ncot_context_enqueue_connection_listen(context, connection);
-	NCOT_LOG_INFO("ncot_connection_listen: connection now listening on port %i\n", port);
-	return 0;
-}
-
 // GnuTLS calls this function to send data through the transport layer. We set
 // this callback with gnutls_transport_set_push_function(). It should behave
 // like send() (see the manual for specifics).
@@ -491,100 +425,101 @@ ssize_t data_pull(gnutls_transport_ptr_t ptr, void* data, size_t maxlen)
 	return recv(sockfd, data, maxlen, 0);
 }
 
-int
-ncot_connection_authenticate_server(struct ncot_connection *connection)
+struct ncot_connection_list*
+ncot_connection_list_new()
 {
-	int err;
-	int res;
-	err = gnutls_init(&connection->session, GNUTLS_CLIENT);
-	GNUTLS_ERROR(err, "Error during gnutls_init()");
-
-	err = gnutls_psk_allocate_client_credentials(&connection->pskclientcredentials);
-	GNUTLS_ERROR(err, "Error during gnutls_psk_allocate_client_credentials()");
-	connection->pskclientcredentialsallocated = 1;
-	connection->key.size = strlen(SECRET_KEY);
-	connection->key.data = malloc(connection->key.size);
-	memcpy(connection->key.data, SECRET_KEY, connection->key.size);
-	res = gnutls_psk_set_client_credentials(connection->pskclientcredentials, "Alice", &connection->key, GNUTLS_PSK_KEY_RAW);
-	memset(connection->key.data, 0, connection->key.size);
-	free(connection->key.data);
-	connection->key.data = NULL;
-	connection->key.size = 0;
-	GNUTLS_ERROR(res, "Error during gnutls_psk_set_client_credentials()");
-
-	res = gnutls_credentials_set(connection->session, GNUTLS_CRD_PSK, connection->pskclientcredentials);
-	GNUTLS_ERROR(res, "Error during gnutls_credentials_set()");
-
-	/* As we use only the parts of GnuTLS which are not
-	   polluted by CA stuff, using NONE here makes sure
-	   GnuTLS does not automagically switch in any
-	   algorithms we do not want. */
-/*		gnutls_priority_set_direct(connection->session,	"NONE:+PSK-DH",	NULL);*/
-	res = gnutls_priority_set_direct(connection->session,	"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK", NULL);
-	GNUTLS_ERROR(res, "Error during gnutls_priority_set_direct()");
-
-	gnutls_transport_set_int(connection->session, connection->sd);
-
-	NCOT_DEBUG("Gnutls stuff setup, lets shake hands\n");
-	do {
-		NCOT_DEBUG("Gnutls_handshake connect iteration\n");
-		res = gnutls_handshake(connection->session);
-		NCOT_DEBUG("Gnutls_handshake returned %i \n", res);
-	} while ( res != 0 && !gnutls_error_is_fatal(res) );
-	if (gnutls_error_is_fatal(res)) {
-		GNUTLS_ERROR(res, "Fatal error during TLS handshake.");
-	}
-	NCOT_DEBUG("GnuTLS handshake complete\n");
-	/*gnutls_transport_set_int(connection->session, connection->sd);*/
-	connection->authenticated = 1;
-	return 0;
+	struct ncot_connection_list *connectionlist;
+	connectionlist = calloc(1, sizeof(struct ncot_connection_list));
+	return connectionlist;
 }
 
-int
-ncot_connection_connect(struct ncot_context *context, struct ncot_connection *connection, const char *port, const char *address)
+struct ncot_connection*
+ncot_connection_new()
 {
-	int err;
-	int res;
-	struct addrinfo hints;
-	struct addrinfo *results;
-	struct addrinfo *result;
-	struct sockaddr_in *sockaddr;
-	if (!connection) ERROR_MESSAGE_RETURN("ncot_connection_connect: Invalid argument: connection");
-	if (connection->status == NCOT_CONN_CONNECTED) ERROR_MESSAGE_RETURN("ncot_connection_connect - ERROR: connection still connected, cant connect again\n");
-	if (connection->status == NCOT_CONN_INIT || connection->status == NCOT_CONN_AVAILABLE) {
-		memset(&hints, '\0', sizeof(struct addrinfo));
-		hints.ai_family = AF_INET; /* ip4 for the moment only to simplify*/
-		hints.ai_socktype = SOCK_STREAM;
-#ifdef _WIN32
-		hints.ai_flags = AI_NUMERICHOST; /* for simplicity of this proof of concept */
-#else
-		hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_CANONNAME ; /* for simplicity of this proof of concept */
-#endif
-		res = getaddrinfo(address, port, &hints, &results);
-		if (res != 0) {
-			NCOT_LOG_ERROR("ncot_connection_connect: error in getaddrinfo - %s\n", gai_strerror(res));
-			return -1;
-		}
-		NCOT_DEBUG("ncot_connection_connect: connecting ...\n");
-		for (result = results; result != NULL; result = result->ai_next) {
-			connection->sd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
-			if (connection->sd == -1)
-				continue;
-			if (connect(connection->sd, result->ai_addr, result->ai_addrlen) != -1)
-				break;
-			close(connection->sd);
-		}
-		freeaddrinfo(results);
-		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)");
-		sockaddr = (struct sockaddr_in *)&connection->client;
-		res = inet_aton(address, &sockaddr->sin_addr);
-		sockaddr->sin_port = htons(atoi(port));
-		NCOT_DEBUG("ncot_connection_connect: connect successful (after getaddrinfo iteration) %i\n", err);
-		connection->status = NCOT_CONN_CONNECTED;
-		ncot_context_enqueue_connection_connected(context, connection);
-		NCOT_LOG_INFO("ncot_connection_connect: connection connected\n");
-		return 0;
+	struct ncot_connection *connection;
+	connection = calloc(1, sizeof(struct ncot_connection));
+	if (connection) {
+		connection->chunksize = NCOT_DEFAULT_CHUNKSIZE;
+		connection->readpointer = connection->readbuffer;
 	}
+	return connection;
+}
+
+struct ncot_connection*
+ncot_connection_new_from_json(struct json_object *jsonobj)
+{
+}
+
+struct ncot_connection_list*
+ncot_connections_new_from_json(struct json_object *jsonobj)
+{
+	struct ncot_connection_list *connectionlist = NULL;
+	struct ncot_connection_list *returnlist = NULL;
+	struct json_object *jsonnode;
+	int numconnections;
+	int i;
+	numconnections = json_object_array_length(jsonobj);
+	for (i=0; i<numconnections; i++) {
+		jsonnode = json_object_array_get_idx(jsonobj, i);
+		connectionlist = ncot_connection_list_new();
+		RETURN_ZERO_IF_NULL(connectionlist, "ncot_connection_new_from_json: out of memory");
+		connectionlist->connection = ncot_connection_new();
+		if (!connectionlist->connection) {
+			NCOT_LOG_ERROR("ncot_connection_new_from_json: out of memory");
+			free(connectionlist);
+			return NULL;
+		}
+		ncot_connection_init(connectionlist->connection, NCOT_CONN_NODE);
+		DL_APPEND(returnlist, connectionlist);
+	}
+	return returnlist;
+
+}
+
+void
+ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_type type)
+{
+	if (connection)
+	{
+		connection->type = type;
+		connection->status = NCOT_CONN_INIT;
+		connection->pskclientcredentialsallocated = 0;
+		connection->pskservercredentialsallocated = 0;
+	}
+}
+
+#undef DEBUG
+#define DEBUG 1
+void
+ncot_connection_free(struct ncot_connection **pconnection)
+{
+	struct ncot_connection *connection;
+	struct ncot_packet *packet;
+	struct ncot_packet *deletepacket;
+	if (pconnection)
+	{
+		connection = *pconnection;
+		if (connection)
+		{
+			packet = connection->readpacketlist;
+			NCOT_DEBUG("ncot_connection_free: 1\n");
+			while (packet) {
+				/*ncot_packet_print(packet);*/
+				NCOT_DEBUG("ncot_connection_free: deleting packet\n");
+				deletepacket = packet;
+				packet = packet->next;
+				LL_DELETE(connection->readpacketlist, deletepacket);
+				ncot_packet_free(&deletepacket);
+			}
+			NCOT_DEBUG("ncot_connection_free: closing connection\n");
+			if (connection->status == NCOT_CONN_CONNECTED) ncot_connection_close(connection);
+			NCOT_DEBUG("ncot_connection_free: freeing connection\n");
+			free(connection);
+			*pconnection = NULL;
+		} else
+			NCOT_LOG_ERROR("Invalid ncot_connection\n");
+	} else
+		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
 }
 
 #ifdef DEBUG
@@ -620,7 +555,6 @@ ncot_connection_close(struct ncot_connection *connection)
 		NCOT_LOG_ERROR("Invalid argument (*connection)\n");
 }
 
-
 /** Every connection belongs to exactly one connection list. So when
  * we make sure that a connection list is responsible for releasing
  * its connection, it should work. Don't free a connection
@@ -645,11 +579,77 @@ ncot_connection_list_free(struct ncot_connection_list **pconnectionlist)
 	}
 }
 
-struct ncot_connection_list*
-ncot_connection_list_new()
+#undef DEBUG
+#define DEBUG 0
+
+/* Saving a connection makes sense only when it has information about
+ * a peer. Do we really need to store own ip-address, port number ?
+ * Don't think so at the moment, but who knows.*/
+void
+ncot_connection_save(struct ncot_connection *connection, struct json_object *parent)
 {
-	struct ncot_connection_list *connectionlist;
-	connectionlist = calloc(1, sizeof(struct ncot_connection_list));
-	return connectionlist;
+	int ret;
+	char *string =  NULL;
+	struct json_object *json;
+	struct sockaddr_in *sockaddr;
+
+	sockaddr = (struct sockaddr_in *)&connection->client;
+	json = json_object_new_string(inet_ntoa(sockaddr->sin_addr));
+	json_object_object_add_ex(parent, "Host", json, JSON_C_OBJECT_KEY_IS_CONSTANT);
+
+	json = json_object_new_int(ntohs(sockaddr->sin_port));
+	json_object_object_add_ex(parent, "Port", json, JSON_C_OBJECT_KEY_IS_CONSTANT);
+
+}
+
+char*
+ncot_connection_get_type_string(struct ncot_connection *connection)
+{
+	char *type;
+	if (!connection) return "<empty>";
+	switch (connection->type) {
+	case NCOT_CONN_CONTROL:
+		type = "CONTROL";
+		break;
+	case NCOT_CONN_NODE:
+		type = "NODE";
+		break;
+	case NCOT_CONN_INCOMING:
+		type = "INCOMING";
+		break;
+	case NCOT_CONN_INITIATE:
+		type = "INITIATE";
+		break;
+	default:
+		type = "<unknwon>";
+	}
+	return type;
+}
+
+char*
+ncot_connection_get_status_string(struct ncot_connection *connection)
+{
+	char *status;
+	if (!connection) return "<empty>";
+	switch (connection->status) {
+	case NCOT_CONN_AVAILABLE:
+		status = "AVAILABLE";
+		break;
+	case NCOT_CONN_CONNECTED:
+		status = "CONNECTED";
+		break;
+	case NCOT_CONN_LISTEN:
+		status = "LISTEN";
+		break;
+	case NCOT_CONN_BOUND:
+		status = "BOUND";
+		break;
+	case NCOT_CONN_INIT:
+		status = "INIT";
+		break;
+	default:
+		status = "<unknown>";
+	}
+	return status;
 }
 

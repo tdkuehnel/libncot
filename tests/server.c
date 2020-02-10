@@ -46,6 +46,7 @@
 
 int accept_one_connection(int port);
 void error_exit(const char *msg);
+void error_exit2(const char *msg, int err);
 // GnuTLS callbacks.
 int psk_creds(gnutls_session_t, const char*, gnutls_datum_t*);
 ssize_t data_push(gnutls_transport_ptr_t, const void*, size_t);
@@ -105,11 +106,14 @@ int main(int argc, char **argv)
 	// Here we allow all 128+ bit ciphers except RC4 and disable SSL3 and TLS1.0.
 	res = gnutls_priority_set_direct(
 		session,
-		"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK",
+//		"SECURE128:-VERS-SSL3.0:-VERS-TLS1.0:-ARCFOUR-128:+PSK:+DHE-PSK",
+//		"NONE:SECURE128:+PSK:+DHE-PSK",
+//		"NONE:+SHA256:+AES-256-CCM:+DHE-PSK",
+		"NONE:+CIPHER-ALL:+KX-ALL:+MAC-ALL:+COMP-ALL:+SIGN-ALL",
 		&error
 		);
 	if (res != GNUTLS_E_SUCCESS) {
-		error_exit("gnutls_priority_set_direct() failed.\n");
+		error_exit2("gnutls_priority_set_direct() failed:", res);
 	}
 
 	// Accept a TCP connection.
@@ -291,5 +295,11 @@ int accept_one_connection(int port)
 void error_exit(const char *msg)
 {
 	printf("ERROR: %s", msg);
+	exit(1);
+}
+
+void error_exit2(const char *msg, int err)
+{
+	printf("ERROR: %s, %s\n", msg, gnutls_strerror(err));
 	exit(1);
 }
