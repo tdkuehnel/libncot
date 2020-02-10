@@ -82,7 +82,7 @@ START_TEST (test_policy_copy_deep)
 
 	ck_assert_str_eq(policy2->brief, "Only user with real names");
 	ck_assert_str_eq(policy2->category, "Authenticity");
-	ck_assert_str_eq(policy2->text, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
+	ck_assert_str_eq((char*)policy2->text, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
 
 	ncot_policy_free(&policy2);
 
@@ -142,7 +142,7 @@ START_TEST (test_policy)
 
 	ck_assert_str_eq(policy->brief, "Only user with real names");
 	ck_assert_str_eq(policy->category, "Authenticity");
-	ck_assert_str_eq(policy->text, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
+	ck_assert_str_eq((char*)policy->text, "This policy is intended for use only if you want to make sure the user interact under their real names and identity.");
 
 	json_tokener_free(tokener);
 	close(fd);

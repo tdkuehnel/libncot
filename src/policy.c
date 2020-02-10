@@ -46,7 +46,7 @@ ncot_policy_copy_deep(struct ncot_policy *policy)
 	}
 	ncot_policy_set_brief(newpolicy, policy->brief);
 	ncot_policy_set_category(newpolicy, policy->category);
-	ncot_policy_set_text(newpolicy, policy->text);
+	ncot_policy_set_text(newpolicy, (char*)policy->text);
 	return newpolicy;
 }
 
@@ -82,7 +82,7 @@ ncot_policy_set_category(struct ncot_policy *policy, char *category)
 
 /** Add text to a policy */
 void
-ncot_policy_set_text(struct ncot_policy *policy, char(*text)[NCOT_POLICY_MAX_TEXT_LENGTH])
+ncot_policy_set_text(struct ncot_policy *policy, char *text)
 {
 	if (!text) return;
 	if (!policy) {

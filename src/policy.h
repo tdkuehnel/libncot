@@ -76,7 +76,7 @@ void ncot_policy_init(struct ncot_policy *policy);
 void ncot_policy_free(struct ncot_policy **ppolicy);
 void ncot_policy_set_brief(struct ncot_policy *policy, char *brief);
 void ncot_policy_set_category(struct ncot_policy *policy, char *category);
-void ncot_policy_set_text(struct ncot_policy *policy,  char(*text)[NCOT_POLICY_MAX_TEXT_LENGTH]);
+void ncot_policy_set_text(struct ncot_policy *policy,  char *text);
 void ncot_policy_save_to_json(struct ncot_policy *policy, struct json_object *parent);
 struct ncot_policy* ncot_policies_new_from_json(struct json_object *jsonobj);
 struct ncot_policy* ncot_policy_copy_deep(struct ncot_policy *policy);
