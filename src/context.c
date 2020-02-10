@@ -361,7 +361,7 @@ ncot_context_add_policy(struct ncot_context *context, struct ncot_policy *policy
 		return;
 	}
 	policyresult = NULL;
-	HASH_FIND_STR(context->policies, policy->text, policyresult);
+	HASH_FIND_STR(context->policies,(char*)policy->text, policyresult);
 	if (policyresult) {
 		NCOT_LOG_WARNING("ncot_context_add_policy: policy with such key (text) already in hashtable, skipping\n");
 		return;

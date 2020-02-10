@@ -19,6 +19,7 @@
 #endif
 
 #define NCOT_SHELL_BUFLEN 2048
+#define NCOT_COMMAND_LINE_LENGTH 256
 #define NCOT_SHELL_HISTORY_MAX_COMMANDS 128
 #define NCOT_MAX_COMMAND_LEN 1024
 
@@ -37,7 +38,7 @@ enum ncot_shell_type {
 
 struct ncot_command_line;
 struct ncot_command_line {
-	char* line;
+	char(* line)[NCOT_COMMAND_LINE_LENGTH];
 	struct ncot_command_line *next;
 	struct ncot_command_line *prev;
 };
@@ -60,7 +61,7 @@ struct ncot_shell {
 	char *promptinteractive;
 
 	/* shell input buffer */
-	char buffer[NCOT_SHELL_BUFLEN];
+	char buffer[NCOT_SHELL_BUFLEN + 1];
 	char *pbuffer;
 
 	/* We provide a struct ncot_packet for convenience */
@@ -84,7 +85,7 @@ struct ncot_shell {
 	int isremote;
 
 	/* Currently to display user interaction text */
-	char interactivetext[NCOT_SHELL_BUFLEN];
+	char interactivetext[NCOT_SHELL_BUFLEN + 1];
 
         /* We hold a current node sometimes */
 	struct ncot_node *currentnode;

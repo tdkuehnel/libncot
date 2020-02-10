@@ -43,7 +43,8 @@
 
 #define NCOT_POLICY_BRIEF_LENGTH 256
 #define NCOT_POLICY_CATEGORY_LENGTH 64
-#define NCOT_POLICY_MAX_TEXT_LEN 2048
+/* #define NCOT_POLICY_MAX_TEXT_LEN 2048 */
+#define NCOT_POLICY_MAX_TEXT_LENGTH 2048
 
 struct ncot_policy;
 /** Policy A policy is to passed around in connection requests and
@@ -63,7 +64,7 @@ struct ncot_policy;
 struct ncot_policy {
 	char brief[NCOT_POLICY_BRIEF_LENGTH]; /* Brief description of the policy */
 	char category[NCOT_POLICY_CATEGORY_LENGTH]; /*Category a policy belongs to */
-	char *text; /* Long description */
+	char(* text)[NCOT_POLICY_MAX_TEXT_LENGTH]; /* Long description */
 	UT_hash_handle hh; /* uthash required */
 	struct ncot_policy *next;
 	struct ncot_policy *prev;
@@ -75,7 +76,7 @@ void ncot_policy_init(struct ncot_policy *policy);
 void ncot_policy_free(struct ncot_policy **ppolicy);
 void ncot_policy_set_brief(struct ncot_policy *policy, char *brief);
 void ncot_policy_set_category(struct ncot_policy *policy, char *category);
-void ncot_policy_set_text(struct ncot_policy *policy, char *text);
+void ncot_policy_set_text(struct ncot_policy *policy,  char(*text)[NCOT_POLICY_MAX_TEXT_LENGTH]);
 void ncot_policy_save_to_json(struct ncot_policy *policy, struct json_object *parent);
 struct ncot_policy* ncot_policies_new_from_json(struct json_object *jsonobj);
 struct ncot_policy* ncot_policy_copy_deep(struct ncot_policy *policy);

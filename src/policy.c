@@ -82,7 +82,7 @@ ncot_policy_set_category(struct ncot_policy *policy, char *category)
 
 /** Add text to a policy */
 void
-ncot_policy_set_text(struct ncot_policy *policy, char *text)
+ncot_policy_set_text(struct ncot_policy *policy, char(*text)[NCOT_POLICY_MAX_TEXT_LENGTH])
 {
 	if (!text) return;
 	if (!policy) {
@@ -91,8 +91,9 @@ ncot_policy_set_text(struct ncot_policy *policy, char *text)
 	}
 	if (policy->text) free(policy->text);
 	policy->text = NULL;
-	policy->text = calloc(1, strlen(text) + 1);
-	strncpy(policy->text, text, strlen(text));
+	policy->text = calloc(1, NCOT_POLICY_MAX_TEXT_LENGTH + 1);
+	strncpy((char*)policy->text, (char*)text, NCOT_POLICY_MAX_TEXT_LENGTH);
+	*policy->text[NCOT_POLICY_MAX_TEXT_LENGTH] = '\0';
 	return;
 }
 
@@ -111,7 +112,7 @@ ncot_policy_save_to_json(struct ncot_policy *policy, struct json_object *parent)
 	json_object_object_add_ex(policy->json, "brief", jsonobj, JSON_C_OBJECT_KEY_IS_CONSTANT);
 	jsonobj = json_object_new_string(policy->category);
 	json_object_object_add_ex(policy->json, "category", jsonobj, JSON_C_OBJECT_KEY_IS_CONSTANT);
-	jsonobj = json_object_new_string(policy->text);
+	jsonobj = json_object_new_string((char*)policy->text);
 	json_object_object_add_ex(policy->json, "text", jsonobj, JSON_C_OBJECT_KEY_IS_CONSTANT);
 	json_object_array_add(parent, policy->json);
 	NCOT_LOG_VERBOSE("ncot_policy_save_to_json: policy saved\n");
@@ -163,13 +164,13 @@ ncot_policies_new_from_json(struct json_object *jsonobj)
 		}
 		string = json_object_get_string(jsontext);
 		slen = json_object_get_string_len(jsontext);
-		if (slen > NCOT_POLICY_MAX_TEXT_LEN) slen = NCOT_POLICY_MAX_TEXT_LEN;
+		if (slen > NCOT_POLICY_MAX_TEXT_LENGTH) slen = NCOT_POLICY_MAX_TEXT_LENGTH;
 		policy->text = malloc(slen + 1);
-		strncpy(policy->text, string, slen);
-		policy->text[slen] = '\0';
+		strncpy((char*)policy->text, string, slen);
+		*policy->text[slen] = '\0';
 
 		policyresult = NULL;
-		HASH_FIND_STR(policylist, policy->text, policyresult);
+		HASH_FIND_STR(policylist, (char*)policy->text, policyresult);
 		if (policyresult) {
 			NCOT_LOG_WARNING("ncot_policies_new_from_json: policy with such key (text) already in hashtable, skipping\n");
 			ncot_policy_free(&policy);

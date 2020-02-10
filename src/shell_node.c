@@ -231,6 +231,7 @@ void
 ncot_shell_node_handle_connect_2(struct ncot_context *context, char *command)
 {
 	struct ncot_shell *shell;
+	char (*p)[NCOT_COMMAND_LINE_LENGTH];
 	shell = context->shell;
 	/* See if we can use the data read from the user. For now we
 	 * read in our port, too */
@@ -239,8 +240,9 @@ ncot_shell_node_handle_connect_2(struct ncot_context *context, char *command)
 		DPRINTF(shell->writefd, "command aborted.\n");
 		return;
 	}
-	shell->subdata = malloc(strlen(command) + 1);
-	strncpy(shell->subdata, command, strlen(command) + 1);
+	p = shell->subdata = malloc(NCOT_COMMAND_LINE_LENGTH + 1);
+	strncpy(shell->subdata, command, NCOT_COMMAND_LINE_LENGTH);
+	*p[NCOT_COMMAND_LINE_LENGTH] = '\0';
 	ncot_shell_handle_interaction(shell, "Enter Port to connect to", ncot_shell_node_handle_connect_3, NULL);
 }
 
