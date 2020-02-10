@@ -85,13 +85,18 @@ START_TEST (test_connection_simple)
 }
 END_TEST
 
+
 int
 test_iterate_io(struct ncot_context *context, fd_set *rfds, fd_set *wfds, int *highestfd)
 {
 	int r;
 	FD_ZERO(rfds); FD_ZERO(wfds);
 	*highestfd = ncot_set_fds(context, rfds, wfds);
+#ifdef _WIN32
+	r = select(0, rfds, wfds, NULL, NULL);
+#else
 	r = pselect(*highestfd + 1, rfds, wfds, NULL, NULL, NULL);
+#endif
 	if (r > 0) {
 		NCOT_DEBUG("log: input/ouput ready\n");
 		ncot_process_fd(context, r, rfds, wfds);

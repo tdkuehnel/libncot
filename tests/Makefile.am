@@ -1,5 +1,10 @@
 TESTS = check_helper check_packet check_node check_connection check_ncot check_shell check_context check_policy check_ring
+
+if SAMPLES
 check_PROGRAMS = check_helper check_ncot check_node check_connection check_packet check_shell check_context check_policy check_ring server client 
+else
+check_PROGRAMS = check_helper check_ncot check_node check_connection check_packet check_shell check_context check_policy check_ring
+endif
 #check_PROGRAMS = check_context server client
 
 #test_sources = ../src/ncot.h ../src/log.c ../src/connection.c ../src/context.c ../src/node.c ../src/packet.c ../src/  ../src/arg.c ../src/init.c ../src/select.c ../src/shell.c ../src/identity.c ../src/shell_context.c ../src/shell_connection.c ../src/shell_identity.c ../src/shell_node.c ../src/shell_connect.c ../src/policy.c ../src/ring.c
@@ -41,9 +46,10 @@ check_ring_SOURCES = check_ring.c $(test_sources)
 check_ring_CFLAGS = @CHECK_CFLAGS@
 check_ring_LDADD = @CHECK_LIBS@ @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@  ../src/libncot.la
 
+if SAMPLES
 server_SOURCES = server.c
 server_LDADD = @GNUTLS_LIBS@
 
 client_SOURCES = client.c
 client_LDADD = @GNUTLS_LIBS@
-
+endif
