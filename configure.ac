@@ -53,6 +53,17 @@ AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$with_doxygen"])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Doxyfile])])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Makefile])])
     
+# ossp-uuid appears under uuid in msys2-mingw64(32?)
+AC_ARG_WITH([plainuuid],
+	AS_HELP_STRING([--with-plainuuid],
+	[under msys2/mingw our handcrafted ossp-uuid appears as plain uuid through pkg-config])
+	       )
+	
+AS_IF([test "x$with_plainuuid" = "xyes"],
+	    [PKG_CHECK_MODULES([UUID], [uuid >= 1.6.2])],
+	    [PKG_CHECK_MODULES([UUID], [ossp-uuid >= 1.6.2])]
+)
+
 # Samples currently work only under Linux
 AC_ARG_ENABLE([samples],
 	AS_HELP_STRING([--enable-samples],
