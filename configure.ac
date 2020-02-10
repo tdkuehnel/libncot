@@ -57,13 +57,8 @@ AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Makefile])])
 AC_ARG_WITH([plainuuid],
 	AS_HELP_STRING([--with-plainuuid],
 	[under msys2/mingw our handcrafted ossp-uuid appears as plain uuid through pkg-config])
-	       )
-	
-AS_IF([test "x$with_plainuuid" = "xyes"],
-	    [PKG_CHECK_MODULES([UUID], [uuid >= 1.6.2])],
-	    [PKG_CHECK_MODULES([UUID], [ossp-uuid >= 1.6.2])]
 )
-
+	
 # Samples currently work only under Linux
 AC_ARG_ENABLE([samples],
 	AS_HELP_STRING([--enable-samples],
@@ -120,9 +115,10 @@ AC_LIBTOOL_WIN32_DLL
 # Checks for libraries.
 PKG_CHECK_MODULES([CHECK], [check >= 0.9.8])
 PKG_CHECK_MODULES([POPT], [popt >= 1.16])
-#PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 3.2])
-#PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
-#PKG_CHECK_MODULES([LIBRESSL], [libtls >= 18.1.0])
+AS_IF([test "x$with_plainuuid" = "xyes"],
+	    [PKG_CHECK_MODULES([UUID], [uuid >= 1.6.2])],
+	    [PKG_CHECK_MODULES([UUID], [ossp-uuid >= 1.6.2])]
+)
 PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.5.8 ])
 PKG_CHECK_MODULES([JSONC], [json-c >= 0.12 ])
 AC_SUBST([GNUTLS_CFLAGS])
@@ -151,6 +147,14 @@ echo "Host is: $host"
 echo "=========================================="
 echo "Summary of options:"
 echo
+
+
+if test "xyes" = x"$with_plainuuid"; then
+    result="yes"
+else
+    result="no"
+fi
+echo "use plain uuid as ossp-uuid........... $result"
 
 if test "xfalse" = x"$samples"; then
     result="no"
