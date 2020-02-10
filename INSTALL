@@ -9,6 +9,49 @@ are permitted in any medium without royalty provided the copyright
 notice and this notice are preserved.  This file is offered as-is,
 without warranty of any kind.
 
+Requirements
+==================
+libcheck >= 0.9.8
+libpopt >= 1.16
+
+Building under MSYS2
+====================
+MSYS2 is currently our supported win32/win64 build system. Be sure
+to install the following package-groups and at least one toolchain:
+
+base-devel
+msys2-devel (?)
+mingw-w64-x86_64-popt
+mingw-w64-x86_64-check
+mingw-w64-x86_64-json-c
+mingw-w64-x86_64-gnutls
+mingw-w64-i686-toolchain        for 32 bit
+mingw-w64-x86_64-toolchain      for 64 bit
+
+For clarity:
+
+MSYS2 provides a quite POSIX compatible BUILD system,
+while actually as native as possible win32/64 sofware (the mingw-* packages)
+will be used to build native as possible win32/64 code.
+
+Thats a key point in understanding the MSYS2 concept at all.
+
+Cygwin provides more of a (slow) POSIX emulation layer to build against.
+Usually less code changes needed for a port, but not as native as software
+build against the mingw-* libaries. Mingw in turn is based somehow on Cygwin.
+
+Additionally, under the current MSYS2, the following library has to be compiled
+from source:
+https://www.mirrorservice.org/sites/ftp.ossp.org/pkg/lib/uuid/uuid-1.6.2.tar.gz
+
+In your proper set up MSYS2 environment, the following command should do it:
+
+tar xvzf uuid-1.6.2.tar.gz
+cd uuid-1.6.2
+./configure
+make
+make install
+
 Basic Installation
 ==================
 

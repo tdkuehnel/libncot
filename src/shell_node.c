@@ -13,7 +13,9 @@
 #include <sys/socket.h>
 #endif
 
+#ifdef HAVE_NETDB_H
 #include <netdb.h>
+#endif
 
 
 #include "shell.h"

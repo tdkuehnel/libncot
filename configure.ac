@@ -11,21 +11,58 @@ AC_CONFIG_MACRO_DIR([m4])
 # Enable "automake" to simplify creating makefiles:
 AM_INIT_AUTOMAKE([subdir-objects -Wall -Werror])
 
-AC_CHECK_PROGS([DOXYGEN], [doxygen])
-if test -z "$DOXYGEN"; then
-   AC_MSG_WARN([Doxygen not found - continue without Doxygen support])
-fi
-AC_CHECK_PROGS([DOT], [dot])
-if test -z "$DOT"; then
-   AC_MSG_ERROR([Doxygen needs dot, please install dot first])
-fi
-AC_CHECK_PROGS([PDFLATEX], [pdflatex])
-if test -z "$PDFLATEX"; then
-   AC_MSG_ERROR([Doxygen needs pdflatex program, it is part of TeX http://www.tug.org/texlive/acquire-netinstall.html])
-fi
-AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$DOXYGEN"])
+# Doxygen stuff, hopefully portable between msys2-mingw/linux
+AC_ARG_WITH([doxygen],
+	AS_HELP_STRING([--without-doxygen],
+	[do not build doxygen based documentation]))
+
+AS_IF([test "x$with_doxygen" != "xno"],
+	    [AC_CHECK_PROG([have_doxy], [doxygen], [yes], [no])],
+	    [have_doxy=no])
+
+AS_IF([test "x$with_doxygen" != "xno"],
+	    [AC_CHECK_PROG([have_dot], [dot], [yes], [no])],
+	    [have_dot=no])
+
+AS_IF([test "x$with_doxygen" != "xno"],
+	    [AC_CHECK_PROG([have_pdflatex], [pdflatex], [yes], [no])],
+	    [have_pdflatex=no])
+
+AS_IF([test "x$have_doxy" = "xyes"],
+      [],
+      [AS_IF([test "x$with_doxygen" = "xyes"],
+             [AC_MSG_ERROR([docs build by doxygen requested but doxygen not found])
+      ])
+])
+
+AS_IF([test "x$have_dot" = "xyes"],
+      [],
+      [AS_IF([test "x$with_doxygen" = "xyes"],
+             [AC_MSG_ERROR([docs build by doxygen requested, doxygen needs dot but dot not found])
+      ])
+])
+
+AS_IF([test "x$have_pdflatex" = "xyes"],
+      [],
+      [AS_IF([test "x$with_doxygen" = "xyes"],
+             [AC_MSG_ERROR([docs build by doxygen requested, doxygen needs pdflatex but pdflatex not found])
+      ])
+])
+
+AM_CONDITIONAL([HAVE_DOXYGEN], [test -n "$with_doxygen"])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Doxyfile])])
 AM_COND_IF([HAVE_DOXYGEN], [AC_CONFIG_FILES([docs/Makefile])])
+    
+# Samples currently work only under Linux
+AC_ARG_ENABLE([samples],
+	AS_HELP_STRING([--enable-samples],
+	[Build generic crypto sample programs]),
+[case "${enableval}" in
+  yes) samples=true ;;
+  no)  samples=false ;;
+  *) AC_MSG_ERROR([bad value ${enableval} for --enable-samples]) ;;
+esac],[samples=false])
+AM_CONDITIONAL([SAMPLES], [test x$samples = xtrue])
 
 AC_CONFIG_FILES([Makefile src/Makefile tests/Makefile])
 
@@ -34,31 +71,25 @@ AC_PROG_CC
 AM_PROG_CC_C_O
 AM_PROG_AR
 
+# This is needed for msys2-mingw builds
 LT_INIT([win32-dll])
 
-#AC_ARG_WITH([ossp-uuid],
-#            [AS_HELP_STRING([--without-ossp-uuid],
-#              [win32 does not need ossp-uuid @<:@default=yes@:>@])],
-#            [],
-#            [with_ossp_uuid=yes])
-
-#AS_IF([test "x$with_ossp-uuid" = "xyes"], [
-#   PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
-#])
-
 # Checks for header files.
-# AC_HEADER_STDC
+AC_HEADER_STDC
 AC_CHECK_HEADERS([errno.h fcntl.h stdio.h stdlib.h unistd.h sys/uio.h])
 AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/ioctl.h sys/time.h])
 AC_CHECK_HEADERS([arpa/inet.h netinet/in.h])
 
+# This is a workaround different package names under msys-mingw/linux
 AC_CANONICAL_HOST
 case "$host" in
 	*mingw* | *cygwin*)
-		LT_LDFLAGS="-no-undefined"
+		LT_LDFLAGS="-no-undefined -lws2_32"
+		PKG_CHECK_MODULES([UUID], [uuid >= 0.1])
 		;;
 	*)
 		LT_LDFLAGS=""
+		PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
 		;;
 esac
 
@@ -82,15 +113,9 @@ PKG_CHECK_MODULES([CHECK], [check >= 0.9.8])
 PKG_CHECK_MODULES([POPT], [popt >= 1.16])
 #PKG_CHECK_MODULES([CONFUSE], [libconfuse >= 3.2])
 #PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
-PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
 #PKG_CHECK_MODULES([LIBRESSL], [libtls >= 18.1.0])
 PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.5.8 ])
 PKG_CHECK_MODULES([JSONC], [json-c >= 0.12 ])
-#PKG_CHECK_MODULES([SSH], [libssh >= 0.7.3 ])
-#PKG_CHECK_MODULES([SSH2], [libssh2 >= 1.7.0 ])
-# PKG_CHECK_MODULES([AVUTIL], [libavutil >= 54])
-# AC_SUBST([AVUTIL_CFLAGS])
-# AC_SUBST([AVUTIL_LIBS])
 AC_SUBST([GNUTLS_CFLAGS])
 AC_SUBST([GNUTLS_LIBS])
 AC_SUBST([POPT_CFLAGS])
@@ -99,13 +124,7 @@ AC_SUBST([UUID_CFLAGS])
 AC_SUBST([UUID_LIBS])
 AC_SUBST([JSONC_CFLAGS])
 AC_SUBST([JSONC_LIBS])
-#AC_SUBST([SSH2_CFLAGS])
-#AC_SUBST([SSH2_LIBS])
-#AC_SUBST([SSH_CFLAGS])
-#AC_SUBST([SSH_LIBS])
-#echo "$SSH_LIBS"
-echo "$POPT_LIBS"
-echo "$GNUTLS_LIBS"
+
 # Checks for header files.
 
 # Checks for typedefs, structures, and compiler characteristics.
@@ -114,3 +133,28 @@ echo "$GNUTLS_LIBS"
 
 AC_CHECK_FUNCS([strtol])
 AC_OUTPUT
+
+# Finally, print our results
+
+echo
+echo "=========================================="
+echo "Host is: $host"
+echo "=========================================="
+echo "Summary of options:"
+echo
+
+if test "xfalse" = x"$samples"; then
+    result="no"
+else
+    result="yes"
+fi
+echo "compile samples....................... $result"
+
+if test "xyes" = x"$with_doxygen"; then
+    result="yes"
+else
+    result="no"
+fi
+echo "generate Doxygen based documentation.. $result"
+
+echo "=========================================="
