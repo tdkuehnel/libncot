@@ -245,7 +245,7 @@ main(int argc, char **argv)
 #endif
 		}
 		if (last_signum != 0) {
-			NCOT_LOG(NCOT_LOG_LEVEL_INFO, "Breaking loop due to signal\n");
+ 			NCOT_LOG(NCOT_LOG_LEVEL_INFO, "Breaking loop due to signal\n");
 			break;
 		}
 		/*sleep(1);*/

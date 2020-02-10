@@ -48,7 +48,7 @@ ncot_log_logfile( int level, const char *fmt, ... )
 #else
 /*			fd = open(logfilename, O_APPEND|O_SYNC|O_WRONLY );*/
 			fd = open(logfilename, O_APPEND|O_WRONLY );
- #endif
+#endif
 		} else {
 			fd = creat(logfilename, S_IRWXU);
 		}
@@ -90,7 +90,19 @@ ncot_log_logfile( int level, const char *fmt, ... )
 			va_start(vl, fmt);
 			ret = vsprintf(stringptr, fmt, vl);
 			va_end(vl);
-			if (ret > 0) write(fd, &string, ret);
+			stringptr += ret;
+			/* *stringptr = '\r'; */
+			/* stringptr += 1; */
+			/* *stringptr = '\n'; */
+			/* stringptr += 1; */
+			/* *stringptr = '\0'; */
+			/* stringptr -= 1; */
+			/* *stringptr = '\r'; */
+			/* stringptr += 2; */
+			/* *stringptr = '\0'; */
+			/* stringptr[-1] = '\r'; */
+			/* stringptr[1] = '\0'; */
+			if (ret > 0) write(fd, &string, stringptr - string);
 #else
 			switch (level) {
 			case NCOT_LOG_LEVEL_ERROR:

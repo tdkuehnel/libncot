@@ -67,7 +67,11 @@ START_TEST (test_ncot)
 
 	printf("test_ncot PID is %ld\n", (long) getpid());
 
+#ifdef _WIN32
+	i = system("../src/ncot.exe --pidfile=" PIDFILE_NAME_TEST_NCOT " --logfile=test_ncot.log");
+#else   
 	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_NCOT " --logfile=test_ncot.log");
+#endif
 	ck_assert(i == 0);
 	sleep(1);
 	i = stat(PIDFILE_NAME_TEST_NCOT, &pidfilestat);
