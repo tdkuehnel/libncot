@@ -96,11 +96,9 @@ AC_CANONICAL_HOST
 case "$host" in
 	*mingw* | *cygwin*)
 		LT_LDFLAGS="-no-undefined -lws2_32"
-		PKG_CHECK_MODULES([UUID], [uuid >= 0.1])
 		;;
 	*)
 		LT_LDFLAGS=""
-		PKG_CHECK_MODULES([UUID], [ossp-uuid >= 0.1])
 		;;
 esac
 
