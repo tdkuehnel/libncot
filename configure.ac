@@ -84,7 +84,7 @@ LT_INIT([win32-dll])
 AC_HEADER_STDC
 AC_CHECK_HEADERS([errno.h fcntl.h stdio.h stdlib.h unistd.h sys/uio.h])
 AC_CHECK_HEADERS([sys/select.h sys/socket.h sys/ioctl.h sys/time.h])
-AC_CHECK_HEADERS([arpa/inet.h netinet/in.h])
+AC_CHECK_HEADERS([arpa/inet.h netinet/in.h netdb.h])
 
 # This is a workaround different package names under msys-mingw/linux
 AC_CANONICAL_HOST

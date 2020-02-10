@@ -1,3 +1,5 @@
+#include "autoconfig.h"
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <unistd.h>
@@ -16,7 +18,6 @@
 #ifdef HAVE_NETDB_H
 #include <netdb.h>
 #endif
-
 
 #include "shell.h"
 #include "shell_connection.h"
