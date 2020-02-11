@@ -94,18 +94,18 @@ ncot_shell_push_command(struct ncot_context *context, char *command)
 	if (context->shell->commands < NCOT_SHELL_HISTORY_MAX_COMMANDS) {
 		commandline = malloc(sizeof(struct ncot_command_line));
 		if (!commandline) return;
-		commandline->line = calloc(1, NCOT_COMMAND_LINE_LENGTH);
+		commandline->line = calloc(1, sizeof(*commandline->line));
 		if (!commandline->line) return;
 		strncpy((char*)commandline->line, command, NCOT_COMMAND_LINE_LENGTH);
-		*commandline->line[NCOT_COMMAND_LINE_LENGTH -1] = '\0';
+		(*commandline->line)[NCOT_COMMAND_LINE_LENGTH - 1] = '\0';
 		CDL_PREPEND(context->shell->commandlines, commandline);
 		context->shell->commands++;
 	} else {
 		commandline = context->shell->commandlines->prev;
 		free(commandline->line);
-		commandline->line = malloc(NCOT_COMMAND_LINE_LENGTH);
+		commandline->line = calloc(1, sizeof(*commandline->line));
 		strncpy((char*)commandline->line, command, NCOT_COMMAND_LINE_LENGTH);
-		*commandline->line[NCOT_COMMAND_LINE_LENGTH - 1] = '\0';
+		(*commandline->line)[NCOT_COMMAND_LINE_LENGTH - 1] = '\0';
 		context->shell->commandlines = commandline;
 	}
 }
@@ -229,6 +229,10 @@ ncot_shell_read_input(struct ncot_context *context)
 {
 	struct ncot_shell *shell;
 	int res;
+	if (!context) return -1;
+	if (!context->shell) return -1;
+	if (!context->shell->pbuffer) return -1;
+
 	shell = context->shell;
 	if (shell->type == NCOT_SHELL_TYPE_TTY)
 		res = read(shell->readfd, shell->pbuffer, NCOT_SHELL_BUFLEN - (shell->pbuffer - shell->buffer));

@@ -42,6 +42,7 @@ check_helper
 check_ncot
 check_db
 check_keys
+check_clanguage
 
 .dirstamp
 .deps

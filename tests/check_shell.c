@@ -91,6 +91,7 @@ START_TEST (test_shell)
 	int pipefd[2];
 	int res;
 	ncot_init();
+	/* ncot_log_set_logfile("test_shell.log"); */
 	context = ncot_context_new();
 	res = pipe(pipefd);
 	ck_assert(res == 0);
