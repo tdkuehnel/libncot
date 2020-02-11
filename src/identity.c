@@ -40,7 +40,7 @@ ncot_identity_new_from_json(struct json_object *jsonobj)
 	} else {
 		string = json_object_get_string(jsonvalue);
 		strncpy(identity->name, string, NCOT_IDENTITY_NAME_LENGTH);
-		identity->name[NCOT_IDENTITY_NAME_LENGTH] = '\0';
+		identity->name[NCOT_IDENTITY_NAME_LENGTH - 1] = '\0';
 	}
 	/* Avatar */
 	ret = json_object_object_get_ex(jsonobj, "avatar", &jsonvalue);
@@ -49,7 +49,7 @@ ncot_identity_new_from_json(struct json_object *jsonobj)
 	} else {
 		string = json_object_get_string(jsonvalue);
 		strncpy(identity->avatar, string, NCOT_IDENTITY_AVATAR_LENGTH);
-		identity->avatar[NCOT_IDENTITY_AVATAR_LENGTH] = '\0';
+		identity->avatar[NCOT_IDENTITY_AVATAR_LENGTH - 1] = '\0';
 	}
 	return identity;
 }

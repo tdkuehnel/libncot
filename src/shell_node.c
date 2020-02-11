@@ -240,9 +240,9 @@ ncot_shell_node_handle_connect_2(struct ncot_context *context, char *command)
 		DPRINTF(shell->writefd, "command aborted.\n");
 		return;
 	}
-	p = shell->subdata = malloc(NCOT_COMMAND_LINE_LENGTH + 1);
+	p = shell->subdata = malloc(NCOT_COMMAND_LINE_LENGTH);
 	strncpy(shell->subdata, command, NCOT_COMMAND_LINE_LENGTH);
-	*p[NCOT_COMMAND_LINE_LENGTH] = '\0';
+	*p[NCOT_COMMAND_LINE_LENGTH - 1] = '\0';
 	ncot_shell_handle_interaction(shell, "Enter Port to connect to", ncot_shell_node_handle_connect_3, NULL);
 }
 

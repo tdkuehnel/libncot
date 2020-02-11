@@ -79,7 +79,7 @@ void ncot_shell_identity_handle_name(struct ncot_context *context)
 	ret = uuid_export(context->identity->uuid, UUID_FMT_STR, &string, NULL);
 	if (token) {
 		strncpy(context->identity->name, token, NCOT_IDENTITY_NAME_LENGTH);
-		context->identity->name[NCOT_COMMAND_LINE_LENGTH] = '\0';
+		context->identity->name[NCOT_COMMAND_LINE_LENGTH -1] = '\0';
 		DPRINTF(context->shell->writefd, "Identity %s: name set to %s\n", string, context->identity->name);
 	} else {
 		/* Default is showing the name */

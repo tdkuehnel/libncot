@@ -42,7 +42,7 @@ ncot_shell_handle_interaction(struct ncot_shell *shell, char *text, void (*proce
 	shell->proceed_command = proceed_command;
 	shell->incommand = 1;
 	if (data) shell->data = data; /* Only needed to set once on first call during a sequence */
-	strncpy(shell->interactivetext, text, NCOT_SHELL_BUFLEN);
+	strncpy(shell->interactivetext, text, NCOT_SHELL_BUFLEN); /* We actually have NCOT_SHELL_BUFLEN + 1 space available */
 	shell->interactivetext[NCOT_SHELL_BUFLEN] = '\n';
 	return;
 }
@@ -94,18 +94,18 @@ ncot_shell_push_command(struct ncot_context *context, char *command)
 	if (context->shell->commands < NCOT_SHELL_HISTORY_MAX_COMMANDS) {
 		commandline = malloc(sizeof(struct ncot_command_line));
 		if (!commandline) return;
-		commandline->line = malloc(NCOT_COMMAND_LINE_LENGTH + 1);
-		if (!buffer) return;
+		commandline->line = calloc(1, NCOT_COMMAND_LINE_LENGTH);
+		if (!commandline->line) return;
 		strncpy((char*)commandline->line, command, NCOT_COMMAND_LINE_LENGTH);
-		*commandline->line[NCOT_COMMAND_LINE_LENGTH] = '\0';
+		*commandline->line[NCOT_COMMAND_LINE_LENGTH -1] = '\0';
 		CDL_PREPEND(context->shell->commandlines, commandline);
 		context->shell->commands++;
 	} else {
 		commandline = context->shell->commandlines->prev;
 		free(commandline->line);
-		commandline->line = malloc(NCOT_COMMAND_LINE_LENGTH + 1);
+		commandline->line = malloc(NCOT_COMMAND_LINE_LENGTH);
 		strncpy((char*)commandline->line, command, NCOT_COMMAND_LINE_LENGTH);
-		*commandline->line[NCOT_COMMAND_LINE_LENGTH] = '\0';
+		*commandline->line[NCOT_COMMAND_LINE_LENGTH - 1] = '\0';
 		context->shell->commandlines = commandline;
 	}
 }

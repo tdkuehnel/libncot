@@ -13,7 +13,7 @@ ncot_policy_new()
 void
 ncot_policy_init(struct ncot_policy *policy)
 {
-	strncpy(policy->category, "Default category", strlen("Default category") + 1);
+	strncpy(policy->category, "Default category", NCOT_POLICY_CATEGORY_LENGTH);
 }
 
 void
@@ -91,9 +91,9 @@ ncot_policy_set_text(struct ncot_policy *policy, char *text)
 	}
 	if (policy->text) free(policy->text);
 	policy->text = NULL;
-	policy->text = calloc(1, NCOT_POLICY_MAX_TEXT_LENGTH + 1);
-	strncpy((char*)policy->text, (char*)text, NCOT_POLICY_MAX_TEXT_LENGTH);
-	*policy->text[NCOT_POLICY_MAX_TEXT_LENGTH] = '\0';
+	policy->text = calloc(1, sizeof(*policy->text));
+	strncpy((char*)policy->text, text, NCOT_POLICY_MAX_TEXT_LENGTH);
+	(*policy->text)[NCOT_POLICY_MAX_TEXT_LENGTH - 1] = '\0';
 	return;
 }
 
@@ -146,7 +146,7 @@ ncot_policies_new_from_json(struct json_object *jsonobj)
 		if (!policy) return policy;
 		string = json_object_get_string(jsonbrief);
 		strncpy(policy->brief, string, NCOT_POLICY_BRIEF_LENGTH);
-
+		policy->brief[NCOT_POLICY_BRIEF_LENGTH - 1] = '\0';
 		ret = json_object_object_get_ex(jsonpolicy, "category", &jsoncategory);
 		if (! ret) {
 			NCOT_LOG_WARNING("ncot_policies_new_from_json: no field name \"category\" in json, skipping policy\n");
@@ -155,6 +155,7 @@ ncot_policies_new_from_json(struct json_object *jsonobj)
 		}
 		string = json_object_get_string(jsoncategory);
 		strncpy(policy->category, string, NCOT_POLICY_CATEGORY_LENGTH);
+		policy->category[NCOT_POLICY_CATEGORY_LENGTH - 1] = '\0';
 
 		ret = json_object_object_get_ex(jsonpolicy, "text", &jsontext);
 		if (! ret) {
@@ -165,9 +166,9 @@ ncot_policies_new_from_json(struct json_object *jsonobj)
 		string = json_object_get_string(jsontext);
 		slen = json_object_get_string_len(jsontext);
 		if (slen > NCOT_POLICY_MAX_TEXT_LENGTH) slen = NCOT_POLICY_MAX_TEXT_LENGTH;
-		policy->text = malloc(slen + 1);
-		strncpy((char*)policy->text, string, slen);
-		*policy->text[slen] = '\0';
+		policy->text = malloc(sizeof(*policy->text));
+		strncpy((char*)policy->text, string, NCOT_POLICY_MAX_TEXT_LENGTH);
+		(*policy->text)[NCOT_POLICY_MAX_TEXT_LENGTH] = '\0';
 
 		policyresult = NULL;
 		HASH_FIND_STR(policylist, (char*)policy->text, policyresult);

@@ -1,4 +1,4 @@
-TESTS = check_helper check_packet check_node check_connection check_ncot check_shell check_context check_policy check_ring
+TESTS = check_helper check_packet check_node check_connection check_ncot check_shell check_context check_policy check_ring check_clanguage
 
 if SAMPLES
 check_PROGRAMS = check_helper check_ncot check_node check_connection check_packet check_shell check_context check_policy check_ring server client 
@@ -6,6 +6,8 @@ else
 check_PROGRAMS = check_helper check_ncot check_node check_connection check_packet check_shell check_context check_policy check_ring
 endif
 #check_PROGRAMS = check_context server client
+
+check_PROGRAMS += check_clanguage
 
 #test_sources = ../src/ncot.h ../src/log.c ../src/connection.c ../src/context.c ../src/node.c ../src/packet.c ../src/  ../src/arg.c ../src/init.c ../src/select.c ../src/shell.c ../src/identity.c ../src/shell_context.c ../src/shell_connection.c ../src/shell_identity.c ../src/shell_node.c ../src/shell_connect.c ../src/policy.c ../src/ring.c
 test_sources =
@@ -45,6 +47,10 @@ check_policy_LDADD = @CHECK_LIBS@ @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_L
 check_ring_SOURCES = check_ring.c $(test_sources)
 check_ring_CFLAGS = @CHECK_CFLAGS@
 check_ring_LDADD = @CHECK_LIBS@ @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@  ../src/libncot.la
+
+check_clanguage_SOURCES = check_clanguage.c
+check_clanguage_CFLAGS = @CHECK_CFLAGS@
+check_clanguage_LDADD = @CHECK_LIBS@
 
 if SAMPLES
 server_SOURCES = server.c
