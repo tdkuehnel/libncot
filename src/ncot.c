@@ -97,13 +97,14 @@ win32_socket_setup()
 	SOCKET_ERROR_FAIL(ret, "ncot_socket_pair: listen() %i\n");
 	int len = sizeof(inaddr);
 	getsockname(lst, &addr, &len);
-	fd1=socket(AF_INET, SOCK_STREAM, 0);
+	fd1 = socket(AF_INET, SOCK_STREAM, 0);
 	INVALID_SOCKET_ERROR(fd1, "ncot_socket_pair: socket() %i\n");
 	ret = connect(fd1, &addr, len);
 	SOCKET_ERROR_FAIL(ret, "ncot_socket_pair: connect() %i\n");
 	fd2 = accept(lst, 0, 0);
 	SOCKET_ERROR_FAIL(fd2, "ncot_socket_pair: accept() %i\n");
 	closesocket(lst);
+	printf("win32_socket_setup: succesful\n");
 }
 #endif
 
@@ -141,8 +142,9 @@ main(int argc, char **argv)
 		return 1;
 	}
 	context->arguments = arguments;
-	if (context->arguments->logfile_name[0] != '\0')
+	if (context->arguments->logfile_name) {
 		ncot_log_set_logfile(context->arguments->logfile_name);
+	}
 	ncot_log_set_loglevel(context->arguments->log_level);
 #ifdef _WIN32
 	NCOT_LOG_INFO("%s %s\n", PACKAGE_STRING, "client");
@@ -175,7 +177,7 @@ main(int argc, char **argv)
 		FD_ZERO(&wfds);
 
 #ifdef _WIN32
-		ncot_set_fds(context, &rfds, &wfds);
+		/* ncot_set_fds(context, &rfds, &wfds); */
 		FD_SET(fd2, &rfds);
 		r = select(0, &rfds, &wfds, NULL, NULL);
 #else

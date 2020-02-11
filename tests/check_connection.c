@@ -110,6 +110,7 @@ test_iterate_io(struct ncot_context *context, fd_set *rfds, fd_set *wfds, int *h
 
 START_TEST (test_connection_daemon)
 {
+
 	struct ncot_connection *conn1;
 	struct ncot_connection *conn2;
 	struct ncot_context *context;
@@ -130,8 +131,14 @@ START_TEST (test_connection_daemon)
 	context = ncot_context_new();
 	ncot_context_init(context);
 
+#ifdef _WIN32
+	i = _spawnl(_P_NOWAIT, "..\\src\\ncot.exe", "..\\src\\ncot.exe", "--pidfile=" PIDFILE_NAME_TEST_CONNECTION, "--logfile=test_connection_daemon-ncotd1.log",NULL);
+	/* i = _spawnl(_P_NOWAIT, "..\\src\\ncot.exe", "--pidfile=" PIDFILE_NAME_TEST_CONNECTION,"--logfile=test_connection_daemon-ncotd1.log"); */
+	ck_assert(i >= 0);
+#else
 	i = system("../src/ncot -d --pidfile=" PIDFILE_NAME_TEST_CONNECTION " --logfile=test_connection_daemon-ncotd1.log");
 	ck_assert(i == 0);
+#endif
 	/*sleep(1);*/
 
 	conn2 = context->controlconnection;
