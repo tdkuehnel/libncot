@@ -489,7 +489,7 @@ ncot_connection_init(struct ncot_connection *connection, enum ncot_connection_ty
 }
 
 #undef DEBUG
-#define DEBUG 1
+#define DEBUG 0
 void
 ncot_connection_free(struct ncot_connection **pconnection)
 {

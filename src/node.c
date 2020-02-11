@@ -102,7 +102,7 @@ ncot_node_init(struct ncot_node *node) {
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 1
+#define DEBUG 0
 void
 ncot_node_free(struct ncot_node **pnode) {
 	struct ncot_node *node;
