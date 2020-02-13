@@ -6,6 +6,14 @@
 #include <fcntl.h>
 #include <stdio.h>
 
+#ifdef _WIN32
+#include <winsock2.h>
+#include <ws2tcpip.h>
+#elif __unix__
+#include <sys/socket.h>
+#include <netdb.h>
+#endif
+
 /*#include "../src/config.h"
 #include "../src/helper.h"
 */
@@ -18,6 +26,7 @@
 #include "../src/select.h"
 #include "../src/policy.h"
 #include "../src/ring.h"
+#include "../src/error.h"
 
 #define NELEMS(x)  (sizeof(x) / sizeof((x)[0]))
 
@@ -62,6 +71,7 @@ START_TEST (test_ring_context)
 }
 END_TEST
 
+#define LOCALHOST "127.0.0.1"
 #define PID_FILE_DAEMON_1 "ncotd_01.pid"
 #define PID_FILE_DAEMON_2 "ncotd_02.pid"
 #define PID_FILE_DAEMON_3 "ncotd_03.pid"
@@ -115,10 +125,54 @@ test_ring_cleanup()
 	if (i== 0) system("cat " PID_FILE_DAEMON_1 " | xargs kill");
 }
 
+int
+test_ring_connect(const char *address, const char *port)
+{
+	int err;
+	int res;
+	int sd = 0;
+	struct addrinfo hints;
+	struct addrinfo *results;
+	struct addrinfo *result;
+	struct sockaddr_in sockaddr;
+	memset(&hints, '\0', sizeof(struct addrinfo));
+	hints.ai_family = AF_INET; /* ip4 for the moment only to simplify*/
+	hints.ai_socktype = SOCK_STREAM;
+#ifdef _WIN32
+	hints.ai_flags = AI_NUMERICHOST; /* for simplicity of this proof of concept */
+#else
+	hints.ai_flags = AI_NUMERICHOST | AI_NUMERICSERV | AI_CANONNAME ; /* for simplicity of this proof of concept */
+#endif
+	res = getaddrinfo(address, port, &hints, &results);
+	if (res != 0) {
+		NCOT_LOG_ERROR("test_ring_connect: error in getaddrinfo - %s\n", gai_strerror(res));
+		return -1;
+	}
+	NCOT_LOG_INFO("test_ring_connect: connecting ...\n");
+	for (result = results; result != NULL; result = result->ai_next) {
+		NCOT_LOG_INFO("test_ring_connect: iteration\n");
+		sd = socket(result->ai_family, result->ai_socktype, result->ai_protocol);
+		if (sd == -1)
+			continue;
+		if (connect(sd, result->ai_addr, result->ai_addrlen) != -1)
+			break;
+		close(sd);
+	}
+	freeaddrinfo(results);
+	RETURN_FAIL_IF_NULL(result, "test_ring_connect: not successful (after getaddrinfo iteration)");
+	res = inet_pton(AF_INET, address, &sockaddr.sin_addr);
+	sockaddr.sin_port = htons(atoi(port));
+	NCOT_LOG_INFO("ncot_connection_connect: connection connected\n");
+	return sd;
+}
+
 START_TEST (test_ring)
 {
 	struct ncot_context *context;
 	int i;
+	int sd1;
+	int sd2;
+	int sd3;
 	ncot_init(4);
 	ncot_log_set_logfile("test_ring.log");
 	NCOT_LOG_INFO("TEST_RING START\n");
@@ -136,6 +190,14 @@ START_TEST (test_ring)
 	ck_assert(i == 0);
 
 	sleep(1);
+	sd1 = test_ring_connect(LOCALHOST, PORT_DAEMON_1);
+	ck_assert(sd1 > 0);
+	sd2 = test_ring_connect(LOCALHOST, PORT_DAEMON_2);
+	ck_assert(sd2 > 0);
+	sd3 = test_ring_connect(LOCALHOST, PORT_DAEMON_3);
+	ck_assert(sd3 > 0);
+
+	close(sd1);
 
 	ncot_context_free(&context);
 	NCOT_LOG_INFO("TEST_RING END\n");
@@ -153,7 +215,9 @@ Suite * helper_suite(void)
 
 	/* Core test case */
 	tc_core = tcase_create("Core");
-	tcase_set_timeout(tc_core, 12);
+	tcase_set_timeout(tc_core, 12); /* Spawning one ncot client
+					 * takes about 2 secs on
+					 * Linux. (Why so long?) */
 	tcase_add_unchecked_fixture(tc_core, setup, teardown);
 	tcase_add_test(tc_core, test_ring_context);
 	tcase_add_test(tc_core, test_ring);

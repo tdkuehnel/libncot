@@ -122,6 +122,7 @@ ncot_connection_connect(struct ncot_context *context, struct ncot_connection *co
 		freeaddrinfo(results);
 		RETURN_FAIL_IF_NULL(result, "ncot_connection_connect: not successful (after getaddrinfo iteration)");
 		sockaddr = (struct sockaddr_in *)&connection->client;
+		/* Put our own address into client */
 		res = inet_pton(AF_INET, address, &sockaddr->sin_addr);
 		sockaddr->sin_port = htons(atoi(port));
 		NCOT_DEBUG("ncot_connection_connect: connect successful (after getaddrinfo iteration) %i\n", err);
@@ -525,7 +526,7 @@ ncot_connection_free(struct ncot_connection **pconnection)
 #ifdef DEBUG
 #undef DEBUG
 #endif
-#define DEBUG 1
+#define DEBUG 0
 void
 ncot_connection_close(struct ncot_connection *connection)
 {

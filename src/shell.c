@@ -79,7 +79,9 @@ ncot_shell_print_help(struct ncot_context *context, char *command, char *base)
 	DPRINTF(shell->writefd, "Commands: identity\n");
 	DPRINTF(shell->writefd, "          node\n");
 	DPRINTF(shell->writefd, "          connection\n");
+	DPRINTF(shell->writefd, "          connect\n");
 	DPRINTF(shell->writefd, "          context\n");
+	DPRINTF(shell->writefd, "          hexdump\n");
 	DPRINTF(shell->writefd, "          quit\n");
 	DPRINTF(shell->writefd, "          info\n");
 	DPRINTF(shell->writefd, "          help\n");
