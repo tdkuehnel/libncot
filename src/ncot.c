@@ -193,7 +193,10 @@ main(int argc, char **argv)
 				NCOT_LOG(NCOT_LOG_LEVEL_INFO, "log: input/ouput ready\n");
 				NCOT_DEBUG("input/ouput ready\n");
 			}
-			if (ncot_process_fd(context, r, &rfds, &wfds) != 0) break;
+			if (ncot_process_fd(context, r, &rfds, &wfds) != 0) {
+				NCOT_LOG(NCOT_LOG_LEVEL_INFO, "Breaking loop due to shell termination\n");
+				break;
+			}
 		} else {
 #ifdef _WIN32
 			if (r != SOCKET_ERROR)

@@ -112,6 +112,8 @@ ncot_shell_push_command(struct ncot_context *context, char *command)
 
 /** We have a complete command line read in. Let's handle it. Can be
  * interactive requested user input, too. */
+/* Function returns non zero when the quit command was encountered (to
+ * end the shell), zero otherwise */
 int
 ncot_shell_handle_command(struct ncot_context *context, char *command)
 {

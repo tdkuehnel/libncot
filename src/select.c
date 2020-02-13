@@ -101,8 +101,11 @@ ncot_process_fd(struct ncot_context *context, int r, fd_set *rfds, fd_set *wfds)
 	if (context->shell) {
 		if (FD_ISSET(context->shell->readfd, rfds)) {
 			res = ncot_shell_read_input(context);
-			if (!res)
+			if (res == 0) {
 				ncot_shell_print_prompt(context->shell);
+			} else {
+				NCOT_LOG_INFO("ncot_process_fd: shell terminate encountred\n");
+			}
 		}
 	}
 	return res;
