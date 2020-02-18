@@ -73,6 +73,7 @@ ncot_init()
 {
 	ncot_log_init(NCOT_LOG_LEVEL_DEFAULT);
 
+
 	/* During tests we like to log to different files which is set
 	 * up later by ncot_log_set_logfile. This startup message
 	 * pollutes the main test log file. Alternatively we could

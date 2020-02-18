@@ -227,6 +227,9 @@ ncot_log_printf( int level, const char *fmt, ... )
 		vprintf(fmt, vl);
 		va_end(vl);
 	}
+#ifdef _WIN32
+	_flushall();
+#endif
 }
 
 void
@@ -281,6 +284,10 @@ ncot_log_set_logfile(const char *filename)
 	return 0;
 }
 
+#ifdef DEBUG
+#undef DEBUG
+#endif
+#define DEBUG 1
 void
 ncot_log_init(int level) {
 	log_ptr = &ncot_log_printf;
@@ -292,8 +299,9 @@ ncot_log_init(int level) {
 	gettimeofday(&stv, NULL);
 	/* This is a dirty thing of code, but it makes the log time
 	 * stamps start at ~ 0.05. */
+	printf("ncot_log_init\n");
 	while (stv.tv_usec > 50000) gettimeofday(&stv, NULL);
-	NCOT_DEBUG("set log level to: %d\n", ncot_log_level);
+	NCOT_DEBUG("ncot_log_init: set log level to: %d\n", ncot_log_level);
 }
 
 void
