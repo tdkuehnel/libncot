@@ -87,8 +87,8 @@ sig_handler(int signum) {
 	last_signum = signum;
 #ifdef _WIN32
 	send(fd1, &sendbyte, 1, 0);
-#endif
 	Sleep(1);
+#endif
 }
 
 #ifdef _WIN32
