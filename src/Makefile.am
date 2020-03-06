@@ -13,7 +13,8 @@ libncot_la_CFLAGS = @GNUTLS_CFLAGS@ @POPT_CFLAGS@ @UUID_CFLAGS@ @JSONC_CFLAGS@
 libncot_la_LIBADD = @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@ @LT_LDFLAGS@
 
 if SAMPLES
-bin_PROGRAMS = ncot cmdi
+bin_PROGRAMS = ncot client
+#server
 else
 bin_PROGRAMS = ncot
 endif
@@ -22,8 +23,10 @@ ncot_SOURCES = ncot.c
 ncot_LDADD = libncot.la @GNUTLS_LIBS@ @POPT_LIBS@ @UUID_LIBS@ @JSONC_LIBS@
 
 if SAMPLES
-cmdi_SOURCES = interpretersample.c
-cmdi_LDADD = -lm
+client_SOURCES = sshclient.c sshconnect.c
+client_LDADD = -lm
+#server_SOURCES = sshserver.c
+#server_LDADD = -lm
 endif
 
 
