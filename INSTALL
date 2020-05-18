@@ -13,6 +13,9 @@ Requirements
 ==================
 libcheck >= 0.9.8
 libpopt >= 1.16
+ossp-uuid >= 1.6.2
+gnutls >= 3.5.8
+json-c >= 0.13.1 - slackbuild for 14.2 on http://www.ncot.de/json-c-net_seeker.tgz
 
 Building under MSYS2
 ====================

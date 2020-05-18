@@ -119,8 +119,8 @@ AS_IF([test "x$with_plainuuid" = "xyes"],
 	    [PKG_CHECK_MODULES([UUID], [uuid >= 1.6.2])],
 	    [PKG_CHECK_MODULES([UUID], [ossp-uuid >= 1.6.2])]
 )
-PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.5.8 ])
-PKG_CHECK_MODULES([JSONC], [json-c >= 0.12 ])
+PKG_CHECK_MODULES([GNUTLS], [gnutls >= 3.4.13 ])
+PKG_CHECK_MODULES([JSONC], [json-c >= 0.13.1 ])
 AC_SUBST([GNUTLS_CFLAGS])
 AC_SUBST([GNUTLS_LIBS])
 AC_SUBST([POPT_CFLAGS])
